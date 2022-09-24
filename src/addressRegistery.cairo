@@ -11,12 +11,18 @@ from starkware.cairo.common.math import (
     assert_not_equal,
 )
 
+const EMPIRIC_ORACLE_ADDRESS = 0x012fadd18ec1a23a160cc46981400160fbf4a7a5eed156c4669e39807265bcd4;
+
 @storage_var
 func governance() -> (owner : felt) {
 }
 
 @storage_var
 func tresuary() -> (dao : felt) {
+}
+
+@storage_var
+func oracle() -> (address : felt) {
 }
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
@@ -34,6 +40,7 @@ func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(governance : felt) {
     Ownable.initializer(governance);
+    oracle.write(EMPIRIC_ORACLE_ADDRESS);
     return();
 }
 
@@ -47,6 +54,12 @@ func get_governance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 func get_tresuary{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (tresuary : felt) {
     let (tresuary_) = tresuary.read();
     return(tresuary_,);
+}
+
+@view
+func get_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
+    let (oracle_) = oracle.read();
+    return(oracle_,);
 }
 
 @external
@@ -65,5 +78,14 @@ func set_new_tresuary_address{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         assert_only_owner();
     }
     tresuary.write(new_tresuary);
+    return();
+}
+
+@external
+func set_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_oracle : felt) -> () {
+    with_attr error_message("Ownable: only owner can call this function") {
+        assert_only_owner();
+    }
+    oracle.write(new_oracle);
     return();
 }
