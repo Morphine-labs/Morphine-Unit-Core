@@ -20,14 +20,19 @@ from starkware.starknet.common.syscalls import (
 )
 
 
+//Complex 
 //TODO: RepayDebt stuff;
+
+// Easy shit
 //TODO: Reentrency protection
 //TODO: Interface stuff
 //TODO: PAUSE contract
 //TODO: Freeze borrowing
-//TODO: Add events
 //TODO: connect with right addressRegisteryInterface
 //TODO: erc20 stuff to add
+//TODO: Add events
+
+//Security Analyze
 //TODO: analyse risk with forcedrepaydebt
 //TODO: analyse mul_div_down risk associated
 //TODO: analyse Precision factor efficience
