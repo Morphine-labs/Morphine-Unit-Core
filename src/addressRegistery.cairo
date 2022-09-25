@@ -25,6 +25,14 @@ func tresuary() -> (dao : felt) {
 func oracle() -> (address : felt) {
 }
 
+@storage_var
+func pool_hash_class(pool_name : felt) -> (res: felt) {
+}
+
+@storage_var
+func morphine_pool_hash(pool_hash_class : felt) -> (token_address : felt){
+}
+
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (owner) = Ownable.owner();
     let (caller) = get_caller_address();
@@ -62,6 +70,18 @@ func get_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
     return(oracle_,);
 }
 
+@view
+func get_pool_hash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool_name : felt) -> (pool_hash: felt) {
+    let (pool_hash) = pool_hash_class.read(pool_name);
+    return(pool_hash,);
+}
+
+@view
+func get_morphine_pool_hash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool_hash_class : felt) -> (pool_hash: felt) {
+    let (pool_hash) = morphine_pool_hash.read(pool_hash_class);
+    return(pool_hash,);
+}
+
 @external
 func set_new_governance_address{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_governance : felt) {
     with_attr error_message("Ownable: only owner can call this function") {
@@ -87,5 +107,17 @@ func set_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
         assert_only_owner();
     }
     oracle.write(new_oracle);
+    return();
+}
+
+@external
+func set_pool_hash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool_name : felt, new_pool_hash : felt) -> () {
+    pool_hash_class.write(pool_name,new_pool_hash);
+    return();
+}
+
+@view
+func set_morphine_pool_hash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool_hash_class : felt, new_token_address : felt) -> () {
+    morphine_pool_hash.write(pool_hash_class,new_token_address);
     return();
 }
