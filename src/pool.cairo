@@ -12,12 +12,25 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 
 from utils.fixedpointmathlib import mul_div_down,
 from utils.safeerc20 import SafeERC20
-from utils.various import mul_permillion, PRECISION
+from utils.various import mul_permillion, PRECISION, SECONDS_PER_YEAR
 
 from starkware.starknet.common.syscalls import (
     get_block_number,
     get_block_timestamp,
 )
+
+
+//TODO: RepayDebt stuff;
+//TODO: Reentrency protection
+//TODO: Interface stuff
+//TODO: PAUSE contract
+//TODO: Freeze borrowing
+//TODO: Add events
+//TODO: connect with right addressRegisteryInterface
+//TODO: erc20 stuff to add
+//TODO: analyse risk with forcedrepaydebt
+//TODO: analyse mul_div_down risk associated
+//TODO: analyse Precision factor efficience
 
 // Events
 
@@ -59,7 +72,7 @@ func slop2() -> (res : Uint256):
 end
 
 @storage_var
-func expected_liquidity() -> (res : Uint256):
+func expected_liquidity_last_update() -> (res : Uint256):
 end
 
 @storage_var
@@ -79,14 +92,12 @@ func borrow_rate() -> (res : Uint256):
 end
 
 @storage_var
-func withdraw_fee() -> (res : Uint256):
+func base_withdraw_fee() -> (res : Uint256):
 end
 
 @storage_var
 func last_updated_timestamp() -> (res : felt):
 end
-
-const SECONDS_PER_YEAR = 31536000;
 
 // Constructor
 
@@ -144,17 +155,17 @@ end
 // Operator stuff
 
 @external
-func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_withdraw_fee: Uint256) {
-    let (is_allowed_amount1_) = uint256_lt(_withdraw_fee, Uint256(PRECISION,0));
-    let (is_allowed_amount2_) = uint256_lt(Uint256(0,0), _withdraw_fee);
+func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_base_withdraw_fee: Uint256) {
+    let (is_allowed_amount1_) = uint256_lt(_base_withdraw_fee, Uint256(PRECISION,0));
+    let (is_allowed_amount2_) = uint256_lt(Uint256(0,0), _base_withdraw_fee);
     with_attr error_message("0 <= withdrawFee <= 1.000.000"){
         assert is_allowed_amount1_ * is_allowed_amount2_ = 1;
     }
-    withdraw_fee.write(_withdraw_fee);
+    base_withdraw_fee.write(_base_withdraw_fee);
 }
 
 @external
-func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_withdraw_fee: Uint256) {
+func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(: Uint256) {
 
 }
 
@@ -186,9 +197,9 @@ func deposit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     SafeERC20.transferFrom(asset_, caller_, this_, _assets);
     ERC20._mint(_receiver, shares_);
 
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = uint256_add(expected_liquidity_, _assets);
-    expected_liquidity.write(new_expected_liqudity_);
+    expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     Deposit.emit(caller_, _receiver, _assets, shares_)
@@ -222,9 +233,9 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     SafeERC20.transferFrom(asset_, caller_, this_, assets_);
     ERC20._mint(_receiver, _shares);
 
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = uint256_add(expected_liquidity_, assets_);
-    expected_liquidity.write(new_expected_liqudity_);
+    expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     Deposit.emit(caller_, _receiver, assets_, _shares);
@@ -237,7 +248,7 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
         _assets : Uint256, _receiver : felt, _owner : felt) -> (shares : Uint256){
     alloc_locals;
     let (shares_) = convertToShares(_assets);
-    let (withdraw_fee_) = withdraw_fee.read();
+    let (withdraw_fee_) = withdrawFee();
     let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
     let (treasury_) = treasury();
@@ -266,9 +277,9 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     SafeERC20.transfer(ERC4626_asset_, _receiver, remaining_assets_);
     SafeERC20.transfer(ERC4626_asset_, treasury_, treasury_fee_);
 
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = uint256_sub(expected_liquidity_, _assets);
-    expected_liquidity.write(new_expected_liqudity_);
+    expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     Withdraw.emit(_owner, _receiver, _assets, shares_);
@@ -281,7 +292,7 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     alloc_locals;
 
     let (assets_) = convertToAssets(_shares);
-    let (withdraw_fee_) = withdraw_fee.read();
+    let (withdraw_fee_) = withdrawFee();
     let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
     let (treasury_) = treasury();
@@ -309,9 +320,9 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     SafeERC20.transfer(ERC4626_asset_, _receiver, remaining_assets_);
     SafeERC20.transfer(ERC4626_asset_, treasury_, treasury_fee_);
 
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = uint256_sub(expected_liquidity_, assets_);
-    expected_liquidity.write(new_expected_liqudity_);
+    expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     Withdraw.emit(_owner, _receiver, assets_, _shares);
@@ -321,8 +332,42 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 
 // Borrower stuff
 
+@external
+func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _borrow_amount: Uint256,
+) {
+    let (caller_) = get_caller_address();
+    let (factory_) = factory();
+    let (is_active_chest_) = IFactory.isActiveChest(factory_);
+    with_attr error_message("not allower caller"){
+        assert is_allowed_to_borrow = 1;
+    }
+    let (ERC4626_asset_) = ERC4626_asset.read();
+    IERC20.safeTransfer(ERC4626_asset_, caller_, _borrow_amount);
+    let (total_borrowed_) = total_borrowed.read();
+    let (new_total_borrowed_) = total_borrowed.read();
+    total_borrowed.write(new_total_borrowed_);
+    emit Borrow(msg.sender, creditAccount, borrowedAmount);
+}
 
+// @external
+// func repayDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+//     _repay_amount: Uint256,
+// ) {
+//     let (caller_) = get_caller_address();
+//     let (factory_) = factory();
+//     let (is_active_chest_) = IFactory.isActiveChest(factory_);
+//     with_attr error_message("not allower caller"){
+//         assert is_allowed_to_borrow = 1;
+//     }
 
+//     let (ERC4626_asset_) = ERC4626_asset.read();
+//     IERC20.safeTransfer(ERC4626_asset_, caller_, _borrow_amount);
+//     let (total_borrowed_) = total_borrowed.read();
+//     let (new_total_borrowed_) = total_borrowed.read();
+//     total_borrowed.write(new_total_borrowed_);
+//     emit Borrow(msg.sender, creditAccount, borrowedAmount);
+// }
 
 //
 // VIEW
@@ -341,8 +386,15 @@ func treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 end
 
 @view
+func factory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (factory : felt):
+    let (address_registery_) = address_registery.read();
+    let (factory_) = IAddressRegistery.factory(address_registery_);
+    return (factory_)
+end
+
+@view
 func maxDeposit(to: felt) -> (maxAssets : Uint256):
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (expected_liquidity_limit_) = expected_liquidity_limit.read();
     let (max_deposit_) = uint256_sub(expected_liquidity_limit_, expected_liquidity_)
     return (max_deposit_)
@@ -394,7 +446,7 @@ end
 @view
 func previewWithdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_assets : Uint256) -> (shares : Uint256):
     alloc_locals
-    let (withdraw_fee_) = withdraw_fee.read();
+    let (withdraw_fee_) = withdrawFee();
     let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
     return convertToShares(remaining_assets_);
@@ -404,7 +456,7 @@ end
 func previewRedeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_shares : Uint256) -> (assets : Uint256):
     alloc_locals;
     let (assets_) = convertToAssets(_shares);
-    let (withdraw_fee_) = withdraw_fee.read();
+    let (withdraw_fee_) = withdrawFee();
     let (treasury_fee_) = mul_permillion(assets_, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(assets_, treasury_fee_);
     return (remaining_assets_);
@@ -467,22 +519,68 @@ end
 
 
 @view
-func totalAssets{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (totalManagedAssets : Uint256):
-    return (Uint256(0, 0))
-end
+func totalAssets{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (totalManagedAssets : Uint256){
+    let (expected_liquidity_last_update_) = expectedLiquidityLastUpdate();
+    let (block_timestamp_) = get_block_timestamp();
+    let (last_updated_timestamp_) = lastUpdatedTimestamp();
+    let delta = block_timestamp_ - last_updated_timestamp_;
+    let (total_borrowed_) = totalBorrowed();
+    let (borrow_rate_) = borrowRate();
+
+        //                                    currentBorrowRate * timeDifference
+        //  interestAccrued = totalBorrow *  ------------------------------------
+        //                                             SECONDS_PER_YEAR
+        //
+
+    let (step1_) = mul_div_down(borrow_rate_, Uint256(delta,0), Uint256(SECONDS_PER_YEAR,0));
+    let (step2_,_) = uint256_mul(total_borrowed_, step1_);
+    let (interest_accrued_,_) = uint256_div(step2_, Uint256(PRECISION,0));
+    let (total_assets_,_) = uint256_add(expected_liquidity_last_update_, interest_accrued_);
+    return (total_assets_)
+}
+
+@view
+func totalBorrowed{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (totalBorrowed : Uint256){
+    let (total_borrowed_) = total_borrowed.read();
+    return (total_borrowed_);
+}
+
+@view
+func borrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowRate : Uint256){
+    let (borrow_rate_) = borrow_rate.read();
+    return (borrow_rate_);
+}
+
+@view
+func lastUpdatedTimestamp{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : felt){
+    let (last_updated_timestamp_) = last_updated_timestamp.read();
+    return (last_updated_timestamp_);
+}
+
+@view
+func expectedLiquidityLastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : felt){
+    let (expected_liquidity_last_update_) = expected_liquidity_last_update.read();
+    return (expected_liquidity_last_update_);
+}
+
+@view
+func expectedLiquidityLimit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : felt){
+    let (expected_liquidity_limit_) = expected_liquidity_limit.read();
+    return (expected_liquidity_limit_);
+}
 
 @view
 func availableLiquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (availableLiquidity : Uint256){
-    let (ERC4626_asset_) = ERC4626_asset.read()
-    let (this_) = get_contract_address()
-    let (available_liquidity_) = IERC20.balance_of(this_)
-    return (available_liquidity_)
+    let (ERC4626_asset_) = ERC4626_asset.read();
+    let (this_) = get_contract_address();
+    let (available_liquidity_) = IERC20.balance_of(this_);
+    return (available_liquidity_);
 }
 
 @view
 func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowRate : Uint256){
     let (available_liquidity_) = availableLiquidity();
-    let (expected_liquidity_) = expected_liquidity.read();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_,Uint256(0,0));
     // prevent from sending token to the pool 
     let (is_expected_liquidity_lt_expected_liquidity_) = uint256_lt(expected_liquidity_, available_liquidity_);
@@ -491,9 +589,9 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
         return base_rate_;
     }
 
-    //      expected_liquidity - available_liquidity
-    // U = -------------------------------------
-    //             expected_liquidity
+    //                          expected_liquidity_last_update - available_liquidity
+    // liquidity_utilization_ = -------------------------------------
+    //                               expected_liquidity_last_update
 
     let (step1_) = uint256_sub(expected_liquidity_, available_liquidity_);
     let (step2_) = uint256_mul(step1_, Uint256(PRECISION,0));
@@ -535,7 +633,25 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
 
 @view
 func withdrawFee() -> (withdrawFee : Uint256):
-    let (withdraw_fee_) = withdraw_fee.read();
+    let (base_withdraw_fee_) = base_withdraw_fee.read();
+    let (available_liquidity_) = availableLiquidity();
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
+    let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_,Uint256(0,0));
+    let (is_expected_liquidity_lt_expected_liquidity_) = uint256_lt(expected_liquidity_, available_liquidity_);
+    if (is_expected_liquidity_nul_ + is_expected_liquidity_lt_expected_liquidity_  != 0) {
+        return Uint256(0,0);
+    }
+
+    //                          expected_liquidity_last_update - available_liquidity
+    // liquidity_utilization = -------------------------------------
+    //                              expected_liquidity_last_update
+
+    let (step1_) = uint256_sub(expected_liquidity_, available_liquidity_);
+    let (step2_) = uint256_mul(step1_, Uint256(PRECISION,0));
+    let (liquidity_utilization_,_) = uint256_mul(step2_, expected_liquidity_);
+
+    // withdraw_fee = * liquidity_utilization * withdraw_fee_base_
+    let (withdraw_fee_) = mul_div_down(liquidity_utilization_, base_withdraw_fee_, Uint256(PRECISION,0))
     return (withdraw_fee_);
 end
 
@@ -546,7 +662,7 @@ end
 
 func update_borrow_rate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(loss : Uint256){
     let (new_expected_liqudity_) = uint256_sub(expected_liquidity_, loss);
-    expected_liquidity.write(new_expected_liqudity_);
+    expected_liquidity_last_update.write(new_expected_liqudity_);
 
     let (new_cumulative_index_) = calculLinearCumulativeIndex();
     cumulative_index.write(new_cumulative_index_);
