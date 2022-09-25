@@ -27,7 +27,7 @@ from src.utils.utils import (
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from src.PreLogic.interfaces.IOraclePriceFeedMixin import IOraclePriceFeedMixin
-from src.interfaces.IDerivativePriceFeed.cairo import IDerivativePriceFeed
+from src.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
 from openzeppelin.token.erc20.IERC20 import IERC20
 
 from starkware.cairo.common.math import assert_not_zero
