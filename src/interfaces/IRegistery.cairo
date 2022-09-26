@@ -17,6 +17,9 @@ namespace IRegistery {
     func getPoolFactory() -> (pool_hash: felt) {
     }
 
+    func getOwner() -> (owner: felt) {
+   }
+
     func getMorphinePoolHash(pool_hash_class: felt) -> (pool_hash: felt) {
     }
 
