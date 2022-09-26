@@ -3,10 +3,10 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
-from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_check, uint256_eq, uint256_lt, uint256_le, uint256_add, uint256_sub
+from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_check, uint256_eq, uint256_lt, uint256_le, uint256_add, uint256_sub, uint256_mul, uint256_unsigned_div_rem
 from starkware.cairo.common.math import assert_not_zero, assert_le
 
-from openzeppelin.token.erc20.library import ERC20
+from openzeppelin.token.erc20.library import ERC20, ERC20_allowances
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard 
 from openzeppelin.security.pausable.library import Pausable 
@@ -15,6 +15,7 @@ from openzeppelin.security.pausable.library import Pausable
 from src.utils.fixedpointmathlib import mul_div_down
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
+from src.interfaces.IRegistery import IRegistery
 
 from starkware.starknet.common.syscalls import (
     get_block_number,
@@ -53,15 +54,19 @@ func BorrowUnfrozen(from_: felt){
 }
 
 @event
-func Borrow(from_: felt, amount: felt){
+func Borrow(from_: felt, amount: Uint256){
 }
 
 @event 
-func NewWithdrawFee(from_: felt, value: felt){
+func RepayDebt(from_: felt, value: Uint256){
 }
 
 @event 
-func NewExpectedLiquidityLimit(from_: felt, value: felt){
+func NewWithdrawFee(from_: felt, value: Uint256){
+}
+
+@event 
+func NewExpectedLiquidityLimit(from_: felt, value: Uint256){
 }
 
 
@@ -79,7 +84,7 @@ func ERC4626_asset() -> (asset: felt){
 }
 
 @storage_var
-func optimal_liquidity_utilization() -> (res : felt){
+func optimal_liquidity_utilization() -> (res : Uint256){
 }
 
 @storage_var
@@ -155,9 +160,9 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
             assert is_optimal_liquidity_utilization_in_range_ * is_base_rate_in_range_ * is_slop1_in_range_ * is_slop2_in_range_ = 1;
         }
 
-        let (decimals) = IERC20.decimals(contract_address=asset);
-        ERC20.initializer(name, symbol, decimals);
-        ERC4626_asset.write(asset);
+        let (decimals_) = IERC20.decimals(_asset);
+        ERC20.initializer(_name, _symbol, decimals_);
+        ERC4626_asset.write(_asset);
 
         address_registery.write(_address_registery);
         optimal_liquidity_utilization.write(_optimal_liquidity_utilization);
@@ -178,12 +183,14 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Pausable.assert_not_paused();
     Pausable._pause();
+    return();
 }
 
 @external
 func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Pausable.assert_paused();
     Pausable._unpause();
+    return();
 }
 
 @external
@@ -245,8 +252,9 @@ func deposit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     }
 
     let (max_deposit_) = maxDeposit(_receiver);
+    let (is_limit_not_exceeded_) = uint256_le(_assets, max_deposit_);
     with_attr error_message("amount exceeds max deposit "){
-        assert_le(_assets, max_deposit_);
+        assert is_limit_not_exceeded_ = 1;
     }
 
     with_attr error_message("Zero address not allowed"){
@@ -260,13 +268,13 @@ func deposit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     ERC20._mint(_receiver, shares_);
 
     let (expected_liquidity_) = expected_liquidity_last_update.read();
-    let (new_expected_liqudity_) = uint256_add(expected_liquidity_, _assets);
+    let (new_expected_liqudity_,_) = uint256_add(expected_liquidity_, _assets);
     expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     ReentrancyGuard._end();
     Deposit.emit(caller_, _receiver, _assets, shares_);
-    return ();
+    return (shares_,);
 }
 
 
@@ -285,9 +293,11 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     }
 
     let (max_mint_) = maxMint(_receiver);
-    with_attr error_message("amount exceeds max mint"){
-        assert_le(_shares, max_mint_);
+    let (is_limit_not_exceeded_) = uint256_le(_shares, max_mint_);
+    with_attr error_message("amount exceeds max deposit "){
+        assert is_limit_not_exceeded_ = 1;
     }
+
 
     with_attr error_message("Zero address not allowed"){
         assert_not_zero(_receiver);
@@ -300,13 +310,13 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     ERC20._mint(_receiver, _shares);
 
     let (expected_liquidity_) = expected_liquidity_last_update.read();
-    let (new_expected_liqudity_) = uint256_add(expected_liquidity_, assets_);
+    let (new_expected_liqudity_,_) = uint256_add(expected_liquidity_, assets_);
     expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0,0));
 
     ReentrancyGuard._end();
     Deposit.emit(caller_, _receiver, assets_, _shares);
-    return (assets_);
+    return (assets_,);
 }
 
 
@@ -329,9 +339,9 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     }
 
     let (max_withdraw_) = maxWithdraw(_receiver);
-
-    with_attr error_message("amount exceeds max withdraw"){
-        assert_le(_assets, max_withdraw_);
+    let (is_limit_not_exceeded_) = uint256_le(_assets, max_withdraw_);
+    with_attr error_message("amount exceeds max deposit "){
+        assert is_limit_not_exceeded_ = 1;
     }
 
     with_attr error_message("Zero address not allowed"){
@@ -354,7 +364,7 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 
     ReentrancyGuard._end();
     Withdraw.emit(_owner, _receiver, _assets, shares_);
-    return (shares_);
+    return (shares_,);
 }
 
 @external
@@ -376,9 +386,9 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     }
 
     let (max_reedem_) = maxRedeem(_receiver);
-
-    with_attr error_message("amount exceeds max withdraw"){
-        assert_le(_shares, max_reedem_);
+    let (is_limit_not_exceeded_) = uint256_le(_shares, max_reedem_);
+    with_attr error_message("amount exceeds max deposit "){
+        assert is_limit_not_exceeded_ = 1;
     }
 
     with_attr error_message("Zero address not allowed"){
@@ -400,7 +410,7 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 
     ReentrancyGuard._end();
     Withdraw.emit(_owner, _receiver, assets_, _shares);
-    return (assets_);
+    return (assets_,);
 }
 
 
@@ -410,6 +420,7 @@ func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrow_amount: Uint256,
 ) {
+    alloc_locals;
     ReentrancyGuard._start();
     Pausable.assert_not_paused();
 
@@ -426,26 +437,35 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     total_borrowed.write(new_total_borrowed_);
     ReentrancyGuard._end();
     Borrow.emit(caller_, _borrow_amount);
+    return();
 }
 
-// @external
-// func repayDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-//     _repay_amount: Uint256,
-// ) {
-//     let (caller_) = get_caller_address();
-//     let (factory_) = factory();
-//     let (is_active_chest_) = IFactory.isActiveChest(factory_);
-//     with_attr error_message("not allower caller"){
-//         assert is_allowed_to_borrow = 1;
-//     }
+@external
+func repayDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _repay_amount: Uint256,
+) {
+    alloc_locals;
+    let (caller_) = get_caller_address();
+    let (factory_) = factory();
 
-//     let (ERC4626_asset_) = ERC4626_asset.read();
-//     IERC20.safeTransfer(ERC4626_asset_, caller_, _borrow_amount);
-//     let (total_borrowed_) = total_borrowed.read();
-//     let (new_total_borrowed_) = total_borrowed.read();
-//     total_borrowed.write(new_total_borrowed_);
-//     emit Borrow(msg.sender, creditAccount, borrowedAmount);
-// }
+    // let (is_active_chest_) = IFactory.isActiveChest(factory_);
+    // with_attr error_message("not allower caller"){
+    //     assert is_active_chest_ = 1;
+    // }
+
+    let (ERC4626_asset_) = ERC4626_asset.read();
+    let (this_) = get_contract_address();
+    SafeERC20.transferFrom(ERC4626_asset_, caller_, this_, _repay_amount);
+
+    let (total_borrowed_) = total_borrowed.read();
+    let (new_total_borrowed_) = uint256_sub(total_borrowed_, _repay_amount);
+    total_borrowed.write(new_total_borrowed_);
+
+
+    update_borrow_rate(Uint256(0,0));
+    RepayDebt.emit(caller_, _repay_amount);
+    return();
+}
 
 //
 // VIEW
@@ -460,40 +480,41 @@ func asset{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() 
 @view
 func treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt){
     let (address_registery_) = address_registery.read();
-    let (treasury_) = IAddressRegistery.treasury(address_registery_);
-    return (treasury_);
+    let (treasury_) = IRegistery.getTreasury(address_registery_);
+    return (treasury_,);
 }
 
 @view
 func factory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (factory : felt){
     let (address_registery_) = address_registery.read();
-    let (factory_) = IAddressRegistery.factory(address_registery_);
-    return (factory_);
+    let (factory_) = IRegistery.getPoolFactory(address_registery_);
+    return (factory_,);
 }
 
 @view
-func maxDeposit(to: felt) -> (maxAssets : Uint256){
+func maxDeposit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_to: felt) -> (maxAssets : Uint256){
     let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (expected_liquidity_limit_) = expected_liquidity_limit.read();
     let (max_deposit_) = uint256_sub(expected_liquidity_limit_, expected_liquidity_);
-    return (max_deposit_);
+    return (max_deposit_,);
 }
 
 @view
-func maxMint(to: felt) -> (maxShares : Uint256){
-    let (max_deposit_) = maxDeposit();
+func maxMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_to: felt) -> (maxShares : Uint256){
+    let (max_deposit_) = maxDeposit(_to);
     let (max_mint_) = convertToShares(max_deposit_);
-    return (max_mint,);
+    return (max_mint_,);
 }
 
 @view
 func maxWithdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_from : felt) -> (maxAssets : Uint256){
-    let (balance_) = ERC20.balance_of(from_);
+    alloc_locals;
+    let (balance_) = ERC20.balance_of(_from);
     let (max_assets_) = convertToAssets(balance_);
     let (available_liquidity_) = availableLiquidity();
-    let (is_enough_liquidity_) = uint256_le(max_assets, available_liquidity_);
+    let (is_enough_liquidity_) = uint256_le(max_assets_, available_liquidity_);
     if(is_enough_liquidity_ == 1 ){
-        return(max_assets_);
+        return(max_assets_,);
     } else {
         return(available_liquidity_,);
     }
@@ -510,7 +531,7 @@ func maxRedeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 @view
 func previewDeposit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _assets : Uint256) -> (shares : Uint256){
-    return convertToShares(assets,);
+    return convertToShares(_assets);
 }
 
 
@@ -524,7 +545,7 @@ func previewMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 func previewWithdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_assets : Uint256) -> (shares : Uint256){
     alloc_locals;
     let (withdraw_fee_) = withdrawFee();
-    let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
+    let (treasury_fee_) = uint256_permillion(_assets, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
     return convertToShares(remaining_assets_);
 }
@@ -534,13 +555,14 @@ func previewRedeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     alloc_locals;
     let (assets_) = convertToAssets(_shares);
     let (withdraw_fee_) = withdrawFee();
-    let (treasury_fee_) = mul_permillion(assets_, withdraw_fee_);
+    let (treasury_fee_) = uint256_permillion(assets_, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(assets_, treasury_fee_);
-    return (remaining_assets_);
+    return (remaining_assets_,);
 }
 
 @view
 func calculLinearCumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulativeIndex : Uint256){
+    alloc_locals;
     let (current_timestamp) = get_block_timestamp();
     let (last_updated_timestamp_) = last_updated_timestamp.read();
     let delta_timestamp_ = current_timestamp - last_updated_timestamp_;
@@ -551,29 +573,29 @@ func calculLinearCumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin
     //  new_cumulative_index  = last_updated_cumulative_index * | 1 + ------------------------------------ |
     //                                                          \              SECONDS_PER_YEAR          /
 
-    let (step1_,_) = uint256_mul(delta_timestamp_, borrow_rate_);
-    let (step2_,_) = uint256_div(step1_, SECONDS_PER_YEAR);
+    let (step1_,_) = uint256_mul(Uint256(delta_timestamp_,0), borrow_rate_);
+    let (step2_,_) = uint256_unsigned_div_rem(step1_, Uint256(SECONDS_PER_YEAR,0));
     let (step3_,_) = uint256_add(step2_, Uint256(PRECISION,0));
     let (step4_,_) = uint256_mul(step3_, last_updated_cumulative_index_);
-    let (new_cumulative_index_,_) = uint256_div(step4_, PRECISION);
-    return (new_cumulative_index_);
+    let (new_cumulative_index_,_) = uint256_unsigned_div_rem(step4_, Uint256(PRECISION,0));
+    return (new_cumulative_index_,);
 }
 
 @view
 func convertToShares{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_assets : Uint256) -> (shares : Uint256){
     alloc_locals;
     with_attr error_message("ERC4626: assets is not a valid Uint256"){
-        uint256_check(assets);
+        uint256_check(_assets);
     }
 
     let (supply_) = ERC20.total_supply();
     let (all_assets) = totalAssets();
     let (supply_is_zero) = uint256_eq(supply_, Uint256(0, 0));
     if (supply_is_zero == TRUE) {
-        return (assets);
+        return (_assets,);
     }
     let (shares_) = mul_div_down(_assets, supply_, all_assets);
-    return (shares_);
+    return (shares_,);
 }
 
 @view
@@ -587,15 +609,16 @@ func convertToAssets{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     let (all_assets_) = totalAssets();
     let (supply_is_zero) = uint256_eq(supply_, Uint256(0, 0));
     if(supply_is_zero == TRUE){
-        return (shares);
+        return (_shares,);
     }
-    let (assets_) = mul_div_down(shares, all_assets_, supply_);
-    return (assets_);
+    let (assets_) = mul_div_down(_shares, all_assets_, supply_);
+    return (assets_,);
 }
 
 
 @view
 func totalAssets{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (totalManagedAssets : Uint256){
+    alloc_locals;
     let (expected_liquidity_last_update_) = expectedLiquidityLastUpdate();
     let (block_timestamp_) = get_block_timestamp();
     let (last_updated_timestamp_) = lastUpdatedTimestamp();
@@ -610,7 +633,7 @@ func totalAssets{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
     let (step1_) = mul_div_down(borrow_rate_, Uint256(delta,0), Uint256(SECONDS_PER_YEAR,0));
     let (step2_,_) = uint256_mul(total_borrowed_, step1_);
-    let (interest_accrued_,_) = uint256_div(step2_, Uint256(PRECISION,0));
+    let (interest_accrued_,_) = uint256_unsigned_div_rem(step2_, Uint256(PRECISION,0));
     let (total_assets_,_) = uint256_add(expected_liquidity_last_update_, interest_accrued_);
     return (total_assets_,);
 }
@@ -634,27 +657,28 @@ func lastUpdatedTimestamp{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, rang
 }
 
 @view
-func expectedLiquidityLastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : felt){
+func expectedLiquidityLastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (expectedLiquidityLastUpdate : Uint256){
     let (expected_liquidity_last_update_) = expected_liquidity_last_update.read();
-    return (expected_liquidity_last_update_);
+    return (expected_liquidity_last_update_,);
 }
 
 @view
-func expectedLiquidityLimit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : felt){
+func expectedLiquidityLimit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (lastUpdatedTimestamp : Uint256){
     let (expected_liquidity_limit_) = expected_liquidity_limit.read();
-    return (expected_liquidity_limit_);
+    return (expected_liquidity_limit_,);
 }
 
 @view
 func availableLiquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (availableLiquidity : Uint256){
     let (ERC4626_asset_) = ERC4626_asset.read();
     let (this_) = get_contract_address();
-    let (available_liquidity_) = IERC20.balance_of(this_);
-    return (available_liquidity_);
+    let (available_liquidity_) = IERC20.balanceOf(ERC4626_asset_, this_);
+    return (available_liquidity_,);
 }
 
 @view
 func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowRate : Uint256){
+    alloc_locals;
     let (available_liquidity_) = availableLiquidity();
     let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_,Uint256(0,0));
@@ -662,7 +686,7 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     let (is_expected_liquidity_lt_expected_liquidity_) = uint256_le(expected_liquidity_, available_liquidity_);
     let (base_rate_) = base_rate.read();
     if (is_expected_liquidity_nul_ + is_expected_liquidity_lt_expected_liquidity_  != 0) {
-        return base_rate_;
+        return (base_rate_,);
     }
 
     //                          expected_liquidity_last_update - available_liquidity
@@ -670,7 +694,7 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     //                               expected_liquidity_last_update
 
     let (step1_) = uint256_sub(expected_liquidity_, available_liquidity_);
-    let (step2_) = uint256_mul(step1_, Uint256(PRECISION,0));
+    let (step2_,_) = uint256_mul(step1_, Uint256(PRECISION,0));
     let (liquidity_utilization_,_) = uint256_mul(step2_, expected_liquidity_);
     let (optimal_liquidity_utilization_) = optimal_liquidity_utilization.read();
     let (is_utilization_lt_optimal_utilization_) = uint256_le(liquidity_utilization_, optimal_liquidity_utilization_);
@@ -684,10 +708,10 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     let (slop1_) = slop1.read();
     if(is_utilization_lt_optimal_utilization_ == 1){
         let (step1_,_) = uint256_mul(liquidity_utilization_, Uint256(PRECISION,0));
-        let (step2_,_) = uint256_div(step1_, optimal_liquidity_utilization_);
+        let (step2_,_) = uint256_unsigned_div_rem(step1_, optimal_liquidity_utilization_);
         let (step3_,_) = uint256_mul(step2_, slop1_);
         let (borrow_rate_,_) = uint256_add(step3_, base_rate_);
-        return (borrow_rate_);
+        return (borrow_rate_,);
     } else {
 
         // if liquidity_utilization_ >= optimal_liquidity_utilization_:
@@ -698,24 +722,25 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
 
         let (slop2_) = slop2.read();
         let (step2_,_) = uint256_mul(Uint256(PRECISION,0), step1_);
-        let (step3_,_) = uint256_sub(Uint256(PRECISION,0), optimal_liquidity_utilization_);
-        let (step4_,_) = uint256_div(step2_, step3_);
+        let (step3_) = uint256_sub(Uint256(PRECISION,0), optimal_liquidity_utilization_);
+        let (step4_,_) = uint256_unsigned_div_rem(step2_, step3_);
         let (step5_,_) = uint256_mul(step4_, slop2_);
         let (step6_,_) = uint256_add(step5_, slop1_);
         let (borrow_rate_,_) = uint256_add(step6_, base_rate_);
-        return(borrow_rate_);
+        return(borrow_rate_,);
     }
 }
 
 @view
-func withdrawFee() -> (withdrawFee : Uint256){
+func withdrawFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (withdrawFee : Uint256){
+    alloc_locals;
     let (base_withdraw_fee_) = base_withdraw_fee.read();
     let (available_liquidity_) = availableLiquidity();
     let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_,Uint256(0,0));
     let (is_expected_liquidity_lt_expected_liquidity_) = uint256_le(expected_liquidity_, available_liquidity_);
     if (is_expected_liquidity_nul_ + is_expected_liquidity_lt_expected_liquidity_  != 0) {
-        return Uint256(0,0);
+        return (Uint256(0,0),);
     }
 
     //                          expected_liquidity_last_update - available_liquidity
@@ -723,12 +748,12 @@ func withdrawFee() -> (withdrawFee : Uint256){
     //                              expected_liquidity_last_update
 
     let (step1_) = uint256_sub(expected_liquidity_, available_liquidity_);
-    let (step2_) = uint256_mul(step1_, Uint256(PRECISION,0));
+    let (step2_,_) = uint256_mul(step1_, Uint256(PRECISION,0));
     let (liquidity_utilization_,_) = uint256_mul(step2_, expected_liquidity_);
 
     // withdraw_fee = * liquidity_utilization * withdraw_fee_base_
     let (withdraw_fee_) = mul_div_down(liquidity_utilization_, base_withdraw_fee_, Uint256(PRECISION,0));
-    return (withdraw_fee_);
+    return (withdraw_fee_,);
 }
 
 
@@ -737,6 +762,7 @@ func withdrawFee() -> (withdrawFee : Uint256){
 //
 
 func update_borrow_rate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(loss : Uint256){
+    let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = uint256_sub(expected_liquidity_, loss);
     expected_liquidity_last_update.write(new_expected_liqudity_);
 
@@ -751,11 +777,11 @@ func update_borrow_rate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
     return ();
 }
 
-func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_owner: felt, spender: felt, subtracted_value: Uint256) -> (){
+func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_owner: felt, _spender: felt, subtracted_value: Uint256) -> (){
         alloc_locals;
 
         // This is vault logic, we place it here to avoid revoked references at callsite
-        if (spender == _owner){
+        if (_spender == _owner){
             return ();
         }
 
@@ -764,13 +790,13 @@ func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuilt
             uint256_check(subtracted_value);
         }
 
-        let (current_allowance: Uint256) = ERC20_allowances.read(_owner=_owner, spender=spender);
+        let (current_allowance: Uint256) = ERC20_allowances.read(_owner, _spender);
 
         with_attr error_message("ERC20: allowance below zero"){
-            let (new_allowance: Uint256) = SafeUint256.sub_le(current_allowance, subtracted_value);
+            let (new_allowance: Uint256) = uint256_sub(current_allowance, subtracted_value);
         }
 
-        ERC20._approve(_owner, spender, new_allowance);
+        ERC20._approve(_owner, _spender, new_allowance);
         return ();
 }
 
@@ -798,42 +824,42 @@ func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuilt
 
 @view
 func name{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (name : felt){
-    let (name) = ERC20.name();
-    return (name);
+    let (name_) = ERC20.name();
+    return (name_,);
 }
 
 @view
 func symbol{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (symbol : felt){
-    let (symbol) = ERC20.symbol();
-    return (symbol);
+    let (symbol_) = ERC20.symbol();
+    return (symbol_,);
 }
 
 @view
 func totalSupply{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         totalSupply : Uint256){
-    let (totalSupply : Uint256) = ERC20.total_supply();
-    return (totalSupply);
+    let (totalSupply_ : Uint256) = ERC20.total_supply();
+    return (totalSupply_,);
 }
 
 @view
 func decimals{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         decimals : felt){
-    let (decimals) = ERC20.decimals();
-    return (decimals);
+    let (decimals_) = ERC20.decimals();
+    return (decimals_,);
 }
 
 @view
 func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         account : felt) -> (balance : Uint256){
-    let (balance : Uint256) = ERC20.balance_of(account);
-    return (balance);
+    let (balance_ : Uint256) = ERC20.balance_of(account);
+    return (balance_,);
 }
 
 @view
 func allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _owner : felt, spender : felt) -> (remaining : Uint256){
-    let (remaining : Uint256) = ERC20.allowance(_owner, spender);
-    return (remaining);
+        _owner : felt, _spender : felt) -> (remaining : Uint256){
+    let (remaining_ : Uint256) = ERC20.allowance(_owner, _spender);
+    return (remaining_,);
 }
 
 // Externals
@@ -842,33 +868,33 @@ func allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 func transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         recipient : felt, amount : Uint256) -> (success : felt){
     ERC20.transfer(recipient, amount);
-    return (TRUE);
+    return (TRUE,);
 }
 
 @external
 func transferFrom{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         sender : felt, recipient : felt, amount : Uint256) -> (success : felt){
     ERC20.transfer_from(sender, recipient, amount);
-    return (TRUE);
+    return (TRUE,);
 }
 
 @external
 func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        spender : felt, amount : Uint256) -> (success : felt){
-    ERC20.approve(spender, amount);
-    return (TRUE);
+        _spender : felt, amount : Uint256) -> (success : felt){
+    ERC20.approve(_spender, amount);
+    return (TRUE,);
 }
 
 @external
 func increaseAllowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        spender : felt, added_value : Uint256) -> (success : felt){
-    ERC20.increase_allowance(spender, added_value);
-    return (TRUE);
+        _spender : felt, added_value : Uint256) -> (success : felt){
+    ERC20.increase_allowance(_spender, added_value);
+    return (TRUE,);
 }
 
 @external
 func decreaseAllowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        spender : felt, subtracted_value : Uint256) -> (success : felt){
-    ERC20.decrease_allowance(spender, subtracted_value);
-    return (TRUE);
+        _spender : felt, subtracted_value : Uint256) -> (success : felt){
+    ERC20.decrease_allowance(_spender, subtracted_value);
+    return (TRUE,);
 }
