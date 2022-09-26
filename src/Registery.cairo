@@ -74,7 +74,11 @@ func getPoolFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
     return(pool_factory_,);
 }
 
-
+@view
+func getOwner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (owner : felt) {
+    let (owner_) = Ownable.owner();
+    return(owner_,);
+}
 
 @view
 func getOracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {

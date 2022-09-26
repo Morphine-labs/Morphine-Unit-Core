@@ -34,10 +34,12 @@ from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.access.ownable.library import Ownable
 
+from src.interfaces.IRegistery import IRegistery
+
 //Storage 
 
 @storage_var
-func addressregistery() -> (address: felt) {
+func registery() -> (address: felt) {
 }
 
 @storage_var
@@ -72,7 +74,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // Protector 
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (owner : felt) = addressRegistery.get_owner();
+    let (registery_contract) = registery.read();
+    let (owner : felt) = IRegistery.getOwner(registery_contract);
     let (caller) = get_caller_address();
     with_attr error_message("Ownable: caller is the zero address") {
         assert_not_zero(caller);
@@ -142,10 +145,6 @@ func removePool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 ) {
     assert_only_owner();
     let (pool_len) = list.read(0);
-    let (is_a_pool : felt) = already_exist(pool_len,_address_registery);
-    with_attr error_message("Pool already exist") {
-        assert is_a_pool = 0;
-    }
     asset.write(_address_registery,0);
     symbol.write(_address_registery,0);
     return();
