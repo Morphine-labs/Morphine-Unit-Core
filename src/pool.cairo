@@ -3,7 +3,8 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
-from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_check, uint256_eq, uint256_lt, uint256_eq, uint256_le
+from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_check, uint256_eq, uint256_lt, uint256_le, uint256_add, uint256_sub
+from starkware.cairo.common.math import assert_not_zero, assert_le
 
 from openzeppelin.token.erc20.library import ERC20
 from openzeppelin.token.erc20.IERC20 import IERC20
@@ -13,7 +14,7 @@ from openzeppelin.security.pausable.library import Pausable
 
 from src.utils.fixedpointmathlib import mul_div_down
 from src.utils.safeerc20 import SafeERC20
-from src.utils.various import mul_permillion, PRECISION, SECONDS_PER_YEAR
+from src.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
 
 from starkware.starknet.common.syscalls import (
     get_block_number,
@@ -145,20 +146,13 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
             assert_not_zero(_address_registery);
         }
 
-        with_attr error_message("Parameter lower than 1.000.000"){
-            assert_le(optimal_liquidity_utilization, PRECISION);
-        }
+        let (is_optimal_liquidity_utilization_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION,0));
+        let (is_base_rate_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION,0));
+        let (is_slop1_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION,0));
+        let (is_slop2_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION,0));
 
-        with_attr error_message("Parameter must be lower than 1.000.000"){
-            assert_le(base_rate, PRECISION);
-        }
-
-        with_attr error_message("Parameter must be lower than 1.000.000"){
-            assert_le(slop1, PRECISION);
-        }
-
-        with_attr error_message("Parameter must be lower than 1.000.000"){
-            assert_le(slop2, PRECISION);
+        with_attr error_message("Parameter out of range"){
+            assert is_optimal_liquidity_utilization_in_range_ * is_base_rate_in_range_ * is_slop1_in_range_ * is_slop2_in_range_ = 1;
         }
 
         let (decimals) = IERC20.decimals(contract_address=asset);
@@ -166,7 +160,6 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
         ERC4626_asset.write(asset);
 
         address_registery.write(_address_registery);
-        ERC4626.initializer(asset, name, symbol);
         optimal_liquidity_utilization.write(_optimal_liquidity_utilization);
         base_rate.write(_base_rate);
         slop1.write(_slop1);
@@ -204,8 +197,8 @@ func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 
 @external
 func unfreezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    assert_paused();
-    Pausable_paused.write(FALSE);
+    assert_borrow_frozen();
+    borrow_frozen.write(FALSE);
 
     let (caller_) = get_caller_address();
     BorrowUnfrozen.emit(caller_);
@@ -326,7 +319,7 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 
     let (shares_) = convertToShares(_assets);
     let (withdraw_fee_) = withdrawFee();
-    let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
+    let (treasury_fee_) = uint256_permillion(_assets, withdraw_fee_);
     let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
     let (treasury_) = treasury();
 
@@ -361,24 +354,24 @@ func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 
     ReentrancyGuard._end();
     Withdraw.emit(_owner, _receiver, _assets, shares_);
-    return (shares);
+    return (shares_);
 }
 
 @external
 func redeem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _shares : Uint256, _receiver : felt, owner : felt) -> (assets : Uint256){
+        _shares : Uint256, _receiver : felt, _owner : felt) -> (assets : Uint256){
     alloc_locals;
     ReentrancyGuard._start();
     Pausable.assert_not_paused();
 
     let (assets_) = convertToAssets(_shares);
     let (withdraw_fee_) = withdrawFee();
-    let (treasury_fee_) = mul_permillion(_assets, withdraw_fee_);
-    let (remaining_assets_) = uint256_sub(_assets, treasury_fee_);
+    let (treasury_fee_) = uint256_permillion(assets_, withdraw_fee_);
+    let (remaining_assets_) = uint256_sub(assets_, treasury_fee_);
     let (treasury_) = treasury();
 
     with_attr error_message("ERC4626: cannot reedem for 0 assets"){
-        let (shares_is_zero) = uint256_eq(shares_, Uint256(0, 0));
+        let (shares_is_zero) = uint256_eq(_shares, Uint256(0, 0));
         assert shares_is_zero = FALSE;
     }
 
@@ -422,17 +415,17 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (caller_) = get_caller_address();
     let (factory_) = factory();
-    let (is_active_chest_) = IFactory.isActiveChest(factory_);
-    with_attr error_message("not allower caller"){
-        assert is_allowed_to_borrow = 1;
-    }
+    // let (is_active_chest_) = IFactory.isActiveChest(factory_);
+    // with_attr error_message("not allower caller"){
+    //     assert is_allowed_to_borrow = 1;
+    // }
     let (ERC4626_asset_) = ERC4626_asset.read();
-    IERC20.safeTransfer(ERC4626_asset_, caller_, _borrow_amount);
+    SafeERC20.transfer(ERC4626_asset_, caller_, _borrow_amount);
     let (total_borrowed_) = total_borrowed.read();
     let (new_total_borrowed_) = total_borrowed.read();
     total_borrowed.write(new_total_borrowed_);
     ReentrancyGuard._end();
-    emit Borrow(caller_, _borrow_amount);
+    Borrow.emit(caller_, _borrow_amount);
 }
 
 // @external
@@ -758,11 +751,11 @@ func update_borrow_rate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
     return ();
 }
 
-func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(owner: felt, spender: felt, subtracted_value: Uint256) -> (){
+func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_owner: felt, spender: felt, subtracted_value: Uint256) -> (){
         alloc_locals;
 
         // This is vault logic, we place it here to avoid revoked references at callsite
-        if (spender == owner){
+        if (spender == _owner){
             return ();
         }
 
@@ -771,13 +764,13 @@ func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuilt
             uint256_check(subtracted_value);
         }
 
-        let (current_allowance: Uint256) = ERC20_allowances.read(owner=owner, spender=spender);
+        let (current_allowance: Uint256) = ERC20_allowances.read(_owner=_owner, spender=spender);
 
         with_attr error_message("ERC20: allowance below zero"){
             let (new_allowance: Uint256) = SafeUint256.sub_le(current_allowance, subtracted_value);
         }
 
-        ERC20._approve(owner, spender, new_allowance);
+        ERC20._approve(_owner, spender, new_allowance);
         return ();
 }
 
@@ -838,8 +831,8 @@ func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
 @view
 func allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        owner : felt, spender : felt) -> (remaining : Uint256){
-    let (remaining : Uint256) = ERC20.allowance(owner, spender);
+        _owner : felt, spender : felt) -> (remaining : Uint256){
+    let (remaining : Uint256) = ERC20.allowance(_owner, spender);
     return (remaining);
 }
 
