@@ -12,6 +12,6 @@ func uint256_permillion{pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, permillion: Uint256
 ) -> (res: Uint256) {
     let (mul, _high) = uint256_mul(x, permillion);
-    let (res) = uint256_div(mul, Uint256(PRECISION, 0));
+    let (res, _) = uint256_unsigned_div_rem(mul, Uint256(PRECISION, 0));
     return (res=res);
 }
