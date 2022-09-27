@@ -27,7 +27,6 @@ from starkware.starknet.common.syscalls import (
 //TODO: RepayDebt stuff;
 
 // Easy shit
-//TODO: Interface stuff
 //TODO: connect with right addressRegisteryInterface
 
 //Security Analyze
