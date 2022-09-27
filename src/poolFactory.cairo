@@ -36,6 +36,16 @@ from openzeppelin.access.ownable.library import Ownable
 
 from src.interfaces.IRegistery import IRegistery
 
+//Struct
+
+struct PoolFactory {
+    id : felt,
+    address : felt,
+    name : felt,
+    symbol : felt,
+    asset : felt,
+}
+
 //Storage 
 
 @storage_var
@@ -43,23 +53,35 @@ func registery() -> (address: felt) {
 }
 
 @storage_var
-func list(pool_len : felt) -> (pool_index: felt) {
+func nb_pool() -> (len: felt) {
 }
 
 @storage_var
-func asset(address : felt) -> (asset : felt) {
+func asset(pool_id : felt) -> (asset : felt) {
 }
 
 @storage_var
-func symbol(address : felt) -> (symbol : felt) {
+func symbol(pool_id : felt) -> (symbol : felt) {
 }
 
 @storage_var
-func name(address : felt) -> (name : felt) {
+func name(pool_id: felt) -> (name : felt) {
+}
+
+@storage_var
+func pool_by_id(pool_id : felt) -> (pool : PoolFactory)  {
 }
 
 @storage_var
 func from_contract_class(contract_class_hash : felt) -> (address: felt) {
+}
+
+@storage_var
+func is_available_asset(assetAddress: felt) -> (is_asset_available: felt) {
+}
+
+@storage_var
+func id_to_available_asset(id: felt) -> (available_asset: felt) {
 }
 
 // Constructor
@@ -89,12 +111,9 @@ func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 // View
 
 @view
-func get_pool_len{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(compteur : felt) -> (pool_len : felt) {
-    let (actual_pool : felt) = list.read(compteur);
-    if(actual_pool == 0) {
-        return(compteur,);
-    }
-    return get_pool_len(compteur=compteur + 1);
+func get_nb_pool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (pool_len : felt) {
+    let (nb : felt) = nb_pool.read();
+    return(nb,);
 }
 
 @view
@@ -121,6 +140,37 @@ func get_address_from_contract_class {syscall_ptr: felt*, pedersen_ptr: HashBuil
     return (actual_address,);
 }
 
+@view
+func get_pool_by_id {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(pool_id : felt) -> (pool_name:felt, pool_symbol : felt, pool_asset : felt) {
+    let (pool : PoolFactory) = pool_by_id.read(pool_id);
+    return (pool.name, pool.symbol, pool.asset);
+}
+
+@view
+func get_pool_factory_by_id {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(pool_id : felt) -> (pool : PoolFactory) {
+    let (actual_pool : PoolFactory) = pool_by_id.read(pool_id);
+    return (actual_pool,);
+}
+
+@view
+func availablePools{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    available_pools_len : felt, available_pools : felt*
+) {
+    alloc_locals;
+    let (local available_pools_len : felt) = nb_pool.read();
+    let (local available_pools: felt*) = alloc();
+    complete_available_pools_tab(available_pools_len , available_pools);
+    return (available_pools_len, available_pools);
+}
+
+@view
+func isAvailableAsset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    asset: felt
+) -> (is_available_asset: felt) {
+    let (is_available_asset_) = is_available_asset.read(asset);
+    return (is_available_asset_,);
+}
+
 // External 
 
 @external
@@ -130,22 +180,41 @@ func addPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _name : felt,
         _symbol : felt,
 ) {
-    let (pool_len) = list.read(0);
-    asset.write(_address_registery,_asset);
-    symbol.write(_address_registery,_symbol);
+
+    assert_only_owner();
+    let (actual_pool_number : felt) = nb_pool.read();
+    name.write(actual_pool_number, _name);
+    asset.write(actual_pool_number, _asset);
+    symbol.write(actual_pool_number, _symbol);
+    setAvailablePool(_asset);
     return();
 }
 
-@external
-func removePool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _address_registery: felt,
-    _asset : felt,
-    _name : felt,
-    _symbol : felt,
+// # Internal
+func complete_available_pools_tab{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    available_pools_len: felt, available_pools: felt*
+) -> () {
+    if (available_pools_len == 0) {
+        return ();
+    }
+    let (asset_: felt) = get_asset(available_pools_len - 1);
+    assert available_pools[0] = asset_;
+    return complete_available_pools_tab(
+        available_pools_len=available_pools_len - 1, available_pools=available_pools + 1
+    );
+}
+
+func setAvailablePool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    asset: felt
 ) {
-    assert_only_owner();
-    let (pool_len) = list.read(0);
-    asset.write(_address_registery,0);
-    symbol.write(_address_registery,0);
-    return();
+    let (is_available_asset_: felt) = is_available_asset.read(asset);
+    if (is_available_asset_ == 1) {
+        return ();
+    } else {
+        is_available_asset.write(asset, 1);
+        let (available_assets_len : felt) = nb_pool.read();
+        id_to_available_asset.write(available_assets_len, asset);
+        nb_pool.write(available_assets_len + 1);
+        return ();
+    }
 }
