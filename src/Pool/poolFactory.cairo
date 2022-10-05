@@ -34,7 +34,7 @@ from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.access.ownable.library import Ownable
 
-from src.interfaces.IRegistery import IRegistery
+from src.IRegistery import IRegistery
 
 //Struct
 
@@ -97,7 +97,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (registery_contract) = registery.read();
-    let (owner : felt) = IRegistery.getOwner(registery_contract);
+    let (owner : felt) = IRegistery.owner(registery_contract);
     let (caller) = get_caller_address();
     with_attr error_message("Ownable: caller is the zero address") {
         assert_not_zero(caller);
