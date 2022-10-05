@@ -35,7 +35,7 @@ func oracle() -> (address : felt) {
 
 @storage_var
 func pool_hash_class() -> (pool_hash_class: felt) {
-
+}
 
 @storage_var
 func integration_manager() -> (pool_hash_class: felt) {
@@ -62,13 +62,13 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 }
 
 @view
-func governance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
+func get_governance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
     let (governance_) = governance.read();
     return(governance_,);
 }
 
 @view
-func treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
+func get_treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
     let (treasury_) = treasury.read();
     return(treasury_,);
 }
@@ -92,7 +92,7 @@ func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() 
 }
 
 @view
-func oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
+func get_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
     let (oracle_) = oracle.read();
     return(oracle_,);
 }
@@ -170,11 +170,9 @@ func setPoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
 @external
 func setIntegrationManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_integration_manager : felt) -> () {
-    with_attr error_message("Ownable: only owner can call this function") { 
+    with_attr error_message("Ownable: only owner can call this function"){ 
         assert_only_owner();
     }
     integration_manager.write(_integration_manager);
     return();
 }
-
-
