@@ -105,7 +105,7 @@ func assetToUsd{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}
         let (is_supported_derivative_asset_) = is_supported_derivative_asset.read(_asset);
         if (isSupportedDerivativeAsset_ == 1) {
             let (derivative_price_feed_: felt) = derivativePriceFeed(_asset);
-            // ????
+            // TODO : WTF
             let (asset_value_: Uint256) = calcul_derivative_value(
                 derivative_price_feed_, _asset, _amount);
             return (asset_value_,);
