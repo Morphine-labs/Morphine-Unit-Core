@@ -7,6 +7,7 @@ from starkware.starknet.common.syscalls import (
 )
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from openzeppelin.token.erc20.IERC20 import IERC20
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES
 
@@ -22,13 +23,14 @@ func borrowed_amount() -> (borrowed_amount: Uint256) {
 }
 
 @storage_var
-func cumulative_index() -> (borrow_info: BorrowInfo) {
+func cumulative_index() -> (borrow_info: Uint256) {
 }
 
 @storage_var
 func since(asset: felt) -> (amount: Uint256) {
 }
 
+// TODO : WTF
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _drip_manager: felt,
@@ -37,7 +39,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     let (block_timestamp_) = get_block_timestamp();
     since.write(block_timestamp_);
     drip_manager.write(_drip_manager);
-    borrowed_amount.write(_borrow_amount);
+    borrowed_amount.write(_borrowed_amount);
     cumulative_index.write(_cumulative_index);
     return();
 }
@@ -47,7 +49,7 @@ func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         _borrowed_amount: Uint256,
         _cumulative_index: Uint256) {
     assert_only_drip_manager();
-    borrowed_amount.write(_borrow_amount);
+    borrowed_amount.write(_borrowed_amount);
     cumulative_index.write(_cumulative_index);
     return();
 }
@@ -85,10 +87,10 @@ func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _to: felt,
         _selector: felt,
         _calldata_len: felt,
-        _calldata: felt*) -> (retdata_size: felt, retdata: felt*) {
+        _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
     assert_only_drip_manager();
-    let (retdata_size: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
-    return(retdata_size, retdata);
+    let (retdata_len: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
+    return(retdata_len, retdata);
 }
 
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){

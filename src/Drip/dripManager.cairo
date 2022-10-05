@@ -76,6 +76,8 @@ func is_allowed_token(token: felt) -> (is_allowed : felt){
 func id_to_allowed_token(token: felt) -> (is_allowed : felt){
 }
 
+    // TODO : WTF Solidty 
+
     // Allowed tokens array
     address[] public override allowedTokens;
 

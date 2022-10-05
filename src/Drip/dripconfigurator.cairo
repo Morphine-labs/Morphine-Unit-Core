@@ -21,11 +21,7 @@ func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
 func allowed_contract_len(contract: felt) -> (is_allowed_contract : felt){
 }
 
-@storage_var
-func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
-}
-
-
+// TODO : WTF
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _drip_manager: felt,
@@ -82,10 +78,10 @@ func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _to: felt,
         _selector: felt,
         _calldata_len: felt,
-        _calldata: felt*) -> (retdata_size: felt, retdata: felt*) {
+        _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
     assert_only_drip_manager();
-    let (retdata_size: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
-    return(retdata_size, retdata);
+    let (retdata_len: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
+    return(retdata_len, retdata);
 }
 
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
