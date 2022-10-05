@@ -14,20 +14,17 @@ from src.utils.various import ALL_ONES
 // Storage
 
 @storage_var
-func drip_manager() -> (drip_manager : felt){
+func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
 }
 
 @storage_var
-func borrowed_amount() -> (borrowed_amount: Uint256) {
+func allowed_contract_len(contract: felt) -> (is_allowed_contract : felt){
 }
 
 @storage_var
-func cumulative_index() -> (borrow_info: BorrowInfo) {
+func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
 }
 
-@storage_var
-func since(asset: felt) -> (amount: Uint256) {
-}
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(

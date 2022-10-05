@@ -6,6 +6,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 
 const PRECISION = 10**6;
 const SECONDS_PER_YEAR = 31536000;
+const ALL_ONES = 2 ** 128 - 1;
 
 
 func uint256_permillion{pedersen_ptr: HashBuiltin*, range_check_ptr}(
