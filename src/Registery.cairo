@@ -14,15 +14,19 @@ from starkware.cairo.common.math import (
 const EMPIRIC_ORACLE_ADDRESS = 0x012fadd18ec1a23a160cc46981400160fbf4a7a5eed156c4669e39807265bcd4;
 
 @storage_var
-func governance() -> (owner : felt) {
+func governance() -> (governance : felt) {
 }
 
 @storage_var
-func treasury() -> (dao : felt) {
+func treasury() -> (treasury : felt) {
 }
 
 @storage_var
-func pool_factory() -> (dao : felt) {
+func pool_factory() -> (pool_factory : felt) {
+}
+
+@storage_var
+func drip_factory() -> (drip_factory : felt) {
 }
 
 @storage_var
@@ -30,12 +34,13 @@ func oracle() -> (address : felt) {
 }
 
 @storage_var
-func pool_hash_class() -> (res: felt) {
-}
+func pool_hash_class() -> (pool_hash_class: felt) {
+
 
 @storage_var
-func morphine_pool_hash() -> (token_address : felt){
+func integration_manager() -> (pool_hash_class: felt) {
 }
+
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (owner) = Ownable.owner();
@@ -57,46 +62,54 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 }
 
 @view
-func getGovernance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
+func governance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
     let (governance_) = governance.read();
     return(governance_,);
 }
 
 @view
-func getTreasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
+func treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
     let (treasury_) = treasury.read();
     return(treasury_,);
 }
 
 @view
-func getPoolFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool_factory : felt) {
+func poolFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool_factory : felt) {
     let (pool_factory_) = pool_factory.read();
     return(pool_factory_,);
 }
 
 @view
-func getOwner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (owner : felt) {
+func dripFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (drip_factory : felt) {
+    let (drip_factory_) = drip_factory.read();
+    return(drip_factory_,);
+}
+
+@view
+func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (owner : felt) {
     let (owner_) = Ownable.owner();
     return(owner_,);
 }
 
 @view
-func getOracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
+func oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
     let (oracle_) = oracle.read();
     return(oracle_,);
 }
 
 @view
-func getPoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool_hash: felt) {
+func poolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool_hash: felt) {
     let (pool_hash) = pool_hash_class.read();
     return(pool_hash,);
 }
 
 @view
-func getMorphinePoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool_hash: felt) {
-    let (pool_hash) = morphine_pool_hash.read();
-    return(pool_hash,);
+func integrationManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (integrationManager: felt) {
+    let (integration_manager_) = integration_manager.read();
+    return(integration_manager_,);
 }
+
+
 
 @external
 func setGovernanceAddress{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_governance : felt) {
@@ -108,6 +121,7 @@ func setGovernanceAddress{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return();
 }
 
+
 @external
 func setTreasuryAddress{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_treasury: felt) {
     with_attr error_message("Ownable: only owner can call this function") {
@@ -118,7 +132,7 @@ func setTreasuryAddress{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 }
 
 @external
-func setPoolFactory_{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_treasury: felt) {
+func setPoolFactory{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_treasury: felt) {
     with_attr error_message("Ownable: only owner can call this function") {
         assert_only_owner();
     }
@@ -126,24 +140,41 @@ func setPoolFactory_{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return();
 }
 
-
 @external
-func setOracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_oracle : felt) -> () {
+func setDripFactory{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_factory: felt) {
     with_attr error_message("Ownable: only owner can call this function") {
         assert_only_owner();
     }
-    oracle.write(new_oracle);
+    drip_factory.write(_drip_factory);
+    return();
+}
+
+
+@external
+func setOracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_oracle : felt) -> () {
+    with_attr error_message("Ownable: only owner can call this function") {
+        assert_only_owner();
+    }
+    oracle.write(_new_oracle);
     return();
 }
 
 @external
-func setPoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_pool_hash : felt) -> () {
-    pool_hash_class.write(new_pool_hash);
+func setPoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_pool_hash : felt) -> () {
+    with_attr error_message("Ownable: only owner can call this function") { 
+        assert_only_owner();
+    }
+    pool_hash_class.write(_new_pool_hash);
     return();
 }
 
-@view
-func setMorphinePoolHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_token_address : felt) -> () {
-    morphine_pool_hash.write(new_token_address);
+@external
+func setIntegrationManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_integration_manager : felt) -> () {
+    with_attr error_message("Ownable: only owner can call this function") { 
+        assert_only_owner();
+    }
+    integration_manager.write(_integration_manager);
     return();
 }
+
+

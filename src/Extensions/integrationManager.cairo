@@ -12,7 +12,7 @@ struct Integration {
 }
 
 @storage_var
-func pool_factory() -> (res: felt) {
+func registery() -> (res: felt) {
 }
 
 // # Integration
@@ -34,10 +34,6 @@ func integration_to_prelogic(integration: Integration) -> (prelogic: felt) {
 }
 
 @storage_var
-func integration_required_fund_level(integration: Integration) -> (res: felt) {
-}
-
-@storage_var
 func is_integrated_contract(contract: felt) -> (res: felt) {
 }
 
@@ -55,43 +51,20 @@ func id_to_available_asset(id: felt) -> (available_asset: felt) {
 func is_available_asset(assetAddress: felt) -> (is_asset_available: felt) {
 }
 
-// # Shares
-
-@storage_var
-func available_shares_length() -> (res: felt) {
-}
-
-@storage_var
-func id_to_available_share(id: felt) -> (res: felt) {
-}
-
-@storage_var
-func is_available_share(assetAddress: felt) -> (res: felt) {
-}
-
-// # External Position
-
-@storage_var
-func available_external_positions_length() -> (res: felt) {
-}
-
-@storage_var
-func id_to_available_external_position(id: felt) -> (external_position: felt) {
-}
-
-@storage_var
-func is_available_external_position(externalPositionAddress: felt) -> (res: felt) {
-}
 
 //
 // Modifiers
 //
 
-func only_pool_factory{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}() {
-    let (pool_factory_) = pool_factory.read();
-    let (caller_) = get_caller_address();
-    with_attr error_message("only_pool_factory: only callable by the vaultFactory") {
-        assert (pool_factory_ - caller_) = 0;
+func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (registery_contract) = registery.read();
+    let (owner : felt) = IRegistery.getOwner(registery_contract);
+    let (caller) = get_caller_address();
+    with_attr error_message("Ownable: caller is the zero address") {
+        assert_not_zero(caller);
+    }
+    with_attr error_message("Ownable: caller is not the owner") {
+        assert owner = caller;
     }
     return ();
 }
@@ -102,9 +75,9 @@ func only_pool_factory{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_che
 
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    pool_factory_address: felt
+    _registery: felt
 ) {
-    pool_factory.write(pool_factory_address);
+    registery.write(_registery);
     return ();
 }
 
@@ -176,7 +149,7 @@ func availableIntegrations{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
 func setAvailableAsset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     asset: felt
 ) {
-    only_pool_factory();
+    assert_only_owner();
     let (is_available_asset_: felt) = is_available_asset.read(asset);
     if (is_available_asset_ == 1) {
         return ();
@@ -208,7 +181,6 @@ func setAvailableIntegration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
             available_integrations_length_, Integration(contract, selector)
         );
         available_integrations_length.write(available_integrations_length_ + 1);
-        integration_required_fund_level.write(Integration(contract, selector), level);
         return ();
     }
 }
