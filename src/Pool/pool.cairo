@@ -15,7 +15,7 @@ from openzeppelin.security.pausable.library import Pausable
 from src.utils.fixedpointmathlib import mul_div_down
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
-from src.interfaces.IRegistery import IRegistery
+from src.IRegistery import IRegistery
 
 from starkware.starknet.common.syscalls import (
     get_block_number,
@@ -230,7 +230,7 @@ func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     assert_only_configurator();
     assert_repay_not_frozen();
     repay_frozen.write(TRUE);
-    repayFrozen.emit();
+    RepayFrozen.emit();
     return ();
 }
 
@@ -240,7 +240,7 @@ func unfreezerepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     assert_repay_frozen();
     repay_frozen.write(FALSE);
     let (caller_) = get_caller_address();
-    repayUnfrozen.emit();
+    RepayUnfrozen.emit();
     return ();
 }
 
@@ -499,15 +499,15 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
     let (is_profit_) = uint256_lt(Uint256(0,0), _profit);
 
-    let (treasury_) = treasury():
+    let (treasury_) = treasury();
     if(is_profit_ == 1){
-        deposit(_profit, treasury_)
+        deposit(_profit, treasury_);
         let (expected_liquidity_last_update_) = expected_liquidity_last_update.read();
         let (new_expected_liqudity_,_) = uint256_add(expected_liquidity_last_update_, _profit); 
-    else{
+    } else {
         let (amount_to_burn_) = convertToShares(_loss);
         let (this_) = get_contract_address();
-        let (treasury_balance_) = IERC20.balanceOf(this_, treasury_)
+        let (treasury_balance_) = IERC20.balanceOf(this_, treasury_);
         let (is_treasury_balance_enough_) = uint256_le(amount_to_burn_, treasury_balance_);
 
         if(is_treasury_balance_enough_ == 0){
@@ -734,7 +734,7 @@ func borrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
 @view
 func cumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowRate : Uint256){
     let (cumulative_index_) = cumulative_index.read();
-    let (new_cumulative_index_) = calculLinearCumulativeIndex(cumulative_index_)
+    let (new_cumulative_index_) = calculLinearCumulativeIndex(cumulative_index_);
     return (new_cumulative_index_,);
 }
 
@@ -925,7 +925,7 @@ func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuilt
     func assert_only_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (caller_) = get_caller_address();
         let (registery_) = registery.read();
-        let (configurator_) = IRegistery.configurator(registery_)
+        let (configurator_) = IRegistery.configurator(registery_);
         with_attr error_message("Pool: caller is not authorized") {
             assert caller_ = configurator_;
         }

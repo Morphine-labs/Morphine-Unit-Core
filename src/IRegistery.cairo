@@ -11,9 +11,6 @@ namespace IRegistery {
     func oracle() -> (oracle: felt) {
     }
 
-    func poolHash() -> (pool_hash: felt) {
-    }
-
     func poolFactory() -> (pool_factory: felt) {
     }
 

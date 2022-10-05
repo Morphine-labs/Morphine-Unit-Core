@@ -26,8 +26,9 @@ from src.utils.utils import (
 )
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from src.PreLogic.interfaces.IOraclePriceFeedMixin import IOraclePriceFeedMixin
+from src.interfaces.IOraclePriceFeedMixin import IOraclePriceFeedMixin
 from src.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
+from src.IRegistery import IRegistery
 from openzeppelin.token.erc20.IERC20 import IERC20
 
 from starkware.cairo.common.math import assert_not_zero
@@ -54,7 +55,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (registery_contract) = registery.read();
-    let (owner : felt) = IRegistery.getOwner(registery_contract);
+    let (owner : felt) = IRegistery.owner(registery_contract);
     let (caller) = get_caller_address();
     with_attr error_message("Ownable: caller is the zero address") {
         assert_not_zero(caller);
@@ -92,25 +93,27 @@ func assetToUsd{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}
         return (Uint256(0, 0),);
     }
     let (registery_ : felt) = registery.read();
-    let (oracle_price_feed_: felt) = IRegistery.oraclePriceFeed(registery_);
-    let (is_supported_primitive_asset_: felt) = IOraclePriceFeed.checkIsSupportedPrimitiveAsset(oracle_price_feed_, _asset);
+    let (oracle_price_feed_: felt) = IRegistery.oracle(registery_);
+    let (is_supported_primitive_asset_: felt) = IOraclePriceFeedMixin.checkIsSupportedPrimitiveAsset(oracle_price_feed_, _asset);
     
     if (is_supported_primitive_asset_ == 1) {
         // Get price from oracle
-        let (asset_value_: Uint256) = IOraclePriceFeed.calcAssetValue(oracle_price_feed_, _asset, _amount);
+        let (asset_value_: Uint256) = IOraclePriceFeedMixin.calcAssetValue(oracle_price_feed_, _asset, _amount);
         return (asset_value_,);
-    else {
+    } else {
         // Derivative (LP or ERC4626)
         let (is_supported_derivative_asset_) = is_supported_derivative_asset.read(_asset);
         if (isSupportedDerivativeAsset_ == 1) {
             let (derivative_price_feed_: felt) = derivativePriceFeed(_asset);
+            // ????
             let (asset_value_: Uint256) = calcul_derivative_value(
                 derivative_price_feed_, _asset, _amount);
             return (asset_value_,);
-        else {
+        } else {
             // not supported asset
-            return(Uint256(0,0),)
+            return(Uint256(0,0),);
         }
+    }
 }
 
 //
