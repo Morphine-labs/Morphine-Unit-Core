@@ -3,8 +3,13 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import get_caller_address
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.math import (
+    assert_not_zero,
+    assert_not_equal,
+)
 
-from src.interfaces.IIntegrationManager import IIntegrationManager
+from src.Extensions.IIntegrationManager import IIntegrationManager
+from src.IRegistery import IRegistery
 
 struct Integration {
     contract: felt,
@@ -58,7 +63,7 @@ func is_available_asset(assetAddress: felt) -> (is_asset_available: felt) {
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (registery_contract) = registery.read();
-    let (owner : felt) = IRegistery.getOwner(registery_contract);
+    let (owner : felt) = IRegistery.owner(registery_contract);
     let (caller) = get_caller_address();
     with_attr error_message("Ownable: caller is the zero address") {
         assert_not_zero(caller);
@@ -141,6 +146,14 @@ func availableIntegrations{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     return (available_integrations_len, available_integrations);
 }
 
+@view
+func numberAvailableAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    available_assets_len: felt
+) {
+    let (available_assets_len: felt,_) = availableAssets();
+    return (available_assets_len,);
+}
+
 //
 // Setters
 //
@@ -166,7 +179,7 @@ func setAvailableAsset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 func setAvailableIntegration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     contract: felt, selector: felt, integration: felt, level: felt
 ) {
-    only_pool_factory();
+    assert_only_owner();
     let (is_available_integration_: felt) = is_available_integration.read(
         Integration(contract, selector)
     );

@@ -36,6 +36,9 @@ namespace IIntegrationManager {
     func availableAssets() -> (available_assets_len: felt, available_assets: felt*) {
     }
 
+    func numberAvailableAssets() -> (number_available_assets: felt) {
+    }
+
     func availableIntegrations() -> (
         available_integrations_len: felt, available_integrations: Integration*
     ) {

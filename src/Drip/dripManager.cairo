@@ -10,6 +10,12 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES
 
+// Structs
+struct CreditManagerOpts {
+    min_borrowed_amount : Uint256,
+    max_borrowed_amount : Uint256,
+    allowed_tokens: felt*,
+}
 
 // Storage
 
@@ -76,17 +82,17 @@ func is_allowed_token(token: felt) -> (is_allowed : felt){
 func id_to_allowed_token(token: felt) -> (is_allowed : felt){
 }
 
-    // TODO : WTF Solidty 
+@storage_var
+func allowed_tokens() -> (allowed_tokens : felt*) {
+}
 
-    // Allowed tokens array
-    address[] public override allowedTokens;
+@storage_var
+func creditAccounts(address : felt) -> (creditAccounts: felt) {
+}
 
-
-
- mapping(address => address) public override creditAccounts;
-
-    // Account manager - provides credit accounts to pool
-    IAccountFactory internal immutable _accountFactory;
+@storage_var
+func acoountFactory() -> (res: felt) {
+}
 
     // Underlying token address
     address public immutable override underlying;
