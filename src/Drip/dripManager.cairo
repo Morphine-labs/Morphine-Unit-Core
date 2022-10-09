@@ -1,14 +1,40 @@
 %lang starknet
 
 from starkware.starknet.common.syscalls import (
+    get_tx_info,
+    get_block_number,
     get_block_timestamp,
+    get_contract_address,
     get_caller_address,
-    call_contract,
 )
+
 from starkware.cairo.common.uint256 import Uint256
+
+from starkware.cairo.common.uint256 import (
+    uint256_sub,
+    uint256_check,
+    uint256_le,
+    uint256_eq,
+    uint256_add,
+    uint256_mul,
+    uint256_unsigned_div_rem,
+)
+from src.utils.utils import (
+    felt_to_uint256,
+    uint256_div,
+    uint256_percent,
+    uint256_mul_low,
+    uint256_pow,
+)
+from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES
+from openzeppelin.token.erc20.IERC20 import IERC20
+
+from starkware.cairo.common.math import assert_not_zero
+
+from openzeppelin.access.ownable.library import Ownable
+
+from src.Pool.IPoolFactory import IPoolFactory
 
 // Structs
 struct CreditManagerOpts {
@@ -43,10 +69,6 @@ func minimum_borrowed_amount() -> (minimum_borrowed_amount : Uint256){
 func maximum_borrowed_amount() -> (maximum_borrowed_amount : Uint256){
 }
 
-@storage_var
-func maximum_borrowed_amount() -> (maximum_borrowed_amount : Uint256){
-}
-
 // Interest fee protocol charges: fee = interest accrues * feeInterest
 @storage_var
 func fee_interest() -> (fee_interest : Uint256){
@@ -71,10 +93,6 @@ func drip_configurator() -> (drip_configurator : felt){
 }
 
 @storage_var
-func drip_configurator() -> (drip_configurator : felt){
-}
-
-@storage_var
 func is_allowed_token(token: felt) -> (is_allowed : felt){
 }
 
@@ -83,93 +101,123 @@ func id_to_allowed_token(token: felt) -> (is_allowed : felt){
 }
 
 @storage_var
-func allowed_tokens() -> (allowed_tokens : felt*) {
+func drip_accounts(address : felt) -> (dripAccounts: felt) {
 }
 
 @storage_var
-func creditAccounts(address : felt) -> (creditAccounts: felt) {
+func drip_facade() -> (dripFacade: felt) {
 }
 
 @storage_var
-func acoountFactory() -> (res: felt) {
+func acoount_factory() -> (address : felt) {
 }
 
-    // Underlying token address
-    address public immutable override underlying;
+@storage_var
+func pool_factory() -> (address : felt) {
+}
 
-    // Address of connected pool
-    address public immutable override poolService;
+@storage_var
+func min_borrowed_amount() -> (min_borrowed_amount : Uint256) {
+}
 
-    // Address of WETH token
-    address public immutable override wethAddress;
+@storage_var
+func max_borrowed_amount() -> (max_borrowed_amount : Uint256) {
+}
+
+@storage_var
+func fee_liquidation() -> (liquidation_fees : Uint256) {
+}
+
+@storage_var
+func liquidation_thresholds(address : felt) -> (liquidationThresholds : Uint256) {
+}
+
+@storage_var
+func token_mask_map() -> (mask : Uint256) {
+}
+
+@storage_var
+func forbiden_token_mask() -> (res: felt) {
+}
+
+@storage_var
+func enabled_tokens_map() -> (res: felt) {
+}
+
+@storage_var
+func fast_check_counter(address : felt) -> (liquidationThresholds : Uint256) {
+}
+
+@storage_var
+func adapter_to_contract(address : felt) -> (contract : felt) {
+}
+
+@storage_var
+func chi_threshold() -> (chi_threshold : Uint256) {
+}
+
+@storage_var
+func hf_check_interval() -> (hf : Uint256) {
+}
+
+const ETH_ADDRESS = 0;
 
     // Address of WETH Gateway
-    address public immutable wethGateway;
+    // address public immutable wethGateway;
 
-    // Minimal borrowed amount per credit account
-    uint256 public override minBorrowedAmount;
 
-    // Maximum aborrowed amount per credit account
-    uint256 public override maxBorrowedAmount;
+// Protector
 
-    // Interest fee protocol charges: fee = interest accrues * feeInterest
-    uint256 public override feeInterest;
+func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    let (caller_) = get_caller_address();
+    let (drip_manager_) = get_contract_address();
+    with_attr error_message("Drip: only callable by drip manger") {
+        assert caller_ = drip_manager_;
+    }
+}
 
-    // Liquidation fee protocol charges: fee = totalValue * feeLiquidation
-    uint256 public override feeLiquidation;
+func adapter_or_facade_only{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    let (caller_ : felt ) = get_caller_address();
+    let (adapter : felt ) = adapter_to_contract.read(caller_);
+    if (adapter == 0){
+        let (facade : felt ) = drip_facade.read();
+        with_attr error_message("Drip: only callable by adapter or facade") {
+            assert caller_ = facade;
+        }
+        return();
+    }
+    return();
+}
 
-    // Miltiplier to get amount which liquidator should pay: amount = totalValue * liquidationDiscount
-    uint256 public override liquidationDiscount;
+func drip_facade_only {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    let (caller_ : felt ) = get_caller_address();
+    let (facade : felt ) = drip_facade.read();
+    with_attr error_message("Drip: only callable by facade") {
+        assert caller_ = facade;
+    }
+    return();
+}
 
-    // Address of creditFacade
-    address public override creditFacade;
+func credit_configurator_only {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    let (caller_ : felt ) = get_caller_address();
+    let (configurator : felt ) = drip_configurator.read();
+    with_attr error_message("Drip: only callable by configurator") {
+        assert caller_ = configurator;
+    }
+    return();
+}
 
-    // Adress of creditConfigurator
-    address public creditConfigurator;
-
-    // Allowed tokens array
-    address[] public override allowedTokens;
-
-    // Allowed contracts list
-    mapping(address => uint256) public override liquidationThresholds;
-
-    // map token address to its mask
-    mapping(address => uint256) public override tokenMasksMap;
-
-    // Mask for forbidden tokens
-    uint256 public override forbidenTokenMask;
-
-    // credit account token enables mask. each bit (in order as tokens stored in allowedTokens array) set 1 if token was enable
-    mapping(address => uint256) public override enabledTokensMap;
-
-    // keeps last block we use fast check. Fast check is not allowed to use more than one time in block
-    mapping(address => uint256) public fastCheckCounter;
-
-    // Allowed adapters list
-    mapping(address => address) public override adapterToContract;
-
-    // Price oracle - uses in evaluation credit account
-    IPriceOracle public override priceOracle;
-
-    // Minimum chi threshold allowed for fast check
-    uint256 public chiThreshold;
-
-    // Maxmimum allowed fast check operations between full health factor checks
-    uint256 public hfCheckInterval;
-
+// Constructor
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _drip_manager: felt,
-        _borrowed_amount: Uint256,
-        _cumulative_index: Uint256) {
-    let (block_timestamp_) = get_block_timestamp();
-    since.write(block_timestamp_);
-    drip_manager.write(_drip_manager);
-    borrowed_amount.write(_borrow_amount);
-    cumulative_index.write(_cumulative_index);
+    _pool_factory: felt,) {
+    pool_factory.write(_pool_factory); 
+    let (underlying_asset : felt) = IPoolFactory.get_asset(_pool_factory);
     return();
 }
+
+// External
 
 @external
 func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
@@ -214,16 +262,8 @@ func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _to: felt,
         _selector: felt,
         _calldata_len: felt,
-        _calldata: felt*) -> (retdata_size: felt, retdata: felt*) {
+        _calldata: felt*) -> (retdata_len : felt, retdata: felt*) {
     assert_only_drip_manager();
     let (retdata_size: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
     return(retdata_size, retdata);
-}
-
-func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
-    let (caller_) = get_caller_address();
-    let (drip_manager_) = drip_manager.read();
-    with_attr error_message("Drip: only callable by drip manger") {
-        assert caller_ = drip_manager_;
-    }
 }

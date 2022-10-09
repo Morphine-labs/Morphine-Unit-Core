@@ -36,15 +36,7 @@ from openzeppelin.access.ownable.library import Ownable
 
 from src.IRegistery import IRegistery
 
-//Struct
-
-struct PoolFactory {
-    id : felt,
-    address : felt,
-    name : felt,
-    symbol : felt,
-    asset : felt,
-}
+from src.Pool.IPoolFactory import PoolFactory
 
 //Storage 
 

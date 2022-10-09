@@ -40,6 +40,10 @@ func pool_factory() -> (address: felt) {
 func liquidation_threshold(token_address : felt) -> (res: felt) {
 }
 
+@storage_var
+func integration_manager() -> (contract : felt) {
+}
+
 // Protector
 func configurator_only(){
     let (caller_) = get_caller_address();
@@ -65,11 +69,12 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _drip_manager: felt,
     _dripFacade: felt,
     _poolFactory: felt,
+    _integration_manager : felt,
     _opts : CreditManagerOpts) {
     drip_manager.write(_drip_manager);
     drip_facade.write(_dripFacade);
     pool_factory.write(_poolFactory);
-
+    integration_manager.write(_integration_manager);
     /// Sets limits, fees and fastCheck parameters for credit manager
         // _setParams(
         //     opts.minBorrowedAmount,
@@ -93,7 +98,8 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 @external
 func setLiquidationThreshold {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(token: felt, threshold: Uint256) {
     configurator_only();
-    let (is_available_asset_) = IIntegrationManager.isAvailableAsset(token);
+    let (IM_ : felt) = integration_manager.read();
+    let (is_available_asset_) = IIntegrationManager.isAvailableAsset(IM_,token);
     with_attr error_message("Asset is not support yet"){
         assert is_available_asset_ = 1;
     }
@@ -144,14 +150,14 @@ func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func addTokenToList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     token: felt
 ) {
-    let (contract_address_) = get_contract_address();
-    IIntegrationManager.setAvailableAsset(contract_address_, token);
+    let (IM_ : felt) = integration_manager.read();
+    IIntegrationManager.setAvailableAsset(IM_, token);
     return();
 }
 
 func addAllowContract {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract : felt, _address_adapter : felt, _integration : felt, _level : felt){
     configurator_only();
-    let (contract_address_) = get_contract_address();
+    let (IM_ : felt) = integration_manager.read();
     let (parameter_issues) = _contract -  0 * address_adapter - 0;
     with_attr error_message("The address of the contract or the adapter is not valid"){
         assert parameter_issues = 0;
@@ -164,7 +170,7 @@ func addAllowContract {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     with_attr error_message("The contract or the adapter is either the drip manager or the drip facade"){
         assert drip_issues_ = 0;
     }
-    IIntegrationManager.setAvailableIntegration(contract_address_, _contract, _address_adapter, _integration, _level);
+    IIntegrationManager.setAvailableIntegration(IM_, _contract, _address_adapter, _integration, _level);
     return();
 }
 
