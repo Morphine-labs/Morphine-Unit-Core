@@ -15,6 +15,11 @@ from src.utils.various import ALL_ONES
 // Storage
 
 @storage_var
+func factory() -> (address : felt) {
+}
+
+
+@storage_var
 func drip_manager() -> (drip_manager : felt){
 }
 
@@ -27,16 +32,33 @@ func cumulative_index() -> (borrow_info: Uint256) {
 }
 
 @storage_var
-func since(asset: felt) -> (amount: Uint256) {
+func since() -> (time : felt) {
 }
 
-// TODO : WTF
+// Protector
+func assert_only_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    let (caller_) = get_caller_address();
+    let (drip_manager_) = drip_manager.read();
+    with_attr error_message("Only credit manager can call this function"){
+        assert caller_ = drip_manager_;
+    }
+    return();
+}
+
+// Constructor
+
 @constructor
-func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _drip_manager: felt,
-        _borrowed_amount: Uint256,
-        _cumulative_index: Uint256) {
-    let (block_timestamp_) = get_block_timestamp();
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_factory: felt) {
+    factory.write(_factory);
+    return();
+}
+
+//External
+
+@external
+func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _drip_manager : felt, _borrowed_amount : Uint256, _cumulative_index : Uint256) {
+    let (block_timestamp_ : felt ) = get_block_timestamp();
     since.write(block_timestamp_);
     drip_manager.write(_drip_manager);
     borrowed_amount.write(_borrowed_amount);
@@ -91,12 +113,4 @@ func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     assert_only_drip_manager();
     let (retdata_len: felt, retdata: felt*) = call_contract(_to,_selector, _calldata_len, _calldata);
     return(retdata_len, retdata);
-}
-
-func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
-    let (caller_) = get_caller_address();
-    let (drip_manager_) = drip_manager.read();
-    with_attr error_message("Drip: only callable by drip manger") {
-        assert caller_ = drip_manager_;
-    }
 }
