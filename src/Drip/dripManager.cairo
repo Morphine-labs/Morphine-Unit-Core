@@ -8,12 +8,19 @@ from starkware.starknet.common.syscalls import (
     get_caller_address,
 )
 
+from starkware.cairo.common.math_cmp import ( 
+    is_le,
+    is_nn,
+    is_not_zero
+)
+
 from starkware.cairo.common.uint256 import Uint256
 
 from starkware.cairo.common.uint256 import (
     uint256_sub,
     uint256_check,
     uint256_le,
+    uint256_lt,
     uint256_eq,
     uint256_add,
     uint256_mul,
@@ -33,6 +40,10 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.access.ownable.library import Ownable
+
+from openzeppelin.security.pausable.library import Pausable
+
+from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
 from src.Pool.IPoolFactory import IPoolFactory
 
@@ -101,7 +112,7 @@ func id_to_allowed_token(token: felt) -> (is_allowed : felt){
 }
 
 @storage_var
-func drip_accounts(address : felt) -> (dripAccounts: felt) {
+func drip_account(address : felt) -> (dripAccounts: felt) {
 }
 
 @storage_var
@@ -199,6 +210,14 @@ func credit_configurator_only {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return();
 }
 
+func get_drip_or_revert {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(drip_account : felt){
+    let is_not_null : felt = is_not_zero(drip_account);
+    with_attr error_message("Drip account is null") {
+        assert is_not_null = 1;
+    }
+    return();
+}
+
 // Constructor
 
 @constructor
@@ -211,3 +230,23 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 }
 
 // External
+
+@external
+func openCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    borrowed_amount: Uint256, behalfOf : felt) -> (address: felt){
+    Pausable.assert_not_paused();
+    drip_facade_only();
+    let (caller) = get_caller_address();
+    let (min : Uint256) = min_borrowed_amount.read();
+    let (max : Uint256) = max_borrowed_amount.read();
+    let (check_lower_bound : felt) = uint256_lt(min ,borrowed_amount);
+    let (check_upper_bound : felt) = uint256_lt(borrowed_amount, max);
+    let check_borrow : felt = check_lower_bound - 0 * check_upper_bound - 0;
+    with_attr error_message("Drip: borrowed amount is out of bounds") {
+        assert check_borrow = 1;
+    }
+    let (read : felt) = drip_account.read(caller);
+    get_drip_or_revert(read);
+
+    return(caller,);
+}
