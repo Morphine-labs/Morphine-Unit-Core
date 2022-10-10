@@ -11,13 +11,11 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES
 
-
 // Storage
 
 @storage_var
 func factory() -> (address : felt) {
 }
-
 
 @storage_var
 func drip_manager() -> (drip_manager : felt){
@@ -45,10 +43,10 @@ func assert_only_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return();
 }
 
-// Constructor
+// Initialize
 
-@constructor
-func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_factory: felt) {
+@external
+func initialize{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_factory: felt) {
     factory.write(_factory);
     return();
 }
