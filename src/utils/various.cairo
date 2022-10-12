@@ -6,8 +6,13 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 
 const PRECISION = 10**6;
 const SECONDS_PER_YEAR = 31536000;
+const DEFAULT_FEE_INTEREST = 100000;
+const DEFAULT_LIQUIDATION_PREMIUM = 50000;
+const DEFAULT_FEE_LIQUIDATION = 9950;
+const DEFAULT_CHI_THRESHOLD = 20000;
+const DEFAULT_HF_CHECK_INTERVAL = 4;
+const MAX_WITHDRAW_FEE = 10000;
 const ALL_ONES = 2 ** 128 - 1;
-
 
 func uint256_permillion{pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, permillion: Uint256
