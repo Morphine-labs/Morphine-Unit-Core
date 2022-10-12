@@ -32,6 +32,28 @@ func TokenForbidden(token: felt){
 func ContractAllowed(token: felt){
 }
 
+@event 
+func LimitsUpdated(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256){
+}
+
+@event 
+func FastCheckParametersUpdated(chi_threshold: Uint256, hf_check_interval: Uint256){
+}
+
+@event 
+func FeesUpdated(fee_interest: Uint256, fee_liquidation: Uint256, liquidation_premium: Uint256){
+}
+
+@event 
+func PriceOracleUpgraded(oracle: felt){
+}
+
+@event 
+func CreditFacadeUpgraded(credit_facade: felt){
+}
+
+
+
 
 
 // Storage
@@ -68,9 +90,13 @@ func allowed_contract_length() -> (length: felt) {
 func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
 }
 
+@storage_var
+func underlying() -> (underlying : felt){
+}
 
-
-
+@storage_var
+func registery() -> (registery : felt){
+}
 
 
 // Protector
@@ -112,48 +138,15 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     let (pool_) = IDripManager.pool(_drip_manager);
     let (underlying_) = IPool.asset(pool_);
     let (registery_) = IPool.addressProvider();
+    underlying.write();
+    registery.write();
 
     set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
     let (oracle_) = IDripManager.priceOracle(_drip_manager);
     IDripManager.upgradeContracts(_drip_manager, _dripFacade, _dripFacade);
     return();
-    );
-
-
-
-// @external
-// func addTokenToList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-//     token: felt
-// ) {
-//     let (IM_ : felt) = integration_manager.read();
-//     IIntegrationManager.setAvailableAsset(IM_, token);
-//     return();
-// }
-
-// func addAllowContract {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract : felt, _address_adapter : felt, _integration : felt, _level : felt){
-//     configurator_only();
-//     let (IM_ : felt) = integration_manager.read();
-//     let (parameter_issues) = _contract -  0 * address_adapter - 0;
-//     with_attr error_message("The address of the contract or the adapter is not valid"){
-//         assert parameter_issues = 0;
-//     }
-//     let (drip_manager_) = drip_manager.read();
-//     let (drip_facade_) = drip_facade.read();
-//     let (manager_issues) = drip_manager_ - _contract * drip_manager_ - address_adapter;
-//     let (facades_issues) = drip_facade_ - _contract * drip_facade_ - address_adapter;
-//     let (drip_issues_) = manager_issues - 0 * facades_issues - 0;
-//     with_attr error_message("The contract or the adapter is either the drip manager or the drip facade"){
-//         assert drip_issues_ = 0;
-//     }
-//     IIntegrationManager.setAvailableIntegration(IM_, _contract, _address_adapter, _integration, _level);
-//     return();
-// }
-
-// func setLimits {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(min : Uint256, max : Uint256){
-//     let (contract_address_) = get_contract_address();
-//     return();
-// }
+);
 
 
 // TOKEN MANAGEMENT
@@ -287,21 +280,114 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
     configurator_only();
-    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
+    let (drip_manager_) = drip_manager.read();
+    let (fee_interest_) = IDripManager.feeInterest(drip_manager_);
+    let (fee_liqudidation_) = IDripManager.feeLiquidation(drip_manager_);
+    let (liquidation_discount_) = IDripManager.liquidationDiscount(drip_manager_);
+    let (chi_threshold_) = IDripManager.chiThreshold(drip_manager_);
+    let (hf_check_interval_) = IDripManager.hfCheckInterval(drip_manager_);
+    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount, fee_interest_, fee_liqudidation_, liquidation_discount_, chi_threshold_, hf_check_interval_);
     LimitsUpdated(_minimum_borrowed_amount, _maximum_borrowed_amount);
     return();
 }
 
 @external
-func setFastCheckParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
+func setFastCheckParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_chi_threshold: Uint256, _hf_check_interval: Uint256){
     alloc_locals;
     configurator_only();
-    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
-    LimitsUpdated(_minimum_borrowed_amount, _maximum_borrowed_amount);
+    let (is_bt_) = uint256_lt(Uint256(PRECISION,0), _chi_threshold);
+    with_attr error_message("chi threshold too big"){
+        assert_not_zero(is_bt_);
+    }
+    let (drip_manager_) = drip_manager.read();
+    let (minimum_borrowed_amount_) = IDripManager.minBorrowedAmount(drip_manager_);
+    let (maximum_borrowed_amount_) = IDripManager.maxBorrowedAmount(drip_manager_);
+    let (fee_interest_) = IDripManager.feeInterest(drip_manager_);
+    let (fee_liqudidation_) = IDripManager.feeLiquidation(drip_manager_);
+    let (liquidation_discount_) = IDripManager.liquidationDiscount(drip_manager_);
+    set_parameters(minimum_borrowed_amount_, maximum_borrowed_amount_, fee_interest_, fee_liqudidation_, liquidation_discount_, _chi_threshold, _hf_check_interval);    
+    FastCheckParametersUpdated.emit(_chi_threshold, _hf_check_interval);
     return();
 }
 
+@external
+func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
+    alloc_locals;
+    configurator_only();
+    let (is_bt1_) = uint256_le(Uint256(PRECISION,0), _fee_interest);
+    let (sum_) = safeUint256.add(_liquidation_premium, _fee_liquidation);
+    let (is_bt2_) = uint256_le(Uint256(PRECISION,0), sum_);
+    with_attr error_message("incorrect fees"){
+        assert_not_zero(is_bt1_ * is_bt2_);
+    }
+    let (liquidation_discount_) = safeUint256.sub_le(Uint256(PRECISION,0), _liquidation_premium);
 
+    let (drip_manager_) = drip_manager.read();
+    let (minimum_borrowed_amount_) = IDripManager.minBorrowedAmount(drip_manager_);
+    let (maximum_borrowed_amount_) = IDripManager.maxBorrowedAmount(drip_manager_);
+    let (chi_threshold_) = IDripManager.chiThreshold(drip_manager_);
+    let (hf_check_interval_) = IDripManager.hfCheckInterval(drip_manager_);
+    set_parameters(minimum_borrowed_amount_, maximum_borrowed_amount_, _fee_interest, _fee_liquidation, liquidation_discount_, chi_threshold_, hf_check_interval_);    
+    FeesUpdated.emit(_fee_interest, _fee_liquidation, _liquidation_premium);
+    return();
+}
+
+@external
+func upgradePriceOracle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    configurator_only();
+    let (drip_manager_) = drip_manager.read();
+    let (registery_) = registery.read();
+    let (oracle_) = IRegistery.getPriceOracle(registery_);
+    let (drip_facade_) = drip_facade.read();
+    IDripManager.upgradeContracts(drip_manager_, drip_facade_, oracle_);
+    PriceOracleUpgraded.emit(oracle_);
+    return();
+}
+
+@external
+func upgradeDripFacade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_facade_: felt){
+    alloc_locals;
+    configurator_only();
+    let (drip_manager_) = drip_manager.read();
+    let (registery_) = registery.read();
+    let (oracle_) = IRegistery.getPriceOracle(registery_);
+    IDripManager.upgradeContracts(drip_manager_, _drip_facade_, oracle_);
+    CreditFacadeUpgraded.emit(_drip_facade_);
+    return();
+}
+
+@external
+func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_configurator: felt){
+    alloc_locals;
+    configurator_only();
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.setConfigurator(drip_manager_, _configurator);
+    return();
+}
+
+@external
+func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_mode: felt){
+    alloc_locals;
+    configurator_only();
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.setIncreaseDebtForbidden(drip_manager_, _mode);
+    return();
+}
+
+@external
+func IdToAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContract: felt){
+    alloc_locals;
+    let (allowed_contract_) = id_to_allowed_contract.read(id);
+    return(allowed_contract_);
+}
+
+@external
+func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
+    alloc_locals;
+    let (allowed_contract_length_) = allowed_contract_length.read();
+    return(allowed_contract_length_);
+}
 
 
 // Internals
@@ -352,4 +438,91 @@ func set_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     IDripManager.setLiquidationThreshold(_token, _liquidation_threshold);
     TokenLiquidationThresholdUpdated.emit(_token, _liquidation_threshold);
     return();
+}
+
+func set_parameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        _minimum_borrowed_amount: Uint256, 
+        _maximum_borrowed_amount: Uint256,
+        _fee_interest: Uint256,
+        _fee_liquidation: Uint256,
+        _liquidation_discount: Uint256,
+        _chi_threshold: Uint256,
+        _hf_check_interval: Uint256){
+    let (drip_manager_) = drip_manager.read();
+    let (underlying_) = underlying.read();
+    let (lt_underlying_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
+    let (new_lt_underlying_) = safeUint256.sub_le(_liquidation_discount, _fee_liquidation);
+    let (is_eq_) = uint256_eq(lt_underlying_, new_lt_underlying_);
+    if(is_eq_ == 0){
+        update_liquidation_threshold(new_lt_underlying_);
+    }
+    let (current_chi_threshold_) = IDripManager.chiThreshold(drip_manager_);
+    let (current_hf_check_interval_) = IDripManager.hfCheckInterval(drip_manager_);
+    let (current_fee_liqudidation_) = IDripManager.feeLiquidation(drip_manager_);
+    let (is_eq1_) = uint256_eq(_chi_threshold, current_chi_threshold_);
+    let (is_eq2_) = uint256_eq(_hf_check_interval, current_hf_check_interval_);
+    let (is_eq3_) = uint256_eq(_fee_liquidation, current_fee_liqudidation_);
+    
+    if(is_eq1_ * is_eq2_ * is_eq3_){
+        check_fast_check_parameters_coverage(_chi_threshold, _hf_check_interval, _fee_liquidation);
+    }
+    IDripFacade.setParameters(_minimum_borrowed_amount, _maximum_borrowed_amount, _fee_interest, _fee_liquidation, _liquidation_discount, _chi_threshold, _hf_check_interval);
+    return();
+}
+
+func update_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_lt_underlying: Uint256){
+    let (underlying_) = underlying.read();
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.setLiquidationThreshold(underlying_, _lt_underlying);
+    let (length_) = IDripManager.allowedTokensCount(drip_manager_);
+    loop_liquidation_threshold(length_, drip_manager_, _lt_underlying);
+    return();
+}
+
+func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_len: felt, _drip_manager: felt,_lt_underlying: Uint256){
+    if(_len == 0){
+        return();
+    }
+    let (token_) = IDripManager.allowedTokens(_drip_manager, _len - 1);
+    let (lt_token_) = IDripManager.liquidationThreshold(_drip_manager, token_);
+    let (is_lt_) = uint256_lt(_lt_underlying, lt_token_);
+    if(is_lt_ == 1){
+        IDripManager.setLiquidationThreshold(_drip_manager, token_, _lt_underlying);
+    } 
+    return loop_liquidation_threshold(_len - 1, _lt_underlying);
+}
+
+func check_fast_check_parameters_coverage{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_chi_threshold: Uint256, _hf_check_interval: Uint256, _fee_liquidation: Uint256){
+    if(_len == 0){
+        return();
+    }
+    let (step1_) = calcul_max_possible_drop();
+    let (max_possible_drop_) = safeUint256.sub_le(step1_, Uint256(PRECISION,0));
+    let (is_lt_) = uint256_lt(_fee_liquidation, max_possible_drop_);
+    with_attr error_message("zero address for token"){
+        assert is_lt_ = 1;
+    }
+    return ();
+}
+
+func calcul_max_possible_drop{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_percentage: Uint256, _times: Uint256) -> (max_possible_drop: Uint256){
+    let (is_eq_) = uint256_eq(Uint256(PRECISION,0), _percentage);
+    if (is_eq_ == 1) {
+        return(Uint256(PRECISION,0));
+    }
+    let (step1_) = loop_percent(_percentage, _times);
+    let (new_value_) = safeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    return (new_value_);
+}
+
+func loop_percent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_percentage: Uint256, _times: Uint256) -> (max_possible_drop: Uint256){
+    let (is_le_) = uint256_le(_times, Uint256(1,0));
+    if (is_le_ == 1) {
+        let (initial_value_) = safeUint256.mul(_percentage, Uint256(PRECISION,0));
+        return(initial_value_);
+    }
+    let (previous_value_) = loop_percent();
+    let (step1_) = safeUint256.mul(_percentage, previous_value_); 
+    let (new_value_) = safeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    return(new_value_);
 }
