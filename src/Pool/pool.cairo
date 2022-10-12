@@ -272,7 +272,7 @@ func connectCreditManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     alloc_locals;
     assert_only_configurator();
     let (this_) = get_contract_address();
-    // TODO : WTF
+    // TODO
     let (wanted_pool_) = IDripManager.pool(_drip_manager);
 
     with_attr error_message("Pool: incompatible pool for credit manager"){
