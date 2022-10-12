@@ -17,6 +17,9 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from src.interfaces.IPool import IPool
 
 
+//TODO: Uint check, reetrency, add interfaces !
+
+
 // Events
 
 
