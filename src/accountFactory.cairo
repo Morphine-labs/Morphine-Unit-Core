@@ -147,12 +147,13 @@ func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 
 @external
 func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) {
+    check_stock();
     let (head_ : felt ) = head.read();
     let (tail_ : felt ) = tail.read();
     let (len_stock_ : felt) = stock_len.read();
     let (contract_address : felt ) = get_contract_address();
-    let (new_head : felt) = next_drip_account.read(head_);
     let (drip_id_ : felt) = get_drip_from_id(head_);
+    let (new_head : felt) = next_drip_account.read(head_);
     is_drip_account.write(head_, 0); 
     head.write(new_head);
     next_drip_account.write(head_,0);
