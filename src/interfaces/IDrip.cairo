@@ -8,6 +8,12 @@ namespace IDrip {
     func initialize(_factory: felt) {
     }
 
+    func cumulative_index_open() -> (cumulative_index_open : Uint256) {
+    }
+
+    func total_borrowed_amount() -> (total_borrowed : Uint256){
+    }
+
     func connectTo(_drip_manager : felt, _borrowed_amount : Uint256, _cumulative_index : Uint256) {
     }
 

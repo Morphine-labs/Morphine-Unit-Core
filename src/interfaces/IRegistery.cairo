@@ -17,6 +17,9 @@ namespace IRegistery {
     func dripFactory() -> (drip_factory: felt) {
     }
 
+    func accountFactory() -> (account_factory : felt){
+    }
+
     func owner() -> (owner: felt) {
     }
 
@@ -28,6 +31,7 @@ namespace IRegistery {
 
     func dripManager() -> (drip_manager: felt) {
     }
+
 
     func integrationManager(pool_hash_class: felt) -> (pool_hash: felt) {
     }

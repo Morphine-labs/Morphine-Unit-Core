@@ -146,7 +146,7 @@ func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 }
 
 @external
-func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) {
+func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) -> (adress : felt) {
     check_stock();
     let (head_ : felt ) = head.read();
     let (tail_ : felt ) = tail.read();
@@ -162,7 +162,7 @@ func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     IDrip.connectTo(factory_, credit_manager, _borrowed_amount, _cumulative_index);
     drip_from_id.write(tail_,drip_id_);
     stock_len.write(len_stock_ - 1);
-    return();
+    return(head_,);
 }
 
 @external
@@ -176,21 +176,6 @@ func setAvailableDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         let (drip_length : felt) = stock_len.read();
         drip_from_id.write(drip_length, address);
         stock_len.write(drip_length + 1);
-        return ();
-    }
-}
-
-@external
-func removeAvailableDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) {
-    
-    let (is_drip_account_: felt) = is_drip_account.read(address);
-    if (is_drip_account_ == 0) {
-        return ();
-    } else {
-        is_drip_account.write(address, 0);
-        let (drip_length : felt) = stock_len.read();
-        drip_from_id.write(drip_length, 0);
-        stock_len.write(drip_length - 1);
         return ();
     }
 }
