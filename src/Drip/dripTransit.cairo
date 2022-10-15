@@ -14,6 +14,9 @@ from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
 from src.Extensions.IIntegrationManager import IIntegrationManager
 from openzeppelin.token.erc20.IERC20 import IERC20
+from openzeppelin.token.erc20.IERC721 import IERC721
+
+from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from src.interfaces.IPool import IPool
 
 
@@ -24,7 +27,7 @@ from src.interfaces.IPool import IPool
 
 
 @event 
-func TokenAllowed(token: felt){
+func OpenDrip(account: felt, drip: felt, borrowed_amount: Uint256){
 }
 
 @event 
@@ -66,100 +69,145 @@ func drip_manager() -> (address : felt) {
 }
 
 @storage_var
-func drip_facade() -> (address : felt) {
+func underlying() -> (address : felt) {
 }
 
 @storage_var
-func pool_factory() -> (address: felt) {
+func contractToAdapter(contract: felt) -> (adapter : felt) {
 }
 
 @storage_var
-func liquidation_threshold(token_address : felt) -> (res: felt) {
+func is_increase_debt_Forbidden() -> (address: felt) {
 }
 
 @storage_var
-func id_to_allowed_contract(id : felt) -> (contract: felt) {
+func permissionless() -> (address: felt) {
 }
 
 @storage_var
-func allowed_contract_to_id(contract : felt) -> (id: felt) {
+func total_opened_accounts_from_wl(address: felt) -> (amount: Uint256) {
 }
 
 @storage_var
-func allowed_contract_length() -> (length: felt) {
+func nft() -> (address: felt) {
 }
 
-@storage_var
-func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
-}
-
-@storage_var
-func underlying() -> (underlying : felt){
-}
-
-@storage_var
-func registery() -> (registery : felt){
-}
 
 
 // Protector
 func configurator_only(){
     let (caller_) = get_caller_address();
-    let (contract_address_) = get_contract_address();
-    with_attr error_message("Only the configurator can call this function"){
-        assert caller_ = contract_address_;
-    }
-}
-
-func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
-    let (caller_) = get_caller_address();
     let (drip_manager_) = drip_manager.read();
-    with_attr error_message("Drip: only callable by drip manger") {
-        assert caller_ = drip_manager_;
+    let (drip_configurator_) = IDripManager.dripConfigurator();
+    with_attr error_message("Only the configurator can call this function"){
+        assert drip_manager_ = drip_configurator_;
     }
-    return();
 }
 
-struct AllowedToken {
-    address: felt; // Address of token
-    liquidation_threshold: Uint256; // LT for token in range 0..10,000 which represents 0-100%
-}
 
 //Constructor
-
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     _drip_manager: felt,
-    _dripFacade: felt,
-    _minimum_borrowed_amount: Uint256, // minimal amount for drip 
-    _maximum_borrowed_amount: Uint256, // maximum amount for drip 
-    _allowed_tokens_len: felt,
-    _allowed_tokens: AllowedToken*, // allowed tokens list
-    ) {
-    drip_manager.write(_drip_manager);
-    drip_facade.write(_dripFacade);
-    let (pool_) = IDripManager.pool(_drip_manager);
-    let (underlying_) = IPool.asset(pool_);
-    let (registery_) = IPool.addressProvider();
-    underlying.write();
-    registery.write();
-
-    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
-    allow_token_list(_allowed_tokens_len, _allowed_tokens);
-    let (oracle_) = IDripManager.priceOracle(_drip_manager);
-    IDripManager.upgradeContracts(_drip_manager, _dripFacade, _dripFacade);
-    return();
+    _nft: felt) {
+    with_attr error_message("zero address for drip manager"){
+        assert_not_zero(_drip_manager);
+    }
+    let (drip_manager_) = IDripManager.dripManager(_drip_manager);
+    let (underlying_)= IDripManager.underlying(_drip_manager);
+    drip_manager.write(drip_manager_);
+    underlying.write(underlying_);
+    nft.write(_nft);
+    if (_nft == 0){
+        permissionless.write(1);
+        return();
+    } else{
+        permissionless.write(0);
+        return();
+    }
 );
-
 
 // TOKEN MANAGEMENT
 
 @external
-func addTokenToAllowedList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
-    configurator_only();
-    add_token_to_allowed_list();
+func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        _amount: felt,
+        _on_belhalf_of: felt,
+        _leverage_factor: felt){
+    alloc_locals;
+    ReentrancyGuard._start();
+    let (drip_manager_) = drip_manager.read();
+    let (underlying_) = underlying.read();
+    let (permissionless_) = permillion.read();
+    if(permissionless_ == 0){
+        let (nft_) = nft.read();
+        let (nft_balance_) = IERC721.balanceOf(nft_, _on_belhalf_of);
+        let (drip_balance_) = total_drip_from_wl.read();
+        let (is_le_) = uint256_le(nft_balance_,drip_balance_);
+        with_attr error_message("too much drip"){
+            assert_not_zero(is_le_);
+        }
+        let (drip_balance_) = safeUint256.add(nft_balance_, Uint(1,0));
+        drip_balance.write(_on_belhalf_of, drip_balance_);
+    }
+
+    let (step1_) = safeUint256.add(_amount, _on_belhalf_of);
+    let (borrowed_amount_) = safeUint256.div_rem(step1_, Uint(PRECISION,0));
+    let (liquidation_threshold_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
+    let (amount_ltu_) = safeUint256.mul(_amount, liquidation_threshold_);
+    let (less_ltu_) = safeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
+    let (borrow_less_ltu_) = safeUint256.mul(borrowed_amount_, liquidation_threshold_);
+    let (is_le_) = uint256_le(less_ltu_, borrow_less_ltu_);
+    with_attr error_message("too much drip"){
+        assert is_le_ = 0;
+    }
+
+    let (drip_) = IDripManager.openCreditAccount(drip_manager_, borrowed_amount_, _on_belhalf_of);
+    OpenDrip.emit(_on_belhalf_of, drip_, borrowed_amount_);
+    ReentrancyGuard._end();
     return();
 }
+
+@external
+func closeCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        _to: felt,
+        _on_belhalf_of: felt,
+        _leverage_factor: felt){
+    alloc_locals;
+    ReentrancyGuard._start();
+    let (drip_manager_) = drip_manager.read();
+    let (underlying_) = underlying.read();
+    let (permissionless_) = permillion.read();
+    if(permissionless_ == 0){
+        let (nft_) = nft.read();
+        let (nft_balance_) = IERC721.balanceOf(nft_, _on_belhalf_of);
+        let (drip_balance_) = total_drip_from_wl.read();
+        let (is_le_) = uint256_le(nft_balance_,drip_balance_);
+        with_attr error_message("too much drip"){
+            assert_not_zero(is_le_);
+        }
+        let (drip_balance_) = safeUint256.add(nft_balance_, Uint(1,0));
+        drip_balance.write(_on_belhalf_of, drip_balance_);
+    }
+
+    let (step1_) = safeUint256.add(_amount, _on_belhalf_of);
+    let (borrowed_amount_) = safeUint256.div_rem(step1_, Uint(PRECISION,0));
+    let (liquidation_threshold_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
+    let (amount_ltu_) = safeUint256.mul(_amount, liquidation_threshold_);
+    let (less_ltu_) = safeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
+    let (borrow_less_ltu_) = safeUint256.mul(borrowed_amount_, liquidation_threshold_);
+    let (is_le_) = uint256_le(less_ltu_, borrow_less_ltu_);
+    with_attr error_message("too much drip"){
+        assert is_le_ = 0;
+    }
+
+    let (drip_) = IDripManager.openCreditAccount(drip_manager_, borrowed_amount_, _on_belhalf_of);
+    OpenDrip.emit(_on_belhalf_of, drip_, borrowed_amount_);
+    ReentrancyGuard._end();
+    return();
+}
+
+
 
 @external
 func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
@@ -174,8 +222,8 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
-    let (is_eq1_) = uint256_eq(Uint256(0,0));
-    let (is_eq2_) = uint256_eq(Uint256(1,0));
+    let (is_eq1_) = uint256_eq(Uint256(0,0), token_mask_);
+    let (is_eq2_) = uint256_eq(Uint256(1,0), token_mask_);
     with_attr error_message("zero address for token"){
         assert_not_zero(is_eq1_ * is_eq2_);
     }
