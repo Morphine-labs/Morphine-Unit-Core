@@ -45,7 +45,9 @@ from openzeppelin.security.pausable.library import Pausable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
-from src.Drip.IDripAccount import IDripAccount
+from src.interfaces.IDrip import IDrip
+
+from src.interfaces.IRegistery import IRegistery
 
 // Storage var
 
@@ -62,30 +64,143 @@ func tail() -> (address: felt) {
 }
 
 @storage_var
-func master_credit_account() -> (address : felt) {
+func stock_len() -> (len : felt) {
 }
 
 @storage_var
-func contract_register() -> (address: felt) {
+func is_drip_account(address : felt) -> (is_drip_account : felt) {
 }
 
-// Protector
-
-func credit_manager_only {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (caller_ : felt) = get_caller_address();
-    let (manager_ : felt) = master_credit_account.read();
-    with_attr error_message("Credit Manager: Only Credit Manager can call this function") {
-        assert caller_ = manager_;
-    }
-    return();
+@storage_var
+func drip_from_id(address : felt) -> (drip_id : felt) {
 }
 
 // Constructor
 
+@constructor
 func constructor {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) {
     with_attr error_message("account Factory: Address should be different than 0") {
         assert_not_zero(address);
     }
-    let (master_credit : felt) = master_credit_account.read();
-    IDripAccount.initialize(master_credit,address);
+    let (drip_account : felt ) = addDripAccount();
+    head.write(drip_account);
+    tail.write(drip_account);
+    stock_len.write(1);
+    next_drip_account.write(drip_account,0);
+    drip_from_id.write(0,drip_account);
+    return();
+}
+
+// View
+
+@view
+func get_stock_len {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (len : felt) {
+    let (stock : felt) = stock_len.read();
+    return(stock,);
+}
+
+@view
+func get_drip_from_address {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) -> (drip : felt) {
+    let (drip_account : felt) = next_drip_account.read(address);
+    return(drip_account,);
+}
+
+@view
+func get_drip_from_id {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(drip_id : felt) -> (drip : felt) {
+    let (drip_account : felt) = drip_from_id.read(drip_id);
+    return(drip_account,);
+}
+
+@view
+func availableDripAccounts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    drip_accounts_len : felt, drip_accounts : felt*
+) {
+    alloc_locals;
+    let (available_drip_accounts_len : felt) = stock_len.read();
+    let (local available_drip_accounts: felt*) = alloc();
+    complete_available_drip_accounts_tab(available_drip_accounts_len, available_drip_accounts);
+    return (available_drip_accounts_len, available_drip_accounts);
+}
+
+// External
+
+@external
+func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr} () -> (address : felt) {
+    alloc_locals;
+    let (stock_before : felt) = stock_len.read();
+    let (old_tail : felt) = tail.read();
+    let (contract_address : felt ) = get_contract_address();
+    let (factory : felt ) = IRegistery.dripFactory(contract_address);
+    let (class_hash : felt) = IRegistery.dripHash(contract_address);
+
+    IDrip.initialize(contract_address, class_hash);
+    stock_len.write(stock_before + 1);
+
+    setAvailableDripAccount(contract_address);
+    next_drip_account.write(old_tail, contract_address);
+    next_drip_account.write(contract_address, 0);
+
+    tail.write(contract_address);
+    is_drip_account.write(contract_address, 1);
+    return(contract_address,);
+}
+
+@external
+func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) -> (adress : felt) {
+    check_stock();
+    let (head_ : felt ) = head.read();
+    let (tail_ : felt ) = tail.read();
+    let (len_stock_ : felt) = stock_len.read();
+    let (contract_address : felt ) = get_contract_address();
+    let (drip_id_ : felt) = get_drip_from_id(head_);
+    let (new_head : felt) = next_drip_account.read(head_);
+    is_drip_account.write(head_, 0); 
+    head.write(new_head);
+    next_drip_account.write(head_,0);
+    let (factory_ : felt) = IRegistery.dripFactory(contract_address);
+    let (credit_manager : felt) = IRegistery.dripManager(contract_address);
+    IDrip.connectTo(factory_, credit_manager, _borrowed_amount, _cumulative_index);
+    drip_from_id.write(tail_,drip_id_);
+    stock_len.write(len_stock_ - 1);
+    return(head_,);
+}
+
+@external
+func setAvailableDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) {
+
+    let (is_drip_account_: felt) = is_drip_account.read(address);
+    if (is_drip_account_ == 1) {
+        return ();
+    } else {
+        is_drip_account.write(address, 1);
+        let (drip_length : felt) = stock_len.read();
+        drip_from_id.write(drip_length, address);
+        stock_len.write(drip_length + 1);
+        return ();
+    }
+}
+
+func check_stock {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() {
+    let (head_ : felt) = head.read();
+    if(head_ == 0){
+        let (drip_account : felt ) = addDripAccount();
+        head.write(drip_account);
+        tail.write(drip_account);
+        stock_len.write(1);
+        return();
+    }
+    return();
+}
+
+func complete_available_drip_accounts_tab{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    available_drip_accounts_len: felt, available_drip_accounts: felt*
+) -> () {
+    if (available_drip_accounts_len == 0) {
+        return ();
+    }
+    let (drip_account_ : felt) = drip_from_id.read(available_drip_accounts_len - 1);
+    assert available_drip_accounts[0] = drip_account_;
+    return complete_available_drip_accounts_tab(
+        available_drip_accounts_len=available_drip_accounts_len- 1, available_drip_accounts=available_drip_accounts + 1
+    );
 }

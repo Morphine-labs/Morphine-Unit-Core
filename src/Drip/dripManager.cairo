@@ -35,7 +35,10 @@ from src.utils.utils import (
 )
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+
 from openzeppelin.token.erc20.IERC20 import IERC20
+
+from openzeppelin.security.safemath.library import SafeUint256
 
 from starkware.cairo.common.math import assert_not_zero
 
@@ -45,7 +48,22 @@ from openzeppelin.security.pausable.library import Pausable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
-from src.Pool.IPoolFactory import IPoolFactory
+from src.interfaces.IPoolFactory import IPoolFactory
+
+from src.interfaces.IPool import IPool
+
+from src.interfaces.IRegistery import IRegistery
+
+from src.interfaces.IAccountFactory import IAccountFactory
+
+from src.interfaces.IDrip import IDrip
+
+// Const
+
+const TRUE = 1;
+const FALSE = 0;
+const PERCENTAGE_FACTOR = 10000;
+const HALF_PERCENT = PERCENTAGE_FACTOR / 2;
 
 // Structs
 struct CreditManagerOpts {
@@ -152,7 +170,7 @@ func forbiden_token_mask() -> (res: felt) {
 }
 
 @storage_var
-func enabled_tokens_map() -> (res: felt) {
+func enabled_tokens_map(drip_account : felt) -> (res: felt) {
 }
 
 @storage_var
@@ -170,12 +188,6 @@ func chi_threshold() -> (chi_threshold : Uint256) {
 @storage_var
 func hf_check_interval() -> (hf : Uint256) {
 }
-
-const ETH_ADDRESS = 0;
-
-    // Address of WETH Gateway
-    // address public immutable wethGateway;
-
 
 // Protector
 
@@ -218,6 +230,14 @@ func get_drip_or_revert {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
+func borrow_not_null_or_revert{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(caller : felt){
+    let is_not_null : felt = is_not_zero(caller);
+    with_attr error_message("Drip account is null") {
+        assert is_not_null = 1;
+    }
+    return();
+}
+
 // Constructor
 
 @constructor
@@ -234,9 +254,13 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 @external
 func openCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     borrowed_amount: Uint256, behalfOf : felt) -> (address: felt){
+    alloc_locals;
     Pausable.assert_not_paused();
     drip_facade_only();
     let (caller) = get_caller_address();
+    let (contract_address : felt) = get_contract_address();
+    let (account_factory : felt) = IRegistery.accountFactory(contract_address);
+
     let (min : Uint256) = min_borrowed_amount.read();
     let (max : Uint256) = max_borrowed_amount.read();
     let (check_lower_bound : felt) = uint256_lt(min ,borrowed_amount);
@@ -245,8 +269,56 @@ func openCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     with_attr error_message("Drip: borrowed amount is out of bounds") {
         assert check_borrow = 1;
     }
-    let (read : felt) = drip_account.read(caller);
-    get_drip_or_revert(read);
+    let (cumulative_index : Uint256) = IPool.calculLinearCumulativeIndex(contract_address);
+    let (drip : felt) = IAccountFactory.removeDripAccount(account_factory, borrowed_amount, cumulative_index);
+    // TODO
+    // IPool.lendDrip(borrowed_amount,drip);
+    safe_drip_account_set(behalfOf, drip);
+    enabled_tokens_map.write(drip,1);
+    fast_check_counter.write(drip,Uint256(1,0));
 
-    return(caller,);
+    return(drip,);
+}
+
+@external
+func closeCreditAccount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_borrower : felt, _is_liquidated : felt, _total_value : Uint256, _payer : felt, _to : felt, _skip_token_mask : Uint256) -> (remaining : Uint256) {
+    get_drip_or_revert(_borrower);
+    let drip : felt = _borrower;
+    let (borrowed_amount, borrowed_amount_with_interest) = calcAccruedInterest(drip);
+
+
+
+    let tmp_rtn : Uint256 = Uint256(1,0);
+    return(tmp_rtn,);
+}
+
+@view
+func calcAccruedInterest {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(drip : felt) -> 
+(borrowed_amount : Uint256, borrowed_amount_with_interest : Uint256){
+    alloc_locals;
+    let (borrowed_amount, cumulative_index_open, cumulative_index_now) = get_drip_parameter(drip);
+    let (tmp_borrow ) = SafeUint256.mul(borrowed_amount, cumulative_index_now);
+    let (borrowed_amount_with_interest, _) = SafeUint256.div_rem(tmp_borrow, cumulative_index_open);
+    return(borrowed_amount, borrowed_amount_with_interest);
+}
+
+@view
+func calcClosePayments{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    _total_value : Uint256, _is_liquidated : felt, _borrowed_amount_with_interest : Uint256, _borrowed_amount : Uint256) -> (
+    amount_to_pool : Uint256, remaining_assets : Uint256, profit : Uint256, loss : Uint256){
+}
+
+func get_drip_parameter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(drip : felt) ->
+    (borrowed_amount : Uint256, cumulative_index_open : Uint256, cumulative_index_now : Uint256){
+    let (borrowed_amount : Uint256) = IDrip.total_borrowed_amount(drip);
+    let (cumulative_open : Uint256) = IDrip.cumulative_index_open(drip);
+    let (cumulative_now : Uint256) = IPool.calculLinearCumulativeIndex(drip);
+    return(borrowed_amount, cumulative_open, cumulative_now);
+}
+
+ func safe_drip_account_set{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(borrower : felt, drip : felt)
+{
+    borrow_not_null_or_revert(borrower);
+    get_drip_or_revert(drip);
+    return();
 }

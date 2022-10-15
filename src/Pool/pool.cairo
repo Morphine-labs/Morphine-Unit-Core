@@ -15,7 +15,7 @@ from openzeppelin.security.pausable.library import Pausable
 from src.utils.fixedpointmathlib import mul_div_down
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
-from src.IRegistery import IRegistery
+from src.interfaces.IRegistery import IRegistery
 
 from starkware.starknet.common.syscalls import (
     get_block_number,
