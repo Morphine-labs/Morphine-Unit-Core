@@ -41,6 +41,10 @@ func pool_hash_class() -> (pool_hash_class: felt) {
 func integration_manager() -> (pool_hash_class: felt) {
 }
 
+@storage_var
+func drip_hash() -> (address : felt) {
+}
+
 
 func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (owner) = Ownable.owner();
@@ -83,6 +87,12 @@ func poolFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 func dripFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (drip_factory : felt) {
     let (drip_factory_) = drip_factory.read();
     return(drip_factory_,);
+}
+
+@view
+func dripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (drip_hash : felt) {
+    let (drip_hash_) = drip_hash.read();
+    return(drip_hash_,);
 }
 
 @view

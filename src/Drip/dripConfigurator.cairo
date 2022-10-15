@@ -121,8 +121,8 @@ func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
 }
 
 struct AllowedToken {
-    address: felt; // Address of token
-    liquidation_threshold: Uint256; // LT for token in range 0..10,000 which represents 0-100%
+    address: felt, // Address of token
+    liquidation_threshold: Uint256, // LT for token in range 0..10,000 which represents 0-100%
 }
 
 //Constructor

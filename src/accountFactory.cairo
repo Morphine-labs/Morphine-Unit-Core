@@ -56,10 +56,6 @@ func next_drip_account(address : felt) -> (address : felt) {
 }
 
 @storage_var
-func prev_drip_account(address : felt) -> (address : felt) {
-}
-
-@storage_var
 func head() -> (address: felt) {
 }
 
@@ -90,11 +86,12 @@ func constructor {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     head.write(drip_account);
     tail.write(drip_account);
     stock_len.write(1);
-    prev_drip_account.write(drip_account,0);
     next_drip_account.write(drip_account,0);
     drip_from_id.write(0,drip_account);
     return();
 }
+
+// View
 
 @view
 func get_stock_len {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (len : felt) {
@@ -125,6 +122,8 @@ func availableDripAccounts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     return (available_drip_accounts_len, available_drip_accounts);
 }
 
+// External
+
 @external
 func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr} () -> (address : felt) {
     alloc_locals;
@@ -132,45 +131,36 @@ func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     let (old_tail : felt) = tail.read();
     let (contract_address : felt ) = get_contract_address();
     let (factory : felt ) = IRegistery.dripFactory(contract_address);
-    IDrip.initialize(contract_address, factory);
+    let (class_hash : felt) = IRegistery.dripHash(contract_address);
+
+    IDrip.initialize(contract_address, class_hash);
     stock_len.write(stock_before + 1);
+
     setAvailableDripAccount(contract_address);
     next_drip_account.write(old_tail, contract_address);
-    prev_drip_account.write(contract_address, old_tail);
     next_drip_account.write(contract_address, 0);
+
+    tail.write(contract_address);
     is_drip_account.write(contract_address, 1);
     return(contract_address,);
 }
 
-
 @external
-func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) {
+func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) {
     let (head_ : felt ) = head.read();
     let (tail_ : felt ) = tail.read();
-
-    if(head_ == address) {
-        let (new_head : felt) = next_drip_account.read(address);
-        head.write(new_head);
-        prev_drip_account.write(new_head, 0);
-        next_drip_account.write(head_,0);
-        return();
-    }
-
-    if(tail_ == address) {
-        let (new_tail : felt) = next_drip_account.read(address);
-        head.write(new_tail);
-        prev_drip_account.write(new_tail, 0);
-        next_drip_account.write(tail_,0);
-        return();
-    }
-
-    let (prev_address : felt) = prev_drip_account.read(address);
-    let (next_address : felt) = next_drip_account.read(address);
-    next_drip_account.write(address, 0);
-    prev_drip_account.write(address,0);
-
-    next_drip_account.write(prev_address, next_address);
-    prev_drip_account.write(next_address,prev_address);
+    let (len_stock_ : felt) = stock_len.read();
+    let (contract_address : felt ) = get_contract_address();
+    let (new_head : felt) = next_drip_account.read(head_);
+    let (drip_id_ : felt) = get_drip_from_id(head_);
+    is_drip_account.write(head_, 0); 
+    head.write(new_head);
+    next_drip_account.write(head_,0);
+    let (factory_ : felt) = IRegistery.dripFactory(contract_address);
+    let (credit_manager : felt) = IRegistery.dripManager(contract_address);
+    IDrip.connectTo(factory_, credit_manager, _borrowed_amount, _cumulative_index);
+    drip_from_id.write(tail_,drip_id_);
+    stock_len.write(len_stock_ - 1);
     return();
 }
 
