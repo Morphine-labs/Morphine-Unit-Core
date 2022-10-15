@@ -174,9 +174,9 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
-    let (is_eq1_) = uint256_eq(Uint256(0,0));
-    let (is_eq2_) = uint256_eq(Uint256(1,0));
-    with_attr error_message("zero address for token"){
+    let (is_eq1_) = uint256_eq(Uint256(0,0), token_mask_);
+    let (is_eq2_) = uint256_eq(Uint256(1,0), token_mask_);
+    with_attr error_message("token not allowed "){
         assert_not_zero(is_eq1_ * is_eq2_);
     }
     let (low_) = bitwise_and(fordbiden_token_mask_.low, token_mask_.low);
@@ -454,6 +454,7 @@ func set_parameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (drip_manager_) = drip_manager.read();
     let (underlying_) = underlying.read();
     let (lt_underlying_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
+
     let (new_lt_underlying_) = safeUint256.sub_le(_liquidation_discount, _fee_liquidation);
     let (is_eq_) = uint256_eq(lt_underlying_, new_lt_underlying_);
     if(is_eq_ == 0){
