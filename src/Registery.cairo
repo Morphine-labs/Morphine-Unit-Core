@@ -30,6 +30,10 @@ func drip_factory() -> (drip_factory : felt) {
 }
 
 @storage_var
+func drip_config() -> (res: felt) {
+}
+
+@storage_var
 func oracle() -> (address : felt) {
 }
 
@@ -87,6 +91,12 @@ func poolFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 func dripFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (drip_factory : felt) {
     let (drip_factory_) = drip_factory.read();
     return(drip_factory_,);
+}
+
+@view
+func dripConfigurator{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (drip_factory : felt) {
+    let (drip_config_) = drip_config.read();
+    return(drip_config_,);
 }
 
 @view

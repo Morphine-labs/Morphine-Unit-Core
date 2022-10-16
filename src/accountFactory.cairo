@@ -11,7 +11,7 @@ from starkware.starknet.common.syscalls import (
 from starkware.cairo.common.math_cmp import ( 
     is_le,
     is_nn,
-    is_not_zero
+    is_not_zero,
 )
 
 from starkware.cairo.common.uint256 import Uint256
@@ -75,6 +75,27 @@ func is_drip_account(address : felt) -> (is_drip_account : felt) {
 func drip_from_id(address : felt) -> (drip_id : felt) {
 }
 
+@storage_var
+func id_to_drip(id : felt) -> (drip : felt) {
+}
+
+
+@storage_var
+func minning() -> (res: felt) {
+}
+
+// Protector
+
+func only_drip_configurator {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    let (contract_address : felt) = get_contract_address();
+    let (caller_ : felt ) = get_caller_address();
+    let (config : felt) = IRegistery.dripConfig(contract_address);
+    with_attr error_message("account factory : Caller is not dripConfigurator") {
+        assert config = caller_;
+    }
+    return();
+}
+
 // Constructor
 
 @constructor
@@ -87,16 +108,23 @@ func constructor {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     tail.write(drip_account);
     stock_len.write(1);
     next_drip_account.write(drip_account,0);
-    drip_from_id.write(0,drip_account);
+    drip_from_id.write(1,drip_account);
     return();
 }
 
 // View
 
+
 @view
 func get_stock_len {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (len : felt) {
     let (stock : felt) = stock_len.read();
     return(stock,);
+}
+
+@view
+func get_next_drip_account{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(address : felt) -> (next_drip_account : felt) {
+    let (next : felt) = next_drip_account.read(address);
+    return(next,);
 }
 
 @view
@@ -107,8 +135,14 @@ func get_drip_from_address {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 
 @view
 func get_drip_from_id {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(drip_id : felt) -> (drip : felt) {
-    let (drip_account : felt) = drip_from_id.read(drip_id);
+    let (drip_account : felt) = id_to_drip.read(drip_id);
     return(drip_account,);
+}
+
+@view
+func get_drip_id_from_address {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(address : felt) -> (drip_id : felt) {
+    let (drip_id : felt) = drip_from_id.read(address);
+    return(drip_id,);
 }
 
 @view
@@ -135,7 +169,7 @@ func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 
     IDrip.initialize(contract_address, class_hash);
     stock_len.write(stock_before + 1);
-
+    drip_from_id.write(stock_before + 1, contract_address );
     setAvailableDripAccount(contract_address);
     next_drip_account.write(old_tail, contract_address);
     next_drip_account.write(contract_address, 0);
@@ -146,7 +180,7 @@ func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 }
 
 @external
-func removeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) -> (adress : felt) {
+func takeDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _cumulative_index : Uint256) -> (address : felt) {
     check_stock();
     let (head_ : felt ) = head.read();
     let (tail_ : felt ) = tail.read();
@@ -178,6 +212,107 @@ func setAvailableDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         stock_len.write(drip_length + 1);
         return ();
     }
+}
+
+@external
+func removeAvailableDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_address : felt) {
+    let (is_drip_account_: felt) = is_drip_account.read(_address);
+    let (tail_ : felt) = tail.read();
+    let (nb_drip_ : felt) = stock_len.read();
+    let (old_drip_id_ : felt) = get_drip_from_address(_address);
+    let (prev_tail_ : felt) = get_drip_from_id(nb_drip_ - 1);
+    if (is_drip_account_ == 0) {
+        return ();
+    }
+    if (_address == tail_) {
+        stock_len.write(nb_drip_ - 1);
+        is_drip_account.write(_address, 0);
+        return();
+    }
+
+    id_to_drip.write(tail_, old_drip_id_);
+    tail.write(prev_tail_);
+
+    stock_len.write(nb_drip_ - 1);
+    is_drip_account.write(_address, 0);
+    return();
+
+}
+
+@external
+func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_prev : felt, _drip_account : felt, _to : felt ) {
+    alloc_locals;
+    only_drip_configurator();
+    let (head_ : felt) = head.read();
+    let (tail_ : felt ) = tail.read();
+    if (head_ == _drip_account) {
+        let (new_head_ : felt) = next_drip_account.read(head_);
+        head.write(new_head_);
+        next_drip_account.write(head_,0);
+        IDrip.connectTo(_drip_account, _to, Uint256(0,0) , Uint256(0,0));
+        return ();
+    } 
+    let (next_prev_ : felt) = next_drip_account.read(_prev);
+    with_attr error_message("account not in list") {
+        assert next_prev_ =  _drip_account;
+    }
+    if(_drip_account == tail_){
+        tail.write(_prev);
+        let (next_drip_account_ : felt) = next_drip_account.read(_drip_account);
+        next_drip_account.write(_prev, next_drip_account_);
+        next_drip_account.write(_drip_account, 0);
+        IDrip.connectTo(_drip_account, _to, Uint256(0,0) , Uint256(0,0));
+        removeAvailableDripAccount(_drip_account);
+        return();
+    } else {
+        let (next_drip_account_ : felt) = next_drip_account.read(_drip_account);
+        next_drip_account.write(_prev, next_drip_account_);
+        next_drip_account.write(_drip_account, 0);
+        IDrip.connectTo(_drip_account, _to, Uint256(0,0) , Uint256(0,0));
+        removeAvailableDripAccount(_drip_account);
+        return();
+    }
+}
+
+@external
+func returnDripAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(drip_account : felt) {
+    alloc_locals;
+    let (get_block : felt) = get_block_number();
+    let (is_in_drip : felt) = is_drip_account.read(drip_account); 
+    with_attr error_message("account Factory: Drip account is not in the stock") {
+        assert is_in_drip = 1;
+    }
+    let (since_ : felt) = IDrip.since(drip_account);
+    let timestamp : felt = is_le(since_ , get_block);
+    tempvar since_status : felt;
+    if( timestamp == 1 ) {
+        if ( since_ != get_block){
+            since_status = 1;
+        } else {
+            since_status = 0;
+        }
+    } else {
+        since_status = 0;
+    }
+    with_attr error_message("account Factory: Can't close in the same block") {
+        assert since_status = 0;
+    }
+
+    let (tail_ : felt) = tail.read();
+    next_drip_account.write(tail_, drip_account);
+    tail.write(drip_account);
+    next_drip_account.write(drip_account, 0);
+    return();
+}
+
+@external
+func get_next{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}( _address : felt) -> (next_drip : felt) {
+    let (is_in_drip : felt) = is_drip_account.read(_address); 
+    with_attr error_message("account Factory: Drip account is not in the stock") {
+        assert is_in_drip = 1;
+    }
+    let (next_drip_account_ : felt) = next_drip_account.read(_address);
+    return(next_drip_account_,);
 }
 
 func check_stock {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() {

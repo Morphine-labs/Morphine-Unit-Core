@@ -17,6 +17,9 @@ namespace IRegistery {
     func dripFactory() -> (drip_factory: felt) {
     }
 
+    func dripConfig() -> (drip_config: felt) {
+    }
+
     func accountFactory() -> (account_factory : felt){
     }
 

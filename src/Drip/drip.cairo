@@ -8,7 +8,7 @@ from starkware.starknet.common.syscalls import (
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from openzeppelin.token.erc20.IERC20 import IERC20
-from openzeppelin.security.reentrancyguard.library import library
+from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES
 
@@ -64,12 +64,18 @@ func total_borrowed_amount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ran
     return(borrow,);
 }
 
+@view
+func since{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since : felt){
+    let (since_ : felt ) = since.read();
+    return(since_,);
+}
+
 //External
 
 @external
 func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager : felt, _borrowed_amount : Uint256, _cumulative_index : Uint256) {
-    let (block_timestamp_ : felt ) = get_block_timestamp();
+    let (block_timestamp_ : felt ) = get_block_number();
     since.write(block_timestamp_);
     drip_manager.write(_drip_manager);
     borrowed_amount.write(_borrowed_amount);

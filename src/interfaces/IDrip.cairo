@@ -11,6 +11,9 @@ namespace IDrip {
     func cumulative_index_open() -> (cumulative_index_open : Uint256) {
     }
 
+    func since() -> (since : felt) {
+    }
+
     func total_borrowed_amount() -> (total_borrowed : Uint256){
     }
 
