@@ -35,6 +35,7 @@ from src.utils.utils import (
 )
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.starknet.common.syscalls import deploy
 from openzeppelin.token.erc20.IERC20 import IERC20
 
 from starkware.cairo.common.math import assert_not_zero
@@ -48,6 +49,10 @@ from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from src.interfaces.IDrip import IDrip
 
 from src.interfaces.IRegistery import IRegistery
+
+// Constants
+const FALSE = 0;
+const TRUE = 1;
 
 // Storage var
 
@@ -81,6 +86,11 @@ func id_to_drip(id : felt) -> (drip : felt) {
 
 
 @storage_var
+func class_hash() -> (res: felt) {
+}
+
+
+@storage_var
 func minning() -> (res: felt) {
 }
 
@@ -99,10 +109,8 @@ func only_drip_configurator {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, r
 // Constructor
 
 @constructor
-func constructor {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address : felt) {
-    with_attr error_message("account Factory: Address should be different than 0") {
-        assert_not_zero(address);
-    }
+func constructor {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_class_hash : felt) {
+    class_hash.write(_class_hash);
     let (drip_account : felt ) = addDripAccount();
     head.write(drip_account);
     tail.write(drip_account);
@@ -159,20 +167,38 @@ func availableDripAccounts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
 // External
 
 @external
+func deploy_drip_account{
+    syscall_ptr: felt*,
+    pedersen_ptr: HashBuiltin*,
+    range_check_ptr,
+}() -> (contract_address : felt) {
+    let current_salt = 0;
+    let (class_hash_) = class_hash.read();
+    let (contract_address) = deploy(
+        class_hash=class_hash_,
+        contract_address_salt=current_salt,
+        constructor_calldata_size=1,
+        constructor_calldata=cast(new (class_hash_,), felt*),
+        deploy_from_zero=FALSE,
+    );
+
+    return (contract_address,);
+}
+
+@external
 func addDripAccount {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr} () -> (address : felt) {
     alloc_locals;
     let (stock_before : felt) = stock_len.read();
     let (old_tail : felt) = tail.read();
     let (contract_address : felt ) = get_contract_address();
     let (factory : felt ) = IRegistery.dripFactory(contract_address);
-    let (class_hash : felt) = IRegistery.dripHash(contract_address);
-
-    IDrip.initialize(contract_address, class_hash);
+    let (new_drip : felt) = deploy_drip_account();
+    IDrip.initialize(new_drip, contract_address);
     stock_len.write(stock_before + 1);
-    drip_from_id.write(stock_before + 1, contract_address );
-    setAvailableDripAccount(contract_address);
-    next_drip_account.write(old_tail, contract_address);
-    next_drip_account.write(contract_address, 0);
+    drip_from_id.write(stock_before + 1, new_drip);
+    setAvailableDripAccount(new_drip);
+    next_drip_account.write(old_tail, new_drip);
+    next_drip_account.write(new_drip, 0);
 
     tail.write(contract_address);
     is_drip_account.write(contract_address, 1);

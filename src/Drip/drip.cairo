@@ -65,7 +65,7 @@ func total_borrowed_amount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ran
 }
 
 @view
-func since{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since : felt){
+func last_update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since : felt){
     let (since_ : felt ) = since.read();
     return(since_,);
 }
