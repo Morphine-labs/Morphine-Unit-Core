@@ -53,19 +53,19 @@ func initialize{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_pt
 }
 
 @view
-func cumulative_index_open{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulative_index_open : Uint256) {
-    let (open : Uint256 ) = cumulative_index.read();
-    return(open,);
+func cumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulativeIndex : Uint256) {
+    let (cumulative_index_ : Uint256 ) = cumulative_index.read();
+    return(cumulative_index_,);
 }
 
 @view
-func total_borrowed_amount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (total_borrowed : Uint256){
-    let (borrow : Uint256 ) = borrowed_amount.read();
-    return(borrow,);
+func borrowedAmount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (totalBorrowed : Uint256){
+    let (borrowed_amount_ : Uint256 ) = borrowed_amount.read();
+    return(borrowed_amount_,);
 }
 
 @view
-func last_update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since : felt){
+func lastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since : felt){
     let (since_ : felt ) = since.read();
     return(since_,);
 }

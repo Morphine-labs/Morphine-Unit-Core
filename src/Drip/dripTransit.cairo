@@ -328,7 +328,7 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @external
-func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_target: felt, _token: felt, _amount: Uint256){
+func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_target: felt, _token: felt, _amount: Uint256){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
