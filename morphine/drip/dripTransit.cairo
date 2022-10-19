@@ -10,32 +10,23 @@ from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt, uint
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
-from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
-from src.Extensions.IIntegrationManager import IIntegrationManager
+
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.token.erc20.IERC721 import IERC721
-
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
-from src.interfaces.IPool import IPool
-from src.interfaces.IDripManager import IDripManager
-from src.interfaces.IOracleTransit import IOracleTransit
+from openzeppelin.security.safemath.library import SafeUint256
 
 
-struct Call {
-    to: felt,
-    selector: felt,
-    calldata_len: felt,
-    calldata: felt*,
-}
+from morphine.utils.safeerc20 import SafeERC20
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
 
-const ADD_COLLATERAL_SELECTOR = 222;
-const INCREASE_DEBT_SELECTOR = 222;
-const DECREASE_DEBT_SELECTOR = 222;
+from morphine.interfaces.IDripTransit import IDripTransit, Call
+from morphine.interfaces.IPool import IPool
+from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IOracleTransit import IOracleTransit
 
 
 // Events
-
 
 @event 
 func OpenDrip(owner: felt, drip: felt, borrowed_amount: Uint256){
@@ -79,6 +70,11 @@ func TransferAccountAllowed(from: felt, to: felt, _state: felt){
 
 
 // Storage
+
+const ADD_COLLATERAL_SELECTOR = 222;
+const INCREASE_DEBT_SELECTOR = 222;
+const DECREASE_DEBT_SELECTOR = 222;
+
 
 @storage_var
 func drip_manager() -> (address : felt) {
@@ -167,12 +163,12 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         }
     }
 
-    let (step1_) = safeUint256.mul(_amount, _leverage_factor);
-    let (borrowed_amount_) = safeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    let (step1_) = SafeUint256.mul(_amount, _leverage_factor);
+    let (borrowed_amount_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
     let (liquidation_threshold_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
-    let (amount_ltu_) = safeUint256.mul(_amount, liquidation_threshold_);
-    let (less_ltu_) = safeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
-    let (borrow_less_ltu_) = safeUint256.mul(borrowed_amount_, liquidation_threshold_);
+    let (amount_ltu_) = SafeUint256.mul(_amount, liquidation_threshold_);
+    let (less_ltu_) = SafeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
+    let (borrow_less_ltu_) = SafeUint256.mul(borrowed_amount_, liquidation_threshold_);
     let (is_lt_) = uint256_lt(borrow_less_ltu_, amount_ltu_);
     with_attr error_message("incorrect amount"){
         assert is_lt_ = 1;
@@ -328,7 +324,7 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @external
-func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_target: felt, _token: felt, _amount: Uint256){
+func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_target: felt, _token: felt, _amount: Uint256){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
@@ -404,7 +400,7 @@ func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (underlying_) = underlying.read();
     let (total_) = IOracleTransit.convertFromUSD(total_USD_, underlying_);
     let (twv_precision_) = IOracleTransit.convertFromUSD(twv_USD_precision_, underlying_);
-    let (twv_,_) = safeUint256.div_rem(twv_precision_, Uint256(PRECISION,0));
+    let (twv_,_) = SafeUint256.div_rem(twv_precision_, Uint256(PRECISION,0));
     return(total_, twv_,)
 }
 
@@ -414,8 +410,8 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     let (drip_manager_) = drip_manager.read();
     let (_, tvw_) = calcTotalValue(_drip);
     let (_, borrowed_amount_with_interests_) = IDripManager.calcCreditAccountAccruedInterest(drip_manager_, _drip);
-    let (step1_) = safeUint256.mul(tvw_, Uint256(PRECISION,0));
-    let (hf_,_) = safeUint256.div_rem(step1_, borrowed_amount_with_interests_);
+    let (step1_) = SafeUint256.mul(tvw_, Uint256(PRECISION,0));
+    let (hf_,_) = SafeUint256.div_rem(step1_, borrowed_amount_with_interests_);
     return(hf_,)
 }
 
@@ -547,10 +543,10 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
         let (has_token_) = uint256_lt(Uint256(1,0), balance_);
         if(has_token_ == 1){
             let (value_) = IOracleTransit.convertToUSD(_oracle_transit, balance_, token_);
-            let (new_cumulative_total_usd_) = safeUint256.add(_cumulative_total_usd, value_);
+            let (new_cumulative_total_usd_) = SafeUint256.add(_cumulative_total_usd, value_);
             let (lt_) = IDripManager.liquidationThresholds(_drip_manager, token_);
-            let (lt_value_) = safeUint256.mul(value_, lt_);
-            let (new_cumulative_twv_usd_) = safeUint256.add(_cumulative_twv_usd, lt_value_);
+            let (lt_value_) = SafeUint256.mul(value_, lt_);
+            let (new_cumulative_twv_usd_) = SafeUint256.add(_cumulative_twv_usd, lt_value_);
             cumulative_total_usd_temp_.low = new_cumulative_total_usd_.low;
             cumulative_total_usd_temp_.high = new_cumulative_total_usd_.high;
             cumulative_twv_usd_temp_.low = new_cumulative_twv_usd_.low;

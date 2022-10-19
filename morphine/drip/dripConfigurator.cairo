@@ -14,14 +14,13 @@ from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
 from src.Extensions.IIntegrationManager import IIntegrationManager
 from openzeppelin.token.erc20.IERC20 import IERC20
-from src.interfaces.IPool import IPool
-
-
-//TODO: Uint check, reetrency, add interfaces !
+from openzeppelin.security.pausable.library import Pausable 
+from openzeppelin.access.ownable.library import Ownable
+from Morphine.Interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from Morphine.Interfaces.IPool import IPool
 
 
 // Events
-
 
 @event 
 func TokenAllowed(token: felt){
@@ -48,15 +47,12 @@ func FeesUpdated(fee_interest: Uint256, fee_liquidation: Uint256, liquidation_pr
 }
 
 @event 
-func PriceOracleUpgraded(oracle: felt){
+func OracleTransitUpgraded(oracle: felt){
 }
 
 @event 
-func CreditFacadeUpgraded(credit_facade: felt){
+func DripTransitUpgraded(drip_transit: felt){
 }
-
-
-
 
 
 // Storage
@@ -66,7 +62,7 @@ func drip_manager() -> (address : felt) {
 }
 
 @storage_var
-func drip_facade() -> (address : felt) {
+func drip_transit() -> (address : felt) {
 }
 
 @storage_var
@@ -103,13 +99,6 @@ func registery() -> (registery : felt){
 
 
 // Protector
-func configurator_only(){
-    let (caller_) = get_caller_address();
-    let (contract_address_) = get_contract_address();
-    with_attr error_message("Only the configurator can call this function"){
-        assert caller_ = contract_address_;
-    }
-}
 
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
@@ -120,34 +109,30 @@ func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     return();
 }
 
-struct AllowedToken {
-    address: felt, // Address of token
-    liquidation_threshold: Uint256, // LT for token in range 0..10,000 which represents 0-100%
-}
-
 //Constructor
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     _drip_manager: felt,
-    _dripFacade: felt,
+    _drip_transit: felt,
     _minimum_borrowed_amount: Uint256, // minimal amount for drip 
     _maximum_borrowed_amount: Uint256, // maximum amount for drip 
     _allowed_tokens_len: felt,
     _allowed_tokens: AllowedToken*, // allowed tokens list
     ) {
     drip_manager.write(_drip_manager);
-    drip_facade.write(_dripFacade);
+    drip_transit.write(_drip_transit);
     let (pool_) = IDripManager.pool(_drip_manager);
     let (underlying_) = IPool.asset(pool_);
-    let (registery_) = IPool.addressProvider();
-    underlying.write();
-    registery.write();
-
+    let (registery_) = IPool.registery();
+    underlying.write(underlying_);
+    registery.write(registery_);
+    let (owner_) = IRegistery.owner(registery_);
+    Ownable.initializer(owner_);
     set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
-    let (oracle_) = IDripManager.priceOracle(_drip_manager);
-    IDripManager.upgradeContracts(_drip_manager, _dripFacade, _dripFacade);
+    let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
+    IDripManager.upgradeContracts(_drip_manager, _drip_transit, oracle_transit_);
     return();
 );
 
@@ -156,21 +141,21 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
 @external
 func addTokenToAllowedList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
-    configurator_only();
+    Ownable.assert_only_owner();
     add_token_to_allowed_list(_token);
     return();
 }
 
 @external
 func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
-    configurator_only();
+    Ownable.assert_only_owner();
     set_liquidation_threshold();
     return();
 }
 
 @external
 func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
@@ -194,7 +179,7 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 @external
 func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
@@ -220,14 +205,14 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 @external
 func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt, _adapter: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     with_attr error_message("zero address for contract or adapter"){
         assert_not_zero(_contract * _adapter);
     }
     let (drip_manager_) = drip_manager.read();
-    let (drip_facade_) = drip_facade.read();
-    with_attr error_message("drip manager or drip facade exeption"){
-        assert_not_zero((_contract - drip_manager_)*(_contract - drip_facade_)*(_adapter - drip_manager_)*(_adapter - drip_facade_));
+    let (drip_transit_) = drip_transit.read();
+    with_attr error_message("drip manager or drip transit exeption"){
+        assert_not_zero((_contract - drip_manager_)*(_contract - drip_transit_)*(_adapter - drip_manager_)*(_adapter - drip_transit_));
     }
     let (contract_from_adapter_) = IDripManager.adapterToContract(drip_manager_, _adapter);
     let (adapter_from_contract_) = IDripManager.contractToAdapter(drip_manager_, _contract);
@@ -238,7 +223,7 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     with_attr error_message("wrong drip manager from adapter"){
         assert_not_zero(contract_from_adapter_ * adapter_from_contract_);
     }
-    IDripFacade.setContractToAdapter(drip_facade_, _contract, _adapter);
+    IDripTransit.setContractToAdapter(drip_transit_, _contract, _adapter);
     IDripManager.changeContractAllowance(drip_manager_, _contract, _adapter);
 
     let (allowed_contract_length_) = allowed_contract_length.read();
@@ -253,20 +238,20 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 @external
 func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     with_attr error_message("zero address for contract"){
         assert_not_zero(_contract);
     }
     let (drip_manager_) = drip_manager.read();
-    let (drip_facade_) = drip_facade.read();
+    let (drip_transit_) = drip_transit.read();
 
-    let (adapter_) = IDripFacade.contractToAdapter(drip_facade_, );
+    let (adapter_) = IDripTransit.contractToAdapter(_contract);
     with_attr error_message("adapter not connected"){
         assert_not_zero(adapter_);
     }
 
     IDripManager.changeContractAllowance(drip_manager_, _contract, 0);
-    IDripFacade.setContractToAdapter(drip_facade_, 0, _contract);
+    IDripTransit.setContractToAdapter(drip_transit_, 0, _contract);
 
     let (allowed_contract_length_) = allowed_contract_length.read();
     let (id_to_remove_) = allowed_contract_to_id.read(_contract);
@@ -282,7 +267,7 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 @external
 func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (fee_interest_) = IDripManager.feeInterest(drip_manager_);
     let (fee_liqudidation_) = IDripManager.feeLiquidation(drip_manager_);
@@ -297,7 +282,7 @@ func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 @external
 func setFastCheckParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_chi_threshold: Uint256, _hf_check_interval: Uint256){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (is_bt_) = uint256_lt(Uint256(PRECISION,0), _chi_threshold);
     with_attr error_message("chi threshold too big"){
         assert_not_zero(is_bt_);
@@ -316,7 +301,7 @@ func setFastCheckParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 @external
 func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (is_bt1_) = uint256_le(Uint256(PRECISION,0), _fee_interest);
     let (sum_) = safeUint256.add(_liquidation_premium, _fee_liquidation);
     let (is_bt2_) = uint256_le(Uint256(PRECISION,0), sum_);
@@ -336,34 +321,34 @@ func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_f
 }
 
 @external
-func upgradePriceOracle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (registery_) = registery.read();
-    let (oracle_) = IRegistery.getPriceOracle(registery_);
-    let (drip_facade_) = drip_facade.read();
-    IDripManager.upgradeContracts(drip_manager_, drip_facade_, oracle_);
-    PriceOracleUpgraded.emit(oracle_);
+    let (oracle_transit_) = IRegistery.oracleTransit(registery_);
+    let (drip_transit_) = drip_transit.read();
+    IDripManager.upgradeContracts(drip_manager_, drip_transit_, oracle_);
+    OracleTransitUpgraded.emit(oracle_transit_);
     return();
 }
 
 @external
-func upgradeDripFacade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_facade_: felt){
+func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_transit: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (registery_) = registery.read();
     let (oracle_) = IRegistery.getPriceOracle(registery_);
-    IDripManager.upgradeContracts(drip_manager_, _drip_facade_, oracle_);
-    CreditFacadeUpgraded.emit(_drip_facade_);
+    IDripManager.upgradeContracts(drip_manager_, _drip_transit, oracle_);
+    DripTransitUpgraded.emit(_drip_transit);
     return();
 }
 
 @external
 func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_configurator: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     IDripManager.setConfigurator(drip_manager_, _configurator);
     return();
@@ -372,7 +357,7 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 @external
 func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_mode: felt){
     alloc_locals;
-    configurator_only();
+    Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     IDripManager.setIncreaseDebtForbidden(drip_manager_, _mode);
     return();

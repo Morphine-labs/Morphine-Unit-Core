@@ -6,15 +6,12 @@ from starkware.starknet.common.syscalls import (
     call_contract,
 )
 
-from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt
+from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_eq, uint256_lt
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
-from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
-from src.Extensions.IIntegrationManager import IIntegrationManager
+
 from openzeppelin.token.erc20.IERC20 import IERC20
-from src.interfaces.IPool import IPool
 
 
 // Events

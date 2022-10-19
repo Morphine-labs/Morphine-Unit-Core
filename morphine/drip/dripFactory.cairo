@@ -104,16 +104,6 @@ func registery() -> (res: felt) {
 
 // Protector
 
-func only_drip_configurator {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    let (contract_address : felt) = get_contract_address();
-    let (caller_ : felt ) = get_caller_address();
-    let (config : felt) = IRegistery.dripConfig(contract_address);
-    with_attr error_message("account factory : Caller is not dripConfigurator") {
-        assert config = caller_;
-    }
-    return();
-}
-
 func only_drip_manager {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     let (contract_address : felt) = get_contract_address();
     let (caller_ : felt ) = get_caller_address();
@@ -244,7 +234,7 @@ func returnDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 @external
 func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_prev : felt, _drip : felt, _to : felt ) {
     alloc_locals;
-    only_drip_configurator();
+    Ownable.assert_only_owner();
     check_stock();
     let (head_ : felt) = head.read();
     if (head_ == _drip){
