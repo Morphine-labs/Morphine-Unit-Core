@@ -26,6 +26,9 @@ namespace IRegistery {
     func owner() -> (owner: felt) {
     }
 
+    func oracleTransit(registery : felt) -> (oracle_transitions: felt) {
+    }
+
     func poolHash(pool_hash_class: felt) -> (pool_hash: felt) {
     }
 
@@ -34,7 +37,6 @@ namespace IRegistery {
 
     func dripManager() -> (drip_manager: felt) {
     }
-
 
     func integrationManager(pool_hash_class: felt) -> (pool_hash: felt) {
     }
