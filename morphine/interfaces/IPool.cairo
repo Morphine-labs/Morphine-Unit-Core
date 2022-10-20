@@ -7,6 +7,10 @@ namespace IPool {
     func pause() {
     }
 
+    // Need to implem it 
+    func registery() -> (address : felt){
+    }
+
     func unpause() {
     }
 

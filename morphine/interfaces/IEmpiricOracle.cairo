@@ -1,3 +1,5 @@
+%lang starknet
+
 @contract_interface
 namespace IEmpiricOracle {
     func get_spot_median(pair_id: felt) -> (

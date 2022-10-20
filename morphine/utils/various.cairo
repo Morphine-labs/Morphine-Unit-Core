@@ -5,7 +5,7 @@ from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
 const APPROVE_SELECTOR = 73937833738373;
-const PRECISION = 10**6;
+const PRECISION = 10 ** 6;
 const SECONDS_PER_YEAR = 31536000;
 const DEFAULT_FEE_INTEREST = 100000;
 const DEFAULT_LIQUIDATION_PREMIUM = 50000;

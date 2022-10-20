@@ -12,7 +12,7 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.token.erc20.IERC20 import IERC20
-from openzeppelin.token.erc20.IERC721 import IERC721
+from openzeppelin.token.erc721.IERC721 import IERC721
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from openzeppelin.security.safemath.library import SafeUint256
 
@@ -61,11 +61,11 @@ func LiquidateCreditAccount(borrower: felt, caller: felt, to: felt, remaining_fu
 }
 
 @event 
-func TransferDrip(from: felt, to: felt){
+func TransferDrip(_from : felt, to: felt){
 }
 
 @event 
-func TransferAccountAllowed(from: felt, to: felt, _state: felt){
+func TransferAccountAllowed(_from: felt, to: felt, _state: felt){
 }
 
 
@@ -89,7 +89,7 @@ func contract_to_adapter(contract: felt) -> (adapter : felt) {
 }
 
 @storage_var
-func transfers_allowed(from: felt, to: felt) -> (is_allowed : felt) {
+func transfers_allowed(_from: felt, to: felt) -> (is_allowed : felt) {
 }
 
 
@@ -138,7 +138,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
         permissionless.write(0);
         return();
     }
-);
+}
 
 // TOKEN MANAGEMENT
 
@@ -381,7 +381,7 @@ func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (low_) = bitwise_and(fordbiden_token_mask_.low, token_mask_.low);
     let (high_) = bitwise_and(fordbiden_token_mask_.high, token_mask_.high);
     let (is_nul_) = uint256_eq(Uint256(0,0),Uint(low_, high_));
-    let (is_bg_)= uint256_lt(Uint(0,0), forbid_token_mask_)
+    let (is_bg_)= uint256_lt(Uint(0,0), forbid_token_mask_);
     if(is_nul_ * is_bg_ == 1){
         return(1,);
     } else {
@@ -401,7 +401,7 @@ func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (total_) = IOracleTransit.convertFromUSD(total_USD_, underlying_);
     let (twv_precision_) = IOracleTransit.convertFromUSD(twv_USD_precision_, underlying_);
     let (twv_,_) = SafeUint256.div_rem(twv_precision_, Uint256(PRECISION,0));
-    return(total_, twv_,)
+    return(total_, twv_,);
 }
 
 @external
@@ -412,7 +412,7 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     let (_, borrowed_amount_with_interests_) = IDripManager.calcCreditAccountAccruedInterest(drip_manager_, _drip);
     let (step1_) = SafeUint256.mul(tvw_, Uint256(PRECISION,0));
     let (hf_,_) = SafeUint256.div_rem(step1_, borrowed_amount_with_interests_);
-    return(hf_,)
+    return(hf_,);
 }
 
 @external
@@ -432,7 +432,7 @@ func hasOpenedCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 
 func _multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _call_len: felt,
-        _call: Call*
+        _call: Call*,
         _borrower: felt,
         _is_closure: felt,
         _is_increase_debt_was_called: felt){
@@ -451,7 +451,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         _call: Call*,
         _borrower: felt,
         _is_closure: felt,
-        _is_increase_debt_was_called: felt
+        _is_increase_debt_was_called: felt,
         _this: felt,
         _drip_manager: felt){
     if(_call_len == 0){

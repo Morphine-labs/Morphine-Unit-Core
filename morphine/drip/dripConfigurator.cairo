@@ -10,13 +10,14 @@ from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
-from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
+from morphine.utils.safeerc20 import SafeERC20
+from morphine.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.pausable.library import Pausable 
 from openzeppelin.access.ownable.library import Ownable
-from src.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
-from src.interfaces.IPool import IPool
+from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from morphine.interfaces.IPool import IPool
+from morphine.interfaces.IDripManager import IDripManager
 
 
 // Events
