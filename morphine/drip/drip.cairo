@@ -3,6 +3,7 @@
 from starkware.starknet.common.syscalls import (
     get_block_timestamp,
     get_caller_address,
+    get_block_number,
     call_contract,
 )
 from starkware.cairo.common.uint256 import Uint256

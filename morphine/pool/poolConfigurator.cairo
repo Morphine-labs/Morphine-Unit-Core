@@ -26,7 +26,7 @@ from starkware.cairo.common.uint256 import (
     uint256_mul,
     uint256_unsigned_div_rem,
 )
-from src.utils.utils import (
+from morphine.utils.utils import (
     felt_to_uint256,
     uint256_div,
     uint256_percent,
@@ -45,44 +45,53 @@ from openzeppelin.security.pausable.library import Pausable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
-from src.utils.various import ALL_ONES, APPROVE_SELECTOR, PRECISION
+from morphine.utils.various import ALL_ONES, APPROVE_SELECTOR, PRECISION
 
-from src.interfaces.IDrip import IDrip
+from morphine.interfaces.IDrip import IDrip
 
-from src.interfaces.IRegistery import IRegistery
+from morphine.interfaces.IRegistery import IRegistery
 
 @storage_var
-func slope_1() -> (res: felt) {
+func slope_1() -> (res: Uint256) {
 }
 
 @storage_var
-func slope_2() -> (res: felt) {
+func slope_2() -> (res: Uint256) {
 }
 
 @storage_var
-func availableLiquidity() -> (res: felt) {
+func availableLiquidity() -> (res: Uint256) {
 }
 
 @storage_var
-func expected_liquidity_last_update() -> (res: felt) {
+func expected_liquidity_last_update() -> (res: Uint256) {
 }
 
 @storage_var
-func base_rate() -> (res: felt) {
+func base_rate() -> (res: Uint256) {
 }
+
+@storage_var
+func optimal_liquidity_use() -> (res: Uint256) {
+}
+
 
 
 @constructor
-func constructor{syscall_ptr : felt, pedersen_ptr: HashBuiltin*, range_check_ptr}
-(_available_liquidity : felt, _expected_liquidity : felt , _slope_1: felt, _slope_2: felt, _base_rate : felt, _) {
-    
+func constructor{syscall_ptr : felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_available_liquidity : Uint256, _expected_liquidity : Uint256, _slope_1: Uint256, _slope_2: Uint256, _base_rate : Uint256, _optimal_liquidity_utilization : Uint256) {
+    availableLiquidity.write(_available_liquidity);
+    expected_liquidity_last_update.write(_expected_liquidity);
+    slope_1.write(_slope_1);
+    slope_2.write(_slope_2);
+    base_rate.write(_base_rate);
+    optimal_liquidity_use.write(_optimal_liquidity_utilization);
     return();
 }
 
 
 func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowRate : Uint256){
     alloc_locals;
-    let (available_liquidity_) = availableLiquidity();
+    let (available_liquidity_) = availableLiquidity.read();
     let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_,Uint256(0,0));
     // prevent from sending token to the pool 
@@ -99,7 +108,7 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     let (step1_) = uint256_sub(expected_liquidity_, available_liquidity_);
     let (step2_,_) = uint256_mul(step1_, Uint256(PRECISION,0));
     let (liquidity_utilization_,_) = uint256_unsigned_div_rem(step2_, expected_liquidity_);
-    let (optimal_liquidity_utilization_) = optimal_liquidity_utilization.read();
+    let (optimal_liquidity_utilization_) = optimal_liquidity_use.read();
     let (is_utilization_lt_optimal_utilization_) = uint256_le(liquidity_utilization_, optimal_liquidity_utilization_);
 
 
@@ -108,7 +117,7 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     // borrow_rate = base_rate +  slop1 * -----------------------------
     //                                     optimal_liquidity_utilization_
 
-    let (slop1_) = slop1.read();
+    let (slop1_) = slope_1.read();
     if(is_utilization_lt_optimal_utilization_ == 1){
         let (step1_,_) = uint256_mul(liquidity_utilization_, Uint256(PRECISION,0));
         let (step2_,_) = uint256_unsigned_div_rem(step1_, optimal_liquidity_utilization_);
@@ -123,7 +132,7 @@ func calculBorrowRate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
         // borrow_rate = base_rate + slop1 + slop2 * ------------------------------------------------------
         //                                              1 - optimal_liquidity_utilization
 
-        let (slop2_) = slop2.read();
+        let (slop2_) = slope_2.read();
         let (step2_,_) = uint256_mul(Uint256(PRECISION,0), step1_);
         let (step3_) = uint256_sub(Uint256(PRECISION,0), optimal_liquidity_utilization_);
         let (step4_,_) = uint256_unsigned_div_rem(step2_, step3_);

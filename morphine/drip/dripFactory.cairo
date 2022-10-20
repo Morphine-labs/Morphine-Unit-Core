@@ -26,7 +26,7 @@ from starkware.cairo.common.uint256 import (
     uint256_mul,
     uint256_unsigned_div_rem,
 )
-from src.utils.utils import (
+from morphine.utils.utils import (
     felt_to_uint256,
     uint256_div,
     uint256_percent,
@@ -46,9 +46,9 @@ from openzeppelin.security.pausable.library import Pausable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
-from src.interfaces.IDrip import IDrip
+from morphine.interfaces.IDrip import IDrip
 
-from src.interfaces.IRegistery import IRegistery
+from morphine.interfaces.IRegistery import IRegistery
 
 
 @event 

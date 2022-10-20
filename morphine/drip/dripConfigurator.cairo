@@ -12,12 +12,11 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
 from src.utils.safeerc20 import SafeERC20
 from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
-from src.Extensions.IIntegrationManager import IIntegrationManager
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.pausable.library import Pausable 
 from openzeppelin.access.ownable.library import Ownable
-from Morphine.Interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
-from Morphine.Interfaces.IPool import IPool
+from src.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from src.interfaces.IPool import IPool
 
 
 // Events
@@ -129,12 +128,12 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     registery.write(registery_);
     let (owner_) = IRegistery.owner(registery_);
     Ownable.initializer(owner_);
-    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
+    set_parameters(_minimum_borrowed_amount,_maximum_borrowed_amount,0,Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0),Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0),Uint256(DEFAULT_CHI_THRESHOLD,0),Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
     let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
     IDripManager.upgradeContracts(_drip_manager, _drip_transit, oracle_transit_);
     return();
-);
+}
 
 
 // TOKEN MANAGEMENT
@@ -452,7 +451,7 @@ func set_parameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (is_eq2_) = uint256_eq(_hf_check_interval, current_hf_check_interval_);
     let (is_eq3_) = uint256_eq(_fee_liquidation, current_fee_liqudidation_);
     
-    if(is_eq1_ * is_eq2_ * is_eq3_){
+    if(is_eq1_ * is_eq2_ * is_eq3_ == 1){
         check_fast_check_parameters_coverage(_chi_threshold, _hf_check_interval, _fee_liquidation);
     }
     IDripManager.setParameters(_minimum_borrowed_amount, _maximum_borrowed_amount, _fee_interest, _fee_liquidation, _liquidation_discount, _chi_threshold, _hf_check_interval);

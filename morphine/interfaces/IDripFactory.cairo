@@ -3,7 +3,7 @@
 from starkware.cairo.common.uint256 import Uint256
 
 @contract_interface
-namespace IDripfactory {
+namespace IDripFactory {
     func nextDrip(_drip: felt) -> (drip: felt) {
     }
 

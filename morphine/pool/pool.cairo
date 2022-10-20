@@ -876,7 +876,7 @@ func ERC20_decrease_allowance_manual{syscall_ptr: felt*, pedersen_ptr: HashBuilt
         let (current_allowance_: Uint256) = ERC20_allowances.read(_owner, _spender);
         let (is_le_) = uint256_le(_subtracted_value, current_allowance_);
         with_attr error_message("allowance below zero"){
-            assert is_le_ == 1;
+            assert is_le_ = 1;
         }
         let (new_allowance_) = SafeUint256.sub_le(current_allowance_, _subtracted_value);
         ERC20._approve(_owner, _spender, new_allowance);
