@@ -7,6 +7,10 @@ namespace IPool {
     func pause() {
     }
 
+    // Need to implem it 
+    func registery() -> (address : felt){
+    }
+
     func unpause() {
     }
 
@@ -47,6 +51,12 @@ namespace IPool {
     }
 
     func treasury() -> (treasury: felt) {
+    }
+
+    func getRegistery(pool : felt) -> (registry: felt) {
+    }
+
+    func getUnderlying(pool : felt) -> (underlying: felt) {
     }
 
     func factory() -> (factory: felt) {

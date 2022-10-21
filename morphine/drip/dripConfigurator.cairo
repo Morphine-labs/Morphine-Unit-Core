@@ -10,7 +10,6 @@ from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_eq, uint25
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
-
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.security.safemath.library import SafeUint256
