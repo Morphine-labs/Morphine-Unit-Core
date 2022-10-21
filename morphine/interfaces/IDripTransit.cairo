@@ -3,51 +3,23 @@
 from starkware.cairo.common.uint256 import Uint256
 
 
-struct Call {
-    to: felt,
-    selector: felt,
-    calldata_len: felt,
-    calldata: felt*,
-}
-
 
 @contract_interface
-namespace IDripTransit {
+namespace IDripTransit{
 
-    func initialize(_factory: felt) {
+    // setters
+
+    func setContractToAdapter(contract: felt, adapter: felt){
     }
 
-    func cumulative_index_open() -> (cumulative_index_open : Uint256) {
+
+    // getters
+
+    func contractToAdapter(contract: felt) -> (adapter: felt){
     }
 
-    func since() -> (since : felt) {
-    }
-
-    func total_borrowed_amount() -> (total_borrowed : Uint256){
-    }
-
-    func connectTo(_drip_manager : felt, _borrowed_amount : Uint256, _cumulative_index : Uint256) {
-    }
-
-    func updateParameters(_borrowed_amount: Uint256, _cumulative_index: Uint256) {
-    }
-
-    func approveToken(_token: felt,_contract: felt) {
-    }
-
-    func cancelAllowance(_token: felt,_contract: felt) {
-    }
-
-    func safeTransfer(_token: felt, _to: felt, _amount: Uint256) {
-    }
-
-    func execute(
-            _to: felt,
-            _selector: felt,
-            _calldata_len: felt,
-            _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
-    }
 }
+
 
 
 

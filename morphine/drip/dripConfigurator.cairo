@@ -6,18 +6,25 @@ from starkware.starknet.common.syscalls import (
     call_contract,
 )
 
-from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt
+from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_eq, uint256_lt, uint256_le
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
-from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES, DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
-from src.Extensions.IIntegrationManager import IIntegrationManager
+
 from openzeppelin.token.erc20.IERC20 import IERC20
-from openzeppelin.security.pausable.library import Pausable 
 from openzeppelin.access.ownable.library import Ownable
-from Morphine.Interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
-from Morphine.Interfaces.IPool import IPool
+from openzeppelin.security.safemath.library import SafeUint256
+
+from morphine.utils.safeerc20 import SafeERC20
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION, DEFAULT_FEE_LIQUIDATION
+
+from morphine.interfaces.IRegistery import IRegistery
+from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IDripTransit import IDripTransit
+from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from morphine.interfaces.IAdapter import IAdapter
+from morphine.interfaces.IPool import IPool
+
 
 
 // Events
@@ -31,7 +38,11 @@ func TokenForbidden(token: felt){
 }
 
 @event 
-func ContractAllowed(token: felt){
+func ContractAllowed(contract: felt){
+}
+
+@event 
+func ContractForbidden(contract: felt){
 }
 
 @event 
@@ -118,23 +129,22 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _minimum_borrowed_amount: Uint256, // minimal amount for drip 
     _maximum_borrowed_amount: Uint256, // maximum amount for drip 
     _allowed_tokens_len: felt,
-    _allowed_tokens: AllowedToken*, // allowed tokens list
-    ) {
+    _allowed_tokens: AllowedToken*) {
     drip_manager.write(_drip_manager);
     drip_transit.write(_drip_transit);
-    let (pool_) = IDripManager.pool(_drip_manager);
+    let (pool_) = IDripManager.getPool(_drip_manager);
     let (underlying_) = IPool.asset(pool_);
-    let (registery_) = IPool.registery();
+    let (registery_) = IPool.getRegistery(pool_);
     underlying.write(underlying_);
     registery.write(registery_);
     let (owner_) = IRegistery.owner(registery_);
     Ownable.initializer(owner_);
-    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,0),Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
+    set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
     let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
     IDripManager.upgradeContracts(_drip_manager, _drip_transit, oracle_transit_);
     return();
-);
+}
 
 
 // TOKEN MANAGEMENT
@@ -157,7 +167,7 @@ func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
 func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
     Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
+    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0), token_mask_);
     let (is_eq2_) = uint256_eq(Uint256(1,0), token_mask_);
@@ -171,7 +181,7 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         let (low_) = bitwise_xor(fordbiden_token_mask_.low, token_mask_.low);
         let (high_) = bitwise_xor(fordbiden_token_mask_.high, token_mask_.high);
         IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
-        tokenAllowed.emit(_token);
+        TokenAllowed.emit(_token);
     }
     return();
 }
@@ -181,7 +191,7 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     alloc_locals;
     Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMasksMap(drip_manager_, _token);
+    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
     let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0),token_mask_);
     let (is_eq2_) = uint256_eq(Uint256(1,0),token_mask_);
@@ -195,7 +205,7 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         let (low_) = bitwise_or(fordbiden_token_mask_.low, token_mask_.low);
         let (high_) = bitwise_or(fordbiden_token_mask_.high, token_mask_.high);
         IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
-        tokenAllowed.emit(_token);
+        TokenAllowed.emit(_token);
     }
     return();
 }
@@ -215,7 +225,7 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         assert_not_zero((_contract - drip_manager_)*(_contract - drip_transit_)*(_adapter - drip_manager_)*(_adapter - drip_transit_));
     }
     let (contract_from_adapter_) = IDripManager.adapterToContract(drip_manager_, _adapter);
-    let (adapter_from_contract_) = IDripManager.contractToAdapter(drip_manager_, _contract);
+    let (adapter_from_contract_) = IDripTransit.contractToAdapter(drip_transit_, _contract);
     with_attr error_message("adapter used twice"){
         assert_not_zero(contract_from_adapter_ * adapter_from_contract_);
     }
@@ -303,12 +313,12 @@ func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_f
     alloc_locals;
     Ownable.assert_only_owner();
     let (is_bt1_) = uint256_le(Uint256(PRECISION,0), _fee_interest);
-    let (sum_) = safeUint256.add(_liquidation_premium, _fee_liquidation);
+    let (sum_) = SafeUint256.add(_liquidation_premium, _fee_liquidation);
     let (is_bt2_) = uint256_le(Uint256(PRECISION,0), sum_);
     with_attr error_message("incorrect fees"){
         assert_not_zero(is_bt1_ * is_bt2_);
     }
-    let (liquidation_discount_) = safeUint256.sub_le(Uint256(PRECISION,0), _liquidation_premium);
+    let (liquidation_discount_) = SafeUint256.sub_le(Uint256(PRECISION,0), _liquidation_premium);
 
     let (drip_manager_) = drip_manager.read();
     let (minimum_borrowed_amount_) = IDripManager.minBorrowedAmount(drip_manager_);
@@ -440,7 +450,7 @@ func set_parameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (underlying_) = underlying.read();
     let (lt_underlying_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
 
-    let (new_lt_underlying_) = safeUint256.sub_le(_liquidation_discount, _fee_liquidation);
+    let (new_lt_underlying_) = SafeUint256.sub_le(_liquidation_discount, _fee_liquidation);
     let (is_eq_) = uint256_eq(lt_underlying_, new_lt_underlying_);
     if(is_eq_ == 0){
         update_liquidation_threshold(new_lt_underlying_);
@@ -452,7 +462,7 @@ func set_parameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (is_eq2_) = uint256_eq(_hf_check_interval, current_hf_check_interval_);
     let (is_eq3_) = uint256_eq(_fee_liquidation, current_fee_liqudidation_);
     
-    if(is_eq1_ * is_eq2_ * is_eq3_){
+    if(is_eq1_ * is_eq2_ * is_eq3_ == 0){
         check_fast_check_parameters_coverage(_chi_threshold, _hf_check_interval, _fee_liquidation);
     }
     IDripManager.setParameters(_minimum_borrowed_amount, _maximum_borrowed_amount, _fee_interest, _fee_liquidation, _liquidation_discount, _chi_threshold, _hf_check_interval);
@@ -486,7 +496,7 @@ func check_fast_check_parameters_coverage{syscall_ptr: felt*, pedersen_ptr: Hash
         return();
     }
     let (step1_) = calcul_max_possible_drop();
-    let (max_possible_drop_) = safeUint256.sub_le(step1_, Uint256(PRECISION,0));
+    let (max_possible_drop_) = SafeUint256.sub_le(step1_, Uint256(PRECISION,0));
     let (is_lt_) = uint256_lt(_fee_liquidation, max_possible_drop_);
     with_attr error_message("zero address for token"){
         assert is_lt_ = 1;
@@ -500,19 +510,19 @@ func calcul_max_possible_drop{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         return(Uint256(PRECISION,0));
     }
     let (step1_) = loop_percent(_percentage, _times);
-    let (new_value_) = safeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    let (new_value_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
     return (new_value_);
 }
 
 func loop_percent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_percentage: Uint256, _times: Uint256) -> (max_possible_drop: Uint256){
     let (is_eq_) = uint256_le(_times, Uint256(0,0));
     if (is_eq_ == 1) {
-        let (initial_value_) = safeUint256.mul(_percentage, Uint256(PRECISION,0));
+        let (initial_value_) = SafeUint256.mul(_percentage, Uint256(PRECISION,0));
         return(initial_value_);
     }
-    let (time_less_) = safeUint256.sub_le(_times, Uint256(1,0));
+    let (time_less_) = SafeUint256.sub_le(_times, Uint256(1,0));
     let (previous_value_) = loop_percent(_percentage, time_less_);
-    let (step1_) = safeUint256.mul(_percentage, previous_value_); 
-    let (new_value_) = safeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    let (step1_) = SafeUint256.mul(_percentage, previous_value_); 
+    let (new_value_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
     return (new_value_);
 }

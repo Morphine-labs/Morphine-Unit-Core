@@ -5,12 +5,11 @@ from starkware.starknet.common.syscalls import (
     get_caller_address,
     call_contract,
 )
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import ALL_ONES, Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from src.utils.safeerc20 import SafeERC20
-from src.utils.various import ALL_ONES
 
 // Storage
 

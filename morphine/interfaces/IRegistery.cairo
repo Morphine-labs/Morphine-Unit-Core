@@ -2,13 +2,11 @@
 
 @contract_interface
 namespace IRegistery {
-    func governance() -> (governance: felt) {
+
+    func owner() -> (governance: felt) {
     }
 
-    func treasury() -> (treasuary: felt) {
-    }
-
-    func oracle() -> (oracle: felt) {
+    func getTreasury() -> (treasuary: felt) {
     }
 
     func poolFactory() -> (pool_factory: felt) {
@@ -23,9 +21,6 @@ namespace IRegistery {
     func accountFactory() -> (account_factory : felt){
     }
 
-    func owner() -> (owner: felt) {
-    }
-
     func poolHash(pool_hash_class: felt) -> (pool_hash: felt) {
     }
 
@@ -35,9 +30,16 @@ namespace IRegistery {
     func dripManager() -> (drip_manager: felt) {
     }
 
-
-    func integrationManager(pool_hash_class: felt) -> (pool_hash: felt) {
+    func dripTransit() -> (drip_transit: felt) {
     }
+
+    func oracleTransit() -> (oracle: felt) {
+    }
+
+
+
+
+    // seetters
 
     func setGovernanceAddress(new_governance: felt) {
     }

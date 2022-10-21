@@ -40,6 +40,9 @@ namespace IPool {
     func repayDebt(_repay_amount: Uint256) {
     }
 
+    func getRegistery() -> (registery: felt) {
+    }
+
     func asset() -> (asset: felt) {
     }
 

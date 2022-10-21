@@ -11,12 +11,6 @@ from starkware.cairo.common.math import (
     assert_not_equal,
 )
 
-const EMPIRIC_ORACLE_ADDRESS = 0x012fadd18ec1a23a160cc46981400160fbf4a7a5eed156c4669e39807265bcd4;
-
-@storage_var
-func governance() -> (governance : felt) {
-}
-
 @storage_var
 func treasury() -> (treasury : felt) {
 }
@@ -39,10 +33,6 @@ func oracle() -> (address : felt) {
 
 @storage_var
 func pool_hash_class() -> (pool_hash_class: felt) {
-}
-
-@storage_var
-func integration_manager() -> (pool_hash_class: felt) {
 }
 
 @storage_var
@@ -70,13 +60,13 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 }
 
 @view
-func get_governance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
-    let (governance_) = governance.read();
+func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (governance : felt) {
+    let (owner_) = Ownable.assert_only_owner();
     return(governance_,);
 }
 
 @view
-func get_treasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
+func getTreasury{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (treasury : felt) {
     let (treasury_) = treasury.read();
     return(treasury_,);
 }

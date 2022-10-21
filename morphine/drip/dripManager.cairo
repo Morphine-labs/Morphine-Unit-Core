@@ -530,6 +530,66 @@ func upgradeContracts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 // Getters 
 
 @view
+func adapterToContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_adapter: felt) -> (contract: felt) {
+    let (contract_) = adapter_to_contract.read(_adapter);
+    return(contract_,);
+}
+
+@view
+func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: felt) {
+    let (fee_interest_) = fee_interest.read();
+    return(fee_interest_,);
+}
+
+@view
+func feeLiquidation{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeLiquidation: felt) {
+    let (fee_liqudidation_) = fee_liqudidation.read();
+    return(fee_liqudidation_,);
+}
+
+@view
+func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: felt) {
+    let (liquidation_discount_) = liquidation_discount.read();
+    return(liquidation_discount_,);
+}
+
+@view
+func chiThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (chiThreshold: felt) {
+    let (chi_threshold_) = chi_threshold.read();
+    return(chi_threshold_,);
+}
+
+@view
+func hfCheckInterval{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (hf_check_interval: felt) {
+    let (hf_check_interval_) = hf_check_interval.read();
+    return(hf_check_interval_,);
+}
+
+@view
+func minBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (minimum_borrowed_amount: felt) {
+    let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
+    return(minimum_borrowed_amount,);
+}
+
+@view
+func maxBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (maximum_borrowed_amount: felt) {
+    let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
+    return(maximum_borrowed_amount,);
+}
+
+@view
+func getPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (pool: felt) {
+    let (pool_) = pool.read();
+    return(pool_,);
+}
+
+@view
+func dripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (drip_configurator: felt) {
+    let (drip_configurator_) = drip_configurator.read();
+    return(drip_configurator_,);
+}
+
+@view
 func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _total_value: Uint256,
         _is_liquidated: felt,

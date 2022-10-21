@@ -105,17 +105,19 @@ func permissionless() -> (address: felt) {
 func nft() -> (address: felt) {
 }
 
+// Protectors
 
 
-// Protector
-func configurator_only(){
-    let (caller_) = get_caller_address();
-    let (drip_manager_) = drip_manager.read();
-    let (drip_configurator_) = IDripManager.dripConfigurator();
-    with_attr error_message("Only the configurator can call this function"){
-        assert drip_manager_ = drip_configurator_;
+func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+        let (caller_) = get_caller_address();
+        let (drip_manager_) = drip_manager.read();
+        let (drip_configurator_) = IDripManager.dripConfigurator(drip_manager_);
+        with_attr error_message("caller is not drip configurator") {
+            assert caller_ = drip_configurator_;
+        }
+        return ();
     }
-}
+
 
 
 //Constructor
@@ -370,9 +372,44 @@ func approveAccountTransfers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     return();
 }
 
-// Getters
+@external
+func setContractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt, _adapter: felt){
+    alloc_locals;
+    assert_only_drip_configurator();
+    with_attr error_message("zero address"){
+        assert_not_zero(_contract);
+    }
+    contract_to_adapter.write()_contract, _adapter;
+    return();
+}
 
 @external
+func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
+    alloc_locals;
+    assert_only_drip_configurator();
+    is_increase_debt_forbidden.write(_state);
+    return();
+}
+
+@external
+func setPermisionless{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
+    alloc_locals;
+    assert_only_drip_configurator();
+    permissionless.write(_state);
+    return();
+}
+
+// Getters
+
+@view
+func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
+    alloc_locals;
+    let (adapter_) = contract_to_adapter.read(_contract);
+    return(adapter_,);
+}
+
+
+@view
 func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (state: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -389,7 +426,7 @@ func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     }
 }
 
-@external
+@view
 func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (total: Uint256, twv: Uint256){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -404,7 +441,7 @@ func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return(total_, twv_,)
 }
 
-@external
+@view
 func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (health_factor: Uint256){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -415,7 +452,7 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return(hf_,)
 }
 
-@external
+@view
 func hasOpenedCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower: felt) -> (hasOpened: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -426,6 +463,7 @@ func hasOpenedCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
         return(1,);
     }
 }
+
 
 
 // Internals
