@@ -12,12 +12,30 @@ namespace IDripManager {
 
     func changeContractAllowance(adapter: felt, target: felt) {
     }
-    
 
+    func setDripConfigurator(drip_configurator: felt) {
+    }
 
+    func setIncreaseDebtForbidden(state: felt) {
+    }
+
+    func setLiquidationThreshold(token: felt, liquidation_threshold: Uint256) {
+    }
+
+    func addToken(token: felt) {
+    }
+
+    func setParameters(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256, fee_interest: Uint256,  fee_liqudidation: Uint256, liquidation_discount: Uint256, chi_threshold: Uint256, hf_check_interval: Uint256){
+    }
 
     // Getters 
     func getPool() -> (pool: felt) {
+    }
+
+    func allowedTokensLength() -> (allowed_tokens_length: felt) {
+    }
+
+    func allowedToken(id: felt) -> (allowedToken: felt) {
     }
 
     func dripConfigurator() -> (configurator: felt) {
@@ -38,25 +56,28 @@ namespace IDripManager {
     func adapterToContract(adapter: felt) -> (contract: felt){
     }
 
-    func feeInterest() -> (fee_interest: felt){
+    func feeInterest() -> (fee_interest: Uint256){
     }
 
-    func feeLiquidation() -> (fee_liquidation: felt){
+    func feeLiquidation() -> (fee_liquidation: Uint256){
     }
 
-    func liquidationDiscount() -> (liquidation_discount: felt){
+    func liquidationDiscount() -> (liquidation_discount: Uint256){
     }
 
-    func chiThreshold() -> (chi_threshold: felt){
+    func chiThreshold() -> (chi_threshold: Uint256){
     }
     
-    func hfCheckInterval() -> (hf_check_interval: felt){
+    func hfCheckInterval() -> (hf_check_interval: Uint256){
     }
 
-    func minBorrowedAmount() -> (minimum_borrowed_amount: felt){
+    func minBorrowedAmount() -> (minimum_borrowed_amount: Uint256){
     }
 
-    func maxBorrowedAmount() -> (maximum_borrowed_amount: felt){
+    func maxBorrowedAmount() -> (maximum_borrowed_amount: Uint256){
+    }
+
+    func liquidationThreshold(token: felt) -> (liquidationThresold: Uint256){
     }
 
 

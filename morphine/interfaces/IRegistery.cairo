@@ -6,6 +6,9 @@ namespace IRegistery {
     func owner() -> (governance: felt) {
     }
 
+    func allowedTokensLength() -> (allowed_tokens_length: felt) {
+    }
+
     func getTreasury() -> (treasuary: felt) {
     }
 
@@ -36,10 +39,10 @@ namespace IRegistery {
     func oracleTransit() -> (oracle: felt) {
     }
 
+    
 
 
-
-    // seetters
+    // setters
 
     func setGovernanceAddress(new_governance: felt) {
     }

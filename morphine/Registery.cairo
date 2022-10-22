@@ -28,7 +28,7 @@ func drip_config() -> (res: felt) {
 }
 
 @storage_var
-func oracle() -> (address : felt) {
+func oracle_transit() -> (address : felt) {
 }
 
 @storage_var
@@ -102,7 +102,7 @@ func owner{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() 
 }
 
 @view
-func get_oracle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
+func oracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (oracle : felt) {
     let (oracle_) = oracle.read();
     return(oracle_,);
 }

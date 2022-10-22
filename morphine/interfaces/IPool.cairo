@@ -53,9 +53,6 @@ namespace IPool {
     func treasury() -> (treasury: felt) {
     }
 
-    func getRegistery(pool : felt) -> (registry: felt) {
-    }
-
     func getUnderlying(pool : felt) -> (underlying: felt) {
     }
 
