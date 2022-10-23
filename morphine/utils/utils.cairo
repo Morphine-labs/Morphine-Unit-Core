@@ -1,4 +1,4 @@
-from starkware.cairo.common.math import split_felt, unsigned_div_rem
+from starkware.cairo.common.math import split_felt, unsigned_div_rem, assert_in_range
 from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.uint256 import uint256_unsigned_div_rem, uint256_mul
 from starkware.cairo.common.uint256 import Uint256
@@ -99,4 +99,17 @@ func uint256_pow{pedersen_ptr: HashBuiltin*, range_check_ptr}(x: Uint256, pow: f
     let (prev_res) = uint256_pow(x, pow - 1);
     let (res) = uint256_mul_low(x, prev_res);
     return (res=res);
+}
+
+func pow{pedersen_ptr: HashBuiltin*, range_check_ptr}(x: felt , power: felt) -> (
+    res: felt
+) {
+    if (power == 0) {
+        return (1,);
+    }
+
+    let (prev_res) = pow(x, power - 1);
+    let res = x * prev_res;
+    assert_in_range(res, 0, 2 ** 252 - 1);
+    return (res,);
 }

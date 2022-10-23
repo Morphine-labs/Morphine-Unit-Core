@@ -14,6 +14,7 @@ const DEFAULT_CHI_THRESHOLD = 20000;
 const DEFAULT_HF_CHECK_INTERVAL = 4;
 const MAX_WITHDRAW_FEE = 10000;
 const ALL_ONES = 2 ** 128 - 1;
+const EMPIRIC_ORACLE_ADDRESS = 0x446812bac98c08190dee8967180f4e3cdcd1db9373ca269904acb17f67f7093;
 
 func uint256_permillion{pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, permillion: Uint256
