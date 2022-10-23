@@ -536,7 +536,11 @@ func upgradeContracts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 
 // Getters
 
-
+@view
+func tokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (token_mask: felt) {
+    let (token_mask_) = token_mask.read(_token);
+    return(token_mask_,);
+}
 
 @view
 func allowedToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (allowed_token: felt) {
