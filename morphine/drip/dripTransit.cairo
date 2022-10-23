@@ -379,7 +379,7 @@ func setContractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     with_attr error_message("zero address"){
         assert_not_zero(_contract);
     }
-    contract_to_adapter.write()_contract, _adapter;
+    contract_to_adapter.write(_contract, _adapter);
     return();
 }
 
