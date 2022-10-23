@@ -537,7 +537,7 @@ func upgradeContracts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 // Getters
 
 @view
-func tokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (token_mask: felt) {
+func tokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (token_mask: Uint256) {
     let (token_mask_) = token_mask.read(_token);
     return(token_mask_,);
 }
@@ -547,6 +547,13 @@ func allowedToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     let (allowed_token_) = id_to_allowed_token.read(_id);
     return(allowed_token_,);
 }
+
+@view
+func enabledTokensMap{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (enabled_tokens: Uint256) {
+    let (enabled_tokens_) = enabled_tokens.read(_id);
+    return(enabled_tokens_,);
+}
+
 
 @view
 func liquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (contract: felt) {

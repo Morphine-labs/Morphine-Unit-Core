@@ -54,8 +54,13 @@ namespace IDripManager {
 
     func transferDripOwnership(_from : felt, _to: felt) {
     }
+    
 
     // Getters
+
+    func calcDripAccruedInterest(drip : felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
+    }
+
     func getPool() -> (pool: felt) {
     }
 
@@ -69,6 +74,9 @@ namespace IDripManager {
     }
 
     func oracleTransit() -> (oracleTransit: felt) {
+    }
+
+    func enabledTokensMap(drip: felt) -> (enabledTokensMap: felt) {
     }
 
     func upgradeContracts(drip_transit: felt, oracle_transit: felt) {

@@ -421,12 +421,12 @@ func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (state: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMasksMap(_token);
-    let (forbid_token_mask_) = IDripManager.tokenMasksMap(_token);
-    let (low_) = bitwise_and(fordbiden_token_mask_.low, token_mask_.low);
-    let (high_) = bitwise_and(fordbiden_token_mask_.high, token_mask_.high);
-    let (is_nul_) = uint256_eq(Uint256(0,0),Uint(low_, high_));
-    let (is_bg_)= uint256_lt(Uint(0,0), forbid_token_mask_);
+    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
+    let (forbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
+    let (low_) = bitwise_and(forbiden_token_mask_.low, token_mask_.low);
+    let (high_) = bitwise_and(forbiden_token_mask_.high, token_mask_.high);
+    let (is_nul_) = uint256_eq(Uint256(0,0),Uint256(low_, high_));
+    let (is_bg_)= uint256_lt(Uint256(0,0), forbiden_token_mask_);
     if(is_nul_ * is_bg_ == 1){
         return(1,);
     } else {
@@ -438,10 +438,10 @@ func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (total: Uint256, twv: Uint256){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
-    let (oracle_transit_) = IDripManager.priceOracle(drip_manager_);
+    let (oracle_transit_) = IDripManager.oracleTransit(drip_manager_);
     let (enabled_tokens_) = IDripManager.enabledTokensMap(drip_manager_, _drip);
-    let (count_) = IDripManager.allowedTokensCount(drip_manager_);
-    let (total_USD_: Uint256, twv_USD_precision_: Uint256) = recursive_calcul_value(0, count_, _drip, enabled_tokens_, oracle_transit_, drip_manager_, Uint256(0,0), Uint256(0,0));
+    let (allowed_contract_length_) = IDripManager.allowedTokensLength(drip_manager_);
+    let (total_USD_: Uint256, twv_USD_precision_: Uint256) = recursive_calcul_value(0, allowed_contract_length_, _drip, enabled_tokens_, oracle_transit_, drip_manager_, Uint256(0,0), Uint256(0,0));
     let (underlying_) = underlying.read();
     let (total_) = IOracleTransit.convertFromUSD(total_USD_, underlying_);
     let (twv_precision_) = IOracleTransit.convertFromUSD(twv_USD_precision_, underlying_);
