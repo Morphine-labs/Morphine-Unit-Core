@@ -2,27 +2,18 @@
 
 from starkware.cairo.common.uint256 import Uint256
 
-
+struct Call {
+}
 
 @contract_interface
-namespace IDripTransit{
-
+namespace IDripTransit {
     // setters
 
-    func setContractToAdapter(contract: felt, adapter: felt){
+    func setContractToAdapter(contract: felt, adapter: felt) {
     }
-
 
     // getters
 
-    func contractToAdapter(contract: felt) -> (adapter: felt){
+    func contractToAdapter(contract: felt) -> (adapter: felt) {
     }
-
 }
-
-
-
-
-
-
-

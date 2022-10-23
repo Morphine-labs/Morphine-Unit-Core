@@ -2,7 +2,6 @@
 
 @contract_interface
 namespace IRegistery {
-
     func owner() -> (governance: felt) {
     }
 
@@ -21,7 +20,7 @@ namespace IRegistery {
     func dripConfig() -> (drip_config: felt) {
     }
 
-    func accountFactory() -> (account_factory : felt){
+    func accountFactory() -> (account_factory: felt) {
     }
 
     func poolHash(pool_hash_class: felt) -> (pool_hash: felt) {
@@ -38,9 +37,6 @@ namespace IRegistery {
 
     func oracleTransit() -> (oracle: felt) {
     }
-
-    
-
 
     // setters
 

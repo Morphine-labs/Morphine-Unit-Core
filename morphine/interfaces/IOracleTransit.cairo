@@ -8,4 +8,3 @@ namespace IOracleTransit {
     func derivativePriceFeed(derivative: felt) -> (price_feed: felt) {
     }
 }
-

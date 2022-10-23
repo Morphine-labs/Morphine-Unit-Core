@@ -1,16 +1,15 @@
 %lang starknet
 
 struct PoolFactory {
-    id : felt,
-    address : felt,
-    name : felt,
-    symbol : felt,
-    asset : felt,
+    id: felt,
+    address: felt,
+    name: felt,
+    symbol: felt,
+    asset: felt,
 }
 
 @contract_interface
 namespace IPoolFactory {
-
     func get_nb_pool() -> (pool_len: felt) {
     }
 
