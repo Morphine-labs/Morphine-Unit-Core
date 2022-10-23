@@ -32,6 +32,12 @@ from morphine.utils.utils import (
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
+struct Position {
+    asset: felt,
+    total_debt : felt,
+}
+
+
 @view
 func poolDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool_id: felt) -> (
     debt: felt

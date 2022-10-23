@@ -11,7 +11,6 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.utils.safeerc20 import SafeERC20
-from morphine.utils.various import ALL_ONES
 
 // Storage
 

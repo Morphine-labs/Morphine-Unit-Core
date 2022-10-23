@@ -4,12 +4,14 @@ from starkware.starknet.common.syscalls import (
     get_block_timestamp,
     get_caller_address,
     call_contract,
+    get_contract_address
 )
 
-from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt, uint256_pow2
+from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt, uint256_pow2, uint256_le
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.math_cmp import is_le
 
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.token.erc721.IERC721 import IERC721
@@ -23,6 +25,7 @@ from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PRE
 from morphine.interfaces.IDripTransit import IDripTransit, Call
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IOracleTransit import IOracleTransit
 
 
@@ -49,15 +52,15 @@ func AddCollateral(on_belhalf_of: felt, token: felt, amount: Uint256){
 }
 
 @event 
-func IncreaseBorrowedAmount(borrower: felt, amount: uint256){
+func IncreaseBorrowedAmount(borrower: felt, amount: Uint256){
 }
 
 @event 
-func DecreaseBorrowedAmount(oracle: felt, amount: uint256){
+func DecreaseBorrowedAmount(oracle: felt, amount: Uint256){
 }
 
 @event 
-func LiquidateCreditAccount(borrower: felt, caller: felt, to: felt, remaining_funds: Uint256){
+func LiquidateDrip(borrower: felt, caller: felt, to: felt, remaining_funds: Uint256){
 }
 
 @event 
@@ -65,7 +68,7 @@ func TransferDrip(_from : felt, to: felt){
 }
 
 @event 
-func TransferAccountAllowed(_from: felt, to: felt, _state: felt){
+func TransferDripAllowed(_from: felt, to: felt, _state: felt){
 }
 
 
@@ -92,7 +95,6 @@ func contract_to_adapter(contract: felt) -> (adapter : felt) {
 func transfers_allowed(_from: felt, to: felt) -> (is_allowed : felt) {
 }
 
-
 @storage_var
 func is_increase_debt_forbidden() -> (is_increase_debt_forbidden: felt) {
 }
@@ -100,6 +102,11 @@ func is_increase_debt_forbidden() -> (is_increase_debt_forbidden: felt) {
 @storage_var
 func permissionless() -> (address: felt) {
 }
+
+@storage_var
+func is_drip_liquidatable() -> (res: felt) {
+}
+
 
 @storage_var
 func nft() -> (address: felt) {
@@ -128,9 +135,8 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     with_attr error_message("zero address for drip manager"){
         assert_not_zero(_drip_manager);
     }
-    let (drip_manager_) = IDripManager.dripManager(_drip_manager);
     let (underlying_)= IDripManager.underlying(_drip_manager);
-    drip_manager.write(drip_manager_);
+    drip_manager.write(_drip_manager);
     underlying.write(underlying_);
     nft.write(_nft);
     if (_nft == 0){
@@ -154,7 +160,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (caller_) = get_caller_address();
     let (drip_manager_) = drip_manager.read();
     let (underlying_) = underlying.read();
-    let (permissionless_) = permillion.read();
+    let (permissionless_) = permissionless.read();
 
     if(permissionless_ == 0){
         let (nft_) = nft.read();
@@ -167,7 +173,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (step1_) = SafeUint256.mul(_amount, _leverage_factor);
     let (borrowed_amount_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
-    let (liquidation_threshold_) = IDripManager.liquidationThresholds(drip_manager_, underlying_);
+    let (liquidation_threshold_) = IDripManager.liquidationThreshold(drip_manager_, underlying_);
     let (amount_ltu_) = SafeUint256.mul(_amount, liquidation_threshold_);
     let (less_ltu_) = SafeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
     let (borrow_less_ltu_) = SafeUint256.mul(borrowed_amount_, liquidation_threshold_);
@@ -192,7 +198,7 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
-    let (permissionless_) = permillion.read();
+    let (permissionless_) = permissionless.read();
 
     if(permissionless_ == 0){
         let (nft_) = nft.read();
@@ -203,8 +209,8 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
         }
     }
 
-    let (drip_) = IDripManager.openDrip(drip_manager_, borrowed_amount_, _on_belhalf_of);
-    OpenDrip.emit(_on_belhalf_of, drip_, borrowed_amount_);
+    let (drip_) = IDripManager.openDrip(drip_manager_, _borrowed_amount, _on_belhalf_of);
+    OpenDrip.emit(_on_belhalf_of, drip_, _borrowed_amount);
     
     let (is_le_) = is_le(_call_len , 0);
     if(is_le_ == 0){
@@ -219,6 +225,7 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 @external
 func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _to: felt,
+        _on_belhalf_of: felt,
         _call_len: felt,
         _call: Call*){
     alloc_locals;
@@ -230,6 +237,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         let (this_) = get_contract_address();
         _multicall(_call_len, _call, caller_, 1, 0, this_, drip_manager_);
     }
+    let (borrowed_amount_) = IDripConfigurator.total_borrowed_amount(drip_manager_, caller_);
     IDripManager.closeDrip(drip_manager_, caller_, borrowed_amount_, _on_belhalf_of);
     CloseDrip.emit(caller_, _to);
     ReentrancyGuard._end();
@@ -246,7 +254,7 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
-    let (drip_) = IDripManager.getCreditAccountOrRevert(drip_manager_, _borrower);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _borrower);
     let (is_liquidatable_, total_value_) = is_drip_liquidatable(drip_);
     with_attr error_message("Can't Liquidate with such HF"){
         assert is_liquidatable_ = 1;
@@ -256,8 +264,8 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         let (this_) = get_contract_address();
         _multicall(_call_len, _call, _borrower, 1, 0, this_, drip_manager_);
     }
-    let (remaining_funds_) = IDripManager.closeCreditAccount(drip_manager_, _borrower, 1, total_value_, caller_, _to);
-    LiquidateCreditAccount.emit(_borrower, caller_, _to, remaining_funds_);
+    let (remaining_funds_) = IDripManager.closeDrip(drip_manager_, _borrower, 1, total_value_, caller_, _to);
+    LiquidateDrip.emit(_borrower, caller_, _to, remaining_funds_);
     ReentrancyGuard._end();
     return();
 }
@@ -274,7 +282,7 @@ func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     }
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
-    let (drip_) = IDripManager.getCreditAccountOrRevert(drip_manager_, caller_);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     IDripManager.manageDebt(drip_manager_, caller_, _amount, 1);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
     IncreaseBorrowedAmount.emit(caller_, _amount);
@@ -288,7 +296,7 @@ func decreaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
-    let (drip_) = IDripManager.getCreditAccountOrRevert(drip_manager_, caller_);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     IDripManager.manageDebt(drip_manager_, caller_, _amount, 0);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
     DecreaseBorrowedAmount.emit(caller_, _amount);
@@ -309,14 +317,14 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @external
-func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_call_len: felt,_call: Call*){
+func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower : felt, _call_len: felt,_call: Call*){
     alloc_locals;
     ReentrancyGuard._start();
     let (is_le_) = is_le(_call_len , 0);
     if(is_le_ == 0){
         let (caller_) = get_caller_address();
         let (drip_manager_) = drip_manager.read();
-        let (drip_) = IDripManager.getCreditAccountOrRevert(drip_manager_, caller_);
+        let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
         let (this_) = get_contract_address();
         _multicall(_call_len, _call, _borrower, 1, 0, this_, drip_manager_);
         IDripManager.fullCollateralCheck(drip_manager_, drip_);
@@ -339,13 +347,13 @@ func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_t
     with_attr error_message("Token not allowed"){
         assert_not_zero(is_token_allowed_);
     }
-    IDripManager.approveCreditAccount(drip_manager_, caller_, _target, _token, _amount);
+    IDripManager.approveDrip(drip_manager_, caller_, _target, _token, _amount);
     ReentrancyGuard._end();
     return();
 }
 
 @external
-func transferAccountOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt){
+func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt){
     alloc_locals;
     let (caller_) = get_caller_address();
     let (is_allowed_) = transfers_allowed(caller_, _to);
@@ -353,22 +361,22 @@ func transferAccountOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         assert_not_zero(is_allowed_);
     }
     let (drip_manager_) = drip_manager.read();
-    let (drip_) = IDripManager.getCreditAccountOrRevert(drip_manager_, caller_);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     let (is_liquidatable_,_) = is_drip_liquidatable(drip_);
     with_attr error_message("Transfer not allowed for liquiditable drip"){
         assert is_liquidatable_ = 0;
     }
-    IDripManager.transferAccountOwnership(drip_manager_, caller_, _to);
+    IDripManager.transferDripOwnership(drip_manager_, caller_, _to);
     TransferDrip.emit(caller_, _to);
     return();
 }
 
 @external
-func approveAccountTransfers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_from: felt, _state: felt){
+func approveDripTransfers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_from: felt, _state: felt){
     alloc_locals;
     let (caller_) = get_caller_address();
     transfers_allowed.write(_from, caller_, _state);
-    TransferAccountAllowed.emit(_from, caller_, _state);
+    TransferDripAllowed.emit(_from, caller_, _state);
     return();
 }
 
@@ -446,17 +454,17 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
     let (_, tvw_) = calcTotalValue(_drip);
-    let (_, borrowed_amount_with_interests_) = IDripManager.calcCreditAccountAccruedInterest(drip_manager_, _drip);
+    let (_, borrowed_amount_with_interests_) = IDripManager.calcDripAccruedInterest(drip_manager_, _drip);
     let (step1_) = SafeUint256.mul(tvw_, Uint256(PRECISION,0));
     let (hf_,_) = SafeUint256.div_rem(step1_, borrowed_amount_with_interests_);
     return(hf_,);
 }
 
 @view
-func hasOpenedCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower: felt) -> (hasOpened: felt){
+func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower: felt) -> (hasOpened: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
-    let (drip_) = IDripManager.creditAccounts(_borrower);
+    let (drip_) = IDripManager.creditDrip(_borrower);
     if(drip_ == 0){
         return(0,);
     } else {
@@ -582,7 +590,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
         if(has_token_ == 1){
             let (value_) = IOracleTransit.convertToUSD(_oracle_transit, balance_, token_);
             let (new_cumulative_total_usd_) = SafeUint256.add(_cumulative_total_usd, value_);
-            let (lt_) = IDripManager.liquidationThresholds(_drip_manager, token_);
+            let (lt_) = IDripManager.liquidationThreshold(_drip_manager, token_);
             let (lt_value_) = SafeUint256.mul(value_, lt_);
             let (new_cumulative_twv_usd_) = SafeUint256.add(_cumulative_twv_usd, lt_value_);
             cumulative_total_usd_temp_.low = new_cumulative_total_usd_.low;
