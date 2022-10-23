@@ -346,7 +346,7 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @external
-func transferAccountOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _from: felt, _to: felt
 ) {
     ReentrancyGuard._start();
@@ -558,7 +558,7 @@ func adapterToContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 }
 
 @view
-func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: uint256) {
+func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: Uint256) {
     let (fee_interest_) = fee_interest.read();
     return(fee_interest_,);
 }

@@ -40,16 +40,19 @@ namespace IDripManager {
     func addCollateral(drip: felt, on_belhalf_of: felt, underlying: Uint256, amount: Uint256) {
     }
 
-    func closeDrip(_to: felt, _call_len: felt, _call: Call*) {
+    func closeDrip(to: felt, _call_len: felt, _call: Call*) {
     }
 
-    func openDrip(_amount: Uint256, _on_belhalf_of: felt, _leverage_factor: Uint256) {
+    func openDrip(amount: Uint256, on_belhalf_of: felt, leverage_factor: Uint256) {
     }
 
-    func manageDebt(_borrower: felt, _amount: Uint256, _increase: felt) {
+    func manageDebt(_borrower: felt, amount: Uint256, increase: felt) {
     }
 
-    func approveDrip(_borrower: felt, _target: felt, _token: felt, _amount: Uint256) {
+    func approveDrip(borrower: felt, target: felt, token: felt,amount: Uint256) {
+    }
+
+    func transferDripOwnership(_from : felt, _to: felt) {
     }
 
     // Getters
