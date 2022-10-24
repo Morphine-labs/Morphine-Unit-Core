@@ -90,7 +90,7 @@ func drip_manager() -> (res: felt) {
 }
 
 @storage_var
-func ERC4626_asset() -> (asset: felt) {
+func underlying() -> (asset: felt) {
 }
 
 @storage_var
@@ -192,7 +192,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
     let (decimals_) = IERC20.decimals(_asset);
     ERC20.initializer(_name, _symbol, decimals_);
-    ERC4626_asset.write(_asset);
+    underlying.write(_asset);
 
     let (owner_) = IRegistery.owner(_registery);
     Ownable.initializer(owner_);
@@ -331,7 +331,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         assert_not_zero(_receiver);
     }
 
-    let (asset_) = ERC4626_asset.read();
+    let (asset_) = underlying.read();
     let (caller_) = get_caller_address();
     let (this_) = get_contract_address();
     SafeERC20.transferFrom(asset_, caller_, this_, _assets);
@@ -372,7 +372,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         assert_not_zero(_receiver);
     }
 
-    let (asset_) = ERC4626_asset.read();
+    let (asset_) = underlying.read();
     let (caller_) = get_caller_address();
     let (this_) = get_contract_address();
     SafeERC20.transferFrom(asset_, caller_, this_, assets_);
@@ -424,7 +424,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ERC20_decrease_allowance_manual(_owner, caller_, shares_);
     ERC20._burn(_owner, shares_);
 
-    let (ERC4626_asset_) = ERC4626_asset.read();
+    let (ERC4626_asset_) = underlying.read();
     SafeERC20.transfer(ERC4626_asset_, _receiver, remaining_assets_);
     SafeERC20.transfer(ERC4626_asset_, treasury_, treasury_fee_);
 
@@ -471,7 +471,7 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ERC20_decrease_allowance_manual(_owner, caller_, _shares);
     ERC20._burn(_owner, _shares);
 
-    let (ERC4626_asset_) = ERC4626_asset.read();
+    let (ERC4626_asset_) = underlying.read();
     SafeERC20.transfer(ERC4626_asset_, _receiver, remaining_assets_);
     SafeERC20.transfer(ERC4626_asset_, treasury_, treasury_fee_);
 
@@ -496,8 +496,8 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     Pausable.assert_not_paused();
     assert_only_drip_manager();
     assert_borrow_not_frozen();
-    let (ERC4626_asset_) = ERC4626_asset.read();
-    SafeERC20.transfer(ERC4626_asset_, _drip, _borrow_amount);
+    let (underlying_) = underlying.read();
+    SafeERC20.transfer(underlying_, _drip, _borrow_amount);
     let (total_borrowed_) = total_borrowed.read();
     let (new_total_borrowed_) = total_borrowed.read();
     update_borrow_rate(Uint256(0, 0));
@@ -547,6 +547,7 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     return ();
 }
 
+
 //
 // VIEW
 //
@@ -560,7 +561,7 @@ func getRegistery{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
 
 @view
 func asset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (asset: felt) {
-    let (read_asset: felt) = ERC4626_asset.read();
+    let (read_asset: felt) = underlying.read();
     return (read_asset,);
 }
 
@@ -811,7 +812,7 @@ func expectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 func availableLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     availableLiquidity: Uint256
 ) {
-    let (ERC4626_asset_) = ERC4626_asset.read();
+    let (ERC4626_asset_) = underlying.read();
     let (this_) = get_contract_address();
     let (available_liquidity_) = IERC20.balanceOf(ERC4626_asset_, this_);
     return (available_liquidity_,);

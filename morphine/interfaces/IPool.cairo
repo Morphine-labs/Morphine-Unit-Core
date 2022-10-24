@@ -38,10 +38,13 @@ namespace IPool {
     func redeem(_shares: Uint256, _receiver: felt, _owner: felt) -> (assets: Uint256) {
     }
 
-    func borrow(_borrow_amount: Uint256) {
+    func borrow(borrow_amount: Uint256, drip: felt) {
     }
 
     func repayDebt(_repay_amount: Uint256) {
+    }
+
+    func repayDripDebt(borrowed_amound: Uint256, profit: Uint256, loss: Uint256) {
     }
 
     func getRegistery() -> (registery: felt) {
@@ -53,7 +56,7 @@ namespace IPool {
     func treasury() -> (treasury: felt) {
     }
 
-    func getUnderlying(pool: felt) -> (underlying: felt) {
+    func getUnderlying() -> (underlying: felt) {
     }
 
     func factory() -> (factory: felt) {

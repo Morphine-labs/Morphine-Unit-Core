@@ -19,8 +19,6 @@ from starkware.cairo.common.uint256 import (
     uint256_lt,
     uint256_eq,
     uint256_add,
-    uint256_mul,
-    uint256_unsigned_div_rem,
 )
 from morphine.utils.utils import (
     felt_to_uint256,
@@ -152,7 +150,7 @@ func adapter_to_contract(adapter: felt) -> (contract: felt) {
 }
 
 @storage_var
-func oracle_transit(adapter: felt) -> (contract: felt) {
+func oracle_transit() -> (oracle_transit: felt) {
 }
 
 @storage_var
@@ -164,12 +162,14 @@ func hf_check_interval() -> (interval: Uint256) {
 }
 
 // Protector
-func assert_only_drip_configurator() {
+func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
     let (caller_) = get_caller_address();
     let (drip_configurator_) = drip_configurator.read();
     with_attr error_message("Only the configurator can call this function") {
         assert caller_ = drip_configurator_;
     }
+    return();
 }
 
 func assert_only_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
@@ -181,18 +181,21 @@ func assert_only_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     return ();
 }
 
-func assert_only_drip_transit_or_adapters() {
+func assert_only_drip_transit_or_adapters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
     let (caller_) = get_caller_address();
     let (adapter_to_contract_) = adapter_to_contract.read(caller_);
-    let (is_not_adapter_) = is_le(adapter_to_contract_, 0);
+    let is_not_adapter_ = is_le(adapter_to_contract_, 0);
     let (drip_transit_) = drip_transit.read();
     with_attr error_message("Only the configurator can call this function") {
         assert (is_not_adapter_ * (drip_transit_ - caller_)) = 0;
     }
+    return();
 }
 
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool: felt) {
+    alloc_locals;
     with_attr error_message("pool is address zero") {
         assert_not_zero(_pool);
     }
@@ -214,6 +217,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _on_belhalf_of: felt
 ) -> (drip: felt) {
+    alloc_locals;
     ReentrancyGuard._start();
     assert_only_drip_transit();
     let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
@@ -225,19 +229,21 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     }
     let (pool_) = pool.read();
     let (cumulative_index_) = IPool.calculLinearCumulativeIndex(pool_);
-    let (drip_) = IDripFactory.takeDrip(_borrowed_amount, cumulative_index_);
+    let (drip_factory_) = drip_factory.read();
+    let (drip_) = IDripFactory.takeDrip(drip_factory_, _borrowed_amount, cumulative_index_);
     IPool.borrow(pool_, _borrowed_amount, drip_);
     safe_drip_set(_on_belhalf_of, drip_);
     enabled_tokens.write(drip_, Uint256(1, 0));
     fast_check_counter.write(drip_, Uint256(1, 0));
     ReentrancyGuard._end();
-    return (drip_);
+    return (drip_,);
 }
 
 @external
 func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _is_liquidated: felt, _total_value: Uint256, _payer: felt, _to: felt
 ) -> (remainingFunds: Uint256){
+    alloc_locals;
     ReentrancyGuard._start();
     assert_only_drip_transit();
     let (drip_) = getDripOrRevert(_borrower);
@@ -252,31 +258,45 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     if (is_surplus_ == 1) {
         let (surplus_) = SafeUint256.sub_lt(underlying_balance_, stack_);
         IDrip.safeTransfer(drip_, underlying_, _to, surplus_);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     } else {
         let (cover_) = SafeUint256.sub_le(stack_, underlying_balance_);
-        IERC20.transferFrom(_payer, drip_, cover_);
+        IERC20.transferFrom(underlying_ ,_payer, drip_, cover_);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     }
     let (pool_) = pool.read();
-    IDrip.safeTransfer(drip_, underlying_, pool_, surplus_);
-    IPool.repayDebt(borrowed_amount_, profit_, loss_);
+    IDrip.safeTransfer(drip_, underlying_, pool_, amount_to_pool_);
+    IPool.repayDripDebt(pool_, borrowed_amount_, profit_, loss_);
 
     // transfer remaining funds to borrower [Liquidation case only]
     let (is_remaining_funds_) = uint256_lt(Uint256(0, 0), remaining_funds_);
     if (is_remaining_funds_ == 1) {
         IDrip.safeTransfer(drip_, underlying_, _borrower, remaining_funds_);
-    }
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }   
     transfer_assets_to(drip_, _to);
     let (drip_factory_) = drip_factory.read();
     IDripFactory.returnDrip(drip_factory_, drip_);
-    borrower_to_drip(_borrower, 0);
+    borrower_to_drip.write(_borrower, 0);
     ReentrancyGuard._end();
-    return ();
+    return (remaining_funds_,);
 }
 
 @external
 func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _amount: Uint256, _increase: felt
 ) {
+    alloc_locals;
     ReentrancyGuard._start();
     assert_only_drip_transit();
     let (drip_) = getDripOrRevert(_borrower);
@@ -303,12 +323,12 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 
     tempvar temp_cumulative_index_: Uint256;
     if (_increase == 1) {
-        let (step1_) = uint256_mul(current_cumulative_index_, cumulative_index_);
-        let (step2_) = uint256_mul(step1_, new_borrowed_amount_);
-        let (step3_) = uint256_mul(current_cumulative_index_, _amount);
-        let (step4_) = uint256_mul(cumulative_index_, borrowed_amount_);
-        let (step5_) = uint256_add(step4_, step5_);
-        let (cumulative_index_at_borrow_more_, _) = uint256_unsigned_div_rem(step2_, step5_);
+        let (step1_) = SafeUint256.mul(current_cumulative_index_, cumulative_index_);
+        let (step2_) = SafeUint256.mul(step1_, new_borrowed_amount_);
+        let (step3_) = SafeUint256.mul(current_cumulative_index_, _amount);
+        let (step4_) = SafeUint256.mul(cumulative_index_, borrowed_amount_);
+        let (step5_) = SafeUint256.add(step4_, step5_);
+        let (cumulative_index_at_borrow_more_, _) = SafeUint256.div_rem(step2_, step5_);
         temp_cumulative_index_.low = cumulative_index_at_borrow_more_.low;
         temp_cumulative_index_.high = cumulative_index_at_borrow_more_.high;
         IPool.borrow(pool_, _amount, drip_);
@@ -316,7 +336,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         ReentrancyGuard._end();
         return ();
     } else {
-        let (step1_) = uint256_mul(borrowed_amount_, current_cumulative_index_);
+        let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
         let (step2_, _) = SafeUint256.div_rem(step1_, cumulative_index_);
         let (interest_accrued_) = SafeUint256.sub_le(step2_, borrowed_amount_);
         let (fee_interest_) = fee_interest.read();
@@ -325,7 +345,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         let (step1_) = SafeUint256.add(_amount, interest_accrued_);
         let (total_) = SafeUint256.add(step1_, profit_);
         IDrip.safeTransfer(drip_, underlying_, pool_, total_);
-        IPool.repayDebt(pool_, step1_, profit_, Uint256(0, 0));
+        IPool.repayDripDebt(pool_, step1_, profit_, Uint256(0, 0));
         let (new_cumulative_index_) = IPool.calculLinearCumulativeIndex(pool_);
         temp_cumulative_index_.low = new_cumulative_index_.low;
         temp_cumulative_index_.high = new_cumulative_index_.high;
@@ -789,6 +809,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     _oracle_transit: felt,
     _cumulative_twv_usd: Uint256,
 ) -> (total_twv_usd: Uint256) {
+    alloc_locals;
     if (_index == _count) {
         return (_cumulative_twv_usd);
     }
@@ -825,6 +846,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 func transfer_assets_to{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip: felt, _to: felt
 ) {
+    alloc_locals;
     with_attr error_message("can't send to the zero address") {
         assert_not_zero(_to);
     }
@@ -908,7 +930,7 @@ func safe_drip_set{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     _borrower: felt, _drip: felt
 ) {
     let (drip_) = borrower_to_drip.read(_borrower);
-    let has_drip_ = is_lt(0, drip_);
+    let (has_drip_) = is_le(0, drip_);
     with_attr error_message("zero address or user already has a drip") {
         assert_not_zero(_borrower * (1 - has_drip_));
     }
@@ -932,6 +954,6 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     token_mask.write(_token, token_mask_);
     allowed_token_to_id(_token, allowed_token_length_ + 1);
     id_to_allowed_token(allowed_token_length_ + 1, _token);
-    allowed_contract_length.write(allowed_token_length_ + 1);
+    allowed_tokens_length.write(allowed_token_length_ + 1);
     return ();
 }
