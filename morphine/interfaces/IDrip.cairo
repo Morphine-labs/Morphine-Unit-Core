@@ -31,8 +31,12 @@ namespace IDrip {
     func safeTransfer(_token: felt, _to: felt, _amount: Uint256) {
     }
 
-    func execute(_to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*) -> (
-        retdata_len: felt, retdata: felt*
-    ) {
+    func execute(_to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
+    }
+
+    func borrowedAmount() -> (borrowed_amount: Uint256) {
+    }
+
+    func cumulativeIndex() -> (cumulative_index: Uint256) {
     }
 }

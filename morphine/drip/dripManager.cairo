@@ -10,7 +10,7 @@ from starkware.starknet.common.syscalls import (
 
 from starkware.cairo.common.math_cmp import is_le, is_nn, is_not_zero
 
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, uint256_pow2
 
 from starkware.cairo.common.uint256 import (
     uint256_sub,
@@ -30,7 +30,8 @@ from morphine.utils.utils import (
     uint256_pow,
 )
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.starknet.common.syscalls import deploy
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
@@ -50,6 +51,8 @@ from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IPool import IPool
 
 from morphine.interfaces.IDripFactory import IDripFactory
+
+from morphine.interfaces.IOracleTransit import IOracleTransit
 
 from morphine.utils.various import PRECISION
 
@@ -232,9 +235,9 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @external
-func closeCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _is_liquidated: felt, _total_value: Uint256, _payer: felt, _to: felt
-) {
+) -> (remainingFunds: Uint256){
     ReentrancyGuard._start();
     assert_only_drip_transit();
     let (drip_) = getDripOrRevert(_borrower);
@@ -448,7 +451,7 @@ func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             return ();
         }
     }
-    full_collateral_check(_drip);
+    fullCollateralCheck(_drip);
     return ();
 }
 
@@ -492,7 +495,7 @@ func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     with_attr error_message("token not allowed") {
         assert_not_zero(token_mask_);
     }
-    liquidation_threshold.write(_token, _liquidation_thresholds);
+    liquidation_threshold.write(_token, _liquidation_threshold);
     return ();
 }
 
@@ -501,7 +504,7 @@ func setForbidMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     _fobid_mask: Uint256
 ) {
     assert_only_drip_configurator();
-    forbid_token_mask.write(_fobid_mask);
+    forbiden_token_mask.write(_fobid_mask);
     return ();
 }
 
@@ -534,6 +537,35 @@ func upgradeContracts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return ();
 }
 
+
+func fullCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _drip: felt
+) {
+    let (_, borrowed_amount_with_interests_) = calcDripAccruedInterest(_drip);
+    let (underlying_) = underlying.read();
+    let (oracle_transit_) = oracle_transit.read();
+    let (borrowed_amount_with_interests_usd_) = IOracleTransit.convertToUSD(
+        oracle_transit_, borrowed_amount_with_interests_, underlying_
+    );
+    let (borrowed_amount_with_interests_usd_precision_) = SafeUint256(
+        borrowed_amount_with_interests_usd_, Uint256(PRECISION, 0)
+    );
+    let (count_) = allowed_tokens_length.read();
+    let (enabled_tokens_) = enabled_tokens.read();
+    let (total_twv_usd_precision_) = recursive_calcul_value(
+        0, count_, _drip, enabled_tokens_, oracle_transit_, Uint256(0, 0)
+    );
+    let (is_lt_) = uint256_lt(
+        total_twv_usd_precision_, borrowed_amount_with_interests_usd_precision_
+    );
+    with_attr error_message("not enough collateral") {
+        assert_not_zero(is_lt_);
+    }
+    let (fast_check_counter_) = fast_check_counter.read(_drip);
+    fast_check_counter.write(Uint256(1, 0));
+    return ();
+}
+
 // Getters
 
 @view
@@ -550,7 +582,7 @@ func allowedToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 
 @view
 func enabledTokensMap{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (enabled_tokens: Uint256) {
-    let (enabled_tokens_) = enabled_tokens.read(_id);
+    let (enabled_tokens_) = enabled_tokens.read(_drip);
     return(enabled_tokens_,);
 }
 
@@ -629,6 +661,7 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     _borrowed_amount: Uint256,
     _borrowed_amount_with_interests: Uint256,
 ) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
+    alloc_locals;
     let (fee_interest_) = fee_interest.read();
     let (step1_) = SafeUint256.sub_le(_borrowed_amount_with_interests, _borrowed_amount);
     let (step2_) = SafeUint256.mul(step1_, fee_interest_);
@@ -665,8 +698,8 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
             );
             temp_profit_.low = profit_.low;
             temp_profit_.high = profit_.high;
-            temp.loss_.low = 0;
-            temp.loss_.high = 0;
+            temp_loss_.low = 0;
+            temp_loss_.high = 0;
         } else {
             let (loss_) = SafeUint256.sub_lt(_borrowed_amount_with_interests, temp_amount_to_pool_);
             temp_loss_.low = loss_.low;
@@ -712,10 +745,6 @@ func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     _drip: felt
 ) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
     let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
-    let (drip_) = borrower_to_drip.read(_borrower);
-    with_attr error_message("has not drip") {
-        assert_not_zero(drip_);
-    }
     let (step1_) = SafeUint256.mul(borrowed_amount_, cumulative_index_);
     let (borrowed_amount_with_interests_, _) = SafeUint256.div_rem(
         step1_, current_cumulative_index_
@@ -752,35 +781,7 @@ func oracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
 // Internals
 
-func full_collateral_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip: felt
-) {
-    let (_, borrowed_amount_with_interests_) = calcCreditAccountAccruedInterest(_drip);
-    let (underlying_) = underlying.read();
-    let (oracle_transit_) = oracle_transit.read();
-    let (borrowed_amount_with_interests_usd_) = IOracleTransit.convertToUSD(
-        oracle_transit_, borrowed_amount_with_interests_, underlying_
-    );
-    let (borrowed_amount_with_interests_usd_precision_) = SafeUint256(
-        borrowed_amount_with_interests_usd_, Uint256(PRECISION, 0)
-    );
-    let (count_) = allowed_tokens_length.read();
-    let (enabled_tokens_) = enabled_tokens.read();
-    let (total_twv_usd_precision_) = recursive_calcul_value(
-        0, count_, _drip, enabled_tokens_, oracle_transit_, Uint256(0, 0)
-    );
-    let (is_lt_) = uint256_lt(
-        total_twv_usd_precision_, borrowed_amount_with_interests_usd_precision_
-    );
-    with_attr error_message("not enough collateral") {
-        assert_not_zero(is_lt_);
-    }
-    let (fast_check_counter_) = fast_check_counter.read(_drip);
-    fast_check_counter.write(Uint256(1, 0));
-    return ();
-}
-
-func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _index: felt,
     _count: felt,
     _drip: felt,
@@ -907,7 +908,7 @@ func safe_drip_set{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     _borrower: felt, _drip: felt
 ) {
     let (drip_) = borrower_to_drip.read(_borrower);
-    let (has_drip_) = is_lt(0, drip_);
+    let has_drip_ = is_lt(0, drip_);
     with_attr error_message("zero address or user already has a drip") {
         assert_not_zero(_borrower * (1 - has_drip_));
     }

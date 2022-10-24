@@ -8,7 +8,8 @@ from starkware.starknet.common.syscalls import (
 )
 
 from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_lt, uint256_pow2, uint256_le
-from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
 from starkware.cairo.common.math_cmp import is_le
@@ -22,7 +23,7 @@ from openzeppelin.security.safemath.library import SafeUint256
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION
 
-from morphine.interfaces.IDripTransit import IDripTransit, Call
+from morphine.interfaces.IDripTransit import IDripTransit, Call, AccountCallArray
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
@@ -102,11 +103,6 @@ func is_increase_debt_forbidden() -> (is_increase_debt_forbidden: felt) {
 @storage_var
 func permissionless() -> (address: felt) {
 }
-
-@storage_var
-func is_drip_liquidatable() -> (res: felt) {
-}
-
 
 @storage_var
 func nft() -> (address: felt) {
@@ -200,8 +196,10 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _borrowed_amount: Uint256,
         _on_belhalf_of: felt,
-        _call_len: felt,
-        _call: Call*){
+        _call_array_len: felt,
+        _call_array: AccountCallArray*,
+        _calldata_len: felt,
+        _calldata: felt*){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
@@ -226,10 +224,10 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     let (drip_) = IDripManager.openDrip(drip_manager_, _borrowed_amount, _on_belhalf_of);
     OpenDrip.emit(_on_belhalf_of, drip_, _borrowed_amount);
     
-    let is_le_ = is_le(_call_len , 0);
+    let is_le_ = is_le(_call_array_len , 0);
     if(is_le_ == 0){
         let (this_) = get_contract_address();
-        _multicall(_call_len, _call, _on_belhalf_of, 0, 1);
+        _multicall(_call_array_len, _call_array, _calldata, _on_belhalf_of, 0, 1);
         tempvar syscall_ptr = syscall_ptr;
         tempvar range_check_ptr = range_check_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
@@ -238,7 +236,7 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
         tempvar range_check_ptr = range_check_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
     }
-    IDripManager.fullCollateralCheck(drip_);
+    IDripManager.fullCollateralCheck(drip_manager_, drip_);
     ReentrancyGuard._end();
     return();
 }
@@ -247,30 +245,40 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _to: felt,
         _on_belhalf_of: felt,
-        _call_len: felt,
-        _call: Call*){
+        _call_array_len: felt,
+        _call_array: AccountCallArray*,
+        _calldata_len: felt,
+        _calldata: felt*){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
-    let (is_le_) = is_le(_call_len , 0);
+    let is_le_ = is_le(_call_array_len , 0);
     if(is_le_ == 0){
         let (this_) = get_contract_address();
-        _multicall(_call_len, _call, caller_, 1, 0);
+        _multicall(_call_array_len, _call_array, _calldata, caller_, 1, 0);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
     }
-    let (borrowed_amount_) = IDripConfigurator.total_borrowed_amount(drip_manager_, caller_);
-    IDripManager.closeDrip(drip_manager_, caller_, borrowed_amount_, _on_belhalf_of);
+    IDripManager.closeDrip(drip_manager_, caller_, 0,  Uint256(0,0),caller_, _on_belhalf_of);
     CloseDrip.emit(caller_, _to);
     ReentrancyGuard._end();
     return();
 }
 
 @external
-func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
         _borrower: felt,
         _to: felt,
-        _call_len: felt,
-        _call: Call*){
+        _call_array_len: felt,
+        _call_array: AccountCallArray*,
+        _calldata_len: felt,
+        _calldata: felt*){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
@@ -280,17 +288,23 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     with_attr error_message("Can't Liquidate with such HF"){
         assert is_liquidatable_ = 1;
     }
-    let (is_le_) = is_le(_call_len , 0);
+    let is_le_ = is_le(_call_array_len , 0);
     if(is_le_ == 0){
         let (this_) = get_contract_address();
-        _multicall(_call_len, _call, _borrower, 1, 0);
+        _multicall(_call_array_len, _call_array, _calldata, _borrower, 1, 0);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
     }
     let (remaining_funds_) = IDripManager.closeDrip(drip_manager_, _borrower, 1, total_value_, caller_, _to);
     LiquidateDrip.emit(_borrower, caller_, _to, remaining_funds_);
     ReentrancyGuard._end();
     return();
 }
-
 
 
 @external
@@ -338,24 +352,36 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @external
-func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower : felt, _call_len: felt,_call: Call*){
+func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        _borrower : felt, 
+        _call_array_len: felt,
+        _call_array: AccountCallArray*,
+        _calldata_len: felt,
+        _calldata: felt*){
     alloc_locals;
     ReentrancyGuard._start();
-    let (is_le_) = is_le(_call_len , 0);
+    let is_le_ = is_le(_call_array_len , 0);
     if(is_le_ == 0){
         let (caller_) = get_caller_address();
         let (drip_manager_) = drip_manager.read();
         let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
         let (this_) = get_contract_address();
-        _multicall(_call_len, _call, _borrower, 0, 0);
+        _multicall(_call_array_len, _call_array, _calldata, _borrower, 0, 0);
         IDripManager.fullCollateralCheck(drip_manager_, drip_);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
     }
     ReentrancyGuard._end();
     return();
 }
 
 @external
-func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_target: felt, _token: felt, _amount: Uint256){
+func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_target: felt, _token: felt, _amount: Uint256){
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
@@ -374,10 +400,10 @@ func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_t
 }
 
 @external
-func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt){
+func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_to: felt){
     alloc_locals;
     let (caller_) = get_caller_address();
-    let (is_allowed_) = transfers_allowed(caller_, _to);
+    let (is_allowed_) = transfers_allowed.read(caller_, _to);
     with_attr error_message("transfer not allowed"){
         assert_not_zero(is_allowed_);
     }
@@ -439,7 +465,7 @@ func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 
 @view
-func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (state: felt){
+func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt) -> (state: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
@@ -456,7 +482,7 @@ func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
-func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (total: Uint256, twv: Uint256){
+func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,  bitwise_ptr : BitwiseBuiltin*}(_drip: felt) -> (total: Uint256, twv: Uint256){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
     let (oracle_transit_) = IDripManager.oracleTransit(drip_manager_);
@@ -464,14 +490,14 @@ func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (allowed_contract_length_) = IDripManager.allowedTokensLength(drip_manager_);
     let (total_USD_: Uint256, twv_USD_precision_: Uint256) = recursive_calcul_value(0, allowed_contract_length_, _drip, enabled_tokens_, oracle_transit_, drip_manager_, Uint256(0,0), Uint256(0,0));
     let (underlying_) = underlying.read();
-    let (total_) = IOracleTransit.convertFromUSD(total_USD_, underlying_);
-    let (twv_precision_) = IOracleTransit.convertFromUSD(twv_USD_precision_, underlying_);
+    let (total_) = IOracleTransit.convertFromUSD(oracle_transit_, total_USD_, underlying_);
+    let (twv_precision_) = IOracleTransit.convertFromUSD(oracle_transit_, twv_USD_precision_, underlying_);
     let (twv_,_) = SafeUint256.div_rem(twv_precision_, Uint256(PRECISION,0));
     return(total_, twv_,);
 }
 
 @view
-func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (health_factor: Uint256){
+func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,  bitwise_ptr : BitwiseBuiltin*}(_drip: felt) -> (health_factor: Uint256){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
     let (_, tvw_) = calcTotalValue(_drip);
@@ -485,7 +511,7 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
 func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrower: felt) -> (hasOpened: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
-    let (drip_) = IDripManager.getDrip(_borrower);
+    let (drip_) = IDripManager.getDrip(drip_manager_, _borrower);
     if(drip_ == 0){
         return(0,);
     } else {
@@ -498,16 +524,23 @@ func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 // Internals
 
 func _multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        _call_len: felt,
-        _call: Call*,
+        _call_array_len: felt,
+        _call_array: AccountCallArray*,
+        _call_data: felt*,
         _borrower: felt,
         _is_closure: felt,
         _is_increase_debt_was_called: felt){
+    alloc_locals;
     let (this_) = get_contract_address();
     let (drip_manager_) = drip_manager.read();
+
+     // TMP: Convert `AccountCallArray` to 'Call'.
+     let (calls: Call*) = alloc();
+     _from_call_array_to_call(_call_array_len, _call_array, _call_data, calls);
+
     IDripManager.transferDripOwnership(drip_manager_, _borrower, this_);
     MultiCallStarted.emit(_borrower);
-    recursive_multicall(_call_len, _call, _borrower, _is_closure, _is_increase_debt_was_called, this_, drip_manager_);
+    recursive_multicall(_call_array_len, calls, _borrower, _is_closure, _is_increase_debt_was_called, this_, drip_manager_);
     MultiCallFinished.emit();
     IDripManager.transferDripOwnership(drip_manager_, this_, _borrower);
     return();
@@ -521,6 +554,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         _is_increase_debt_was_called: felt,
         _this: felt,
         _drip_manager: felt){
+    alloc_locals;
     if(_call_len == 0){
         return();
     }
@@ -537,7 +571,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             if(_call[0].calldata[0] == _borrower){
                 on_belhalf_of_ = _this;
             } else{
-                on_belhalf_of_ = _call[0].calldata[0];
+                assert on_belhalf_of_ = _call[0].calldata[0];
             }
             IDripManager.addCollateral(_drip_manager, caller_, on_belhalf_of_, _call[0].calldata[1], Uint256(_call[0].calldata[3],_call[0].calldata[3]));
             AddCollateral.emit(_call[0].calldata[0], _call[0].calldata[1], Uint256(_call[0].calldata[3],_call[0].calldata[3]));
@@ -569,6 +603,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
                     with_attr error_message("Unknow method"){
                         assert 1 = 0;
                     }
+                    return();
                 }
             }
         } 
@@ -586,7 +621,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 
-func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,  bitwise_ptr: BitwiseBuiltin*}(
         _index: felt,
         _count: felt,
         _drip: felt,
@@ -594,7 +629,8 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
         _oracle_transit: felt,
         _drip_manager: felt,
         _cumulative_total_usd: Uint256,
-        _cumulative_twv_usd: Uint256){
+        _cumulative_twv_usd: Uint256) -> (total_usd: Uint256, twv: Uint256){
+    alloc_locals;
     if(_index == _count){
         return(_cumulative_total_usd, _cumulative_twv_usd);
     }
@@ -602,8 +638,6 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     let (low_) = bitwise_and(_enabled_tokens.low, token_mask_.low);
     let (high_) = bitwise_and(_enabled_tokens.high, token_mask_.high);
     let (is_bt_) = uint256_lt(Uint256(0,0), Uint256(low_, high_));
-    tempvar cumulative_total_usd_temp_: Uint256;
-    tempvar cumulative_twv_usd_temp_: Uint256;
     if(is_bt_ == 1){
         let (token_) = IDripManager.allowedToken(_drip_manager, _count);
         let (balance_) = IERC20.balanceOf(token_, _drip);
@@ -614,29 +648,70 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
             let (lt_) = IDripManager.liquidationThreshold(_drip_manager, token_);
             let (lt_value_) = SafeUint256.mul(value_, lt_);
             let (new_cumulative_twv_usd_) = SafeUint256.add(_cumulative_twv_usd, lt_value_);
-            cumulative_total_usd_temp_.low = new_cumulative_total_usd_.low;
-            cumulative_total_usd_temp_.high = new_cumulative_total_usd_.high;
-            cumulative_twv_usd_temp_.low = new_cumulative_twv_usd_.low;
-            cumulative_twv_usd_temp_.high = new_cumulative_twv_usd_.high;
+            return recursive_calcul_value(
+                _index + 1,
+                _count,
+                _drip,
+                _enabled_tokens,
+                _oracle_transit,
+                _drip_manager,
+                new_cumulative_total_usd_,
+                new_cumulative_twv_usd_);
         } else {
-            cumulative_total_usd_temp_.low = _cumulative_total_usd.low;
-            cumulative_total_usd_temp_.high = _cumulative_total_usd.high;
-            cumulative_twv_usd_temp_.low = _cumulative_twv_usd.low;
-            cumulative_twv_usd_temp_.high = _cumulative_twv_usd.high;
+            return recursive_calcul_value(
+                _index + 1,
+                _count,
+                _drip,
+                _enabled_tokens,
+                _oracle_transit,
+                _drip_manager,
+                _cumulative_total_usd,
+                _cumulative_twv_usd);
         }
     } else {
-        cumulative_total_usd_temp_.low = _cumulative_total_usd.low;
-        cumulative_total_usd_temp_.high = _cumulative_total_usd.high;
-        cumulative_twv_usd_temp_.low = _cumulative_twv_usd.low;
-        cumulative_twv_usd_temp_.high = _cumulative_twv_usd.high;
+        return recursive_calcul_value(
+            _index + 1,
+            _count,
+            _drip,
+            _enabled_tokens,
+            _oracle_transit,
+            _drip_manager,
+            _cumulative_total_usd,
+            _cumulative_twv_usd);
     }
-    return recursive_calcul_value(
-        _index + 1,
-        _count,
-        _drip,
-        _enabled_tokens,
-        _oracle_transit,
-        _drip_manager,
-        cumulative_total_usd_temp_,
-        cumulative_twv_usd_temp_);
 }
+
+func is_drip_liquidatable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_drip: felt) -> (is_liquidatable: felt, total_value: Uint256){
+    let (total_value_, tvw_) = calcTotalValue(_drip);
+    let (drip_manager_) = drip_manager.read();
+    let (_, borrowed_amount_accrued_interest_) = IDripManager.calcDripAccruedInterest(drip_manager_ , _drip);
+    let (is_lt_) = uint256_lt(tvw_, borrowed_amount_accrued_interest_);
+    if (is_lt_ == 1) {
+        return(1, total_value_);
+    } else {
+        return(0, total_value_); 
+    }
+}
+
+
+ func _from_call_array_to_call{syscall_ptr: felt*}(
+        call_array_len: felt, call_array: AccountCallArray*, calldata: felt*, calls: Call*
+    ) {
+        // if no more calls
+        if (call_array_len == 0) {
+            return ();
+        }
+
+        // parse the current call
+        assert [calls] = Call(
+            to=[call_array].to,
+            selector=[call_array].selector,
+            calldata_len=[call_array].data_len,
+            calldata=calldata + [call_array].data_offset
+            );
+        // parse the remaining calls recursively
+        _from_call_array_to_call(
+            call_array_len - 1, call_array + AccountCallArray.SIZE, calldata, calls + Call.SIZE
+        );
+        return ();
+    }

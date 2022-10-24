@@ -40,10 +40,10 @@ namespace IDripManager {
     func addCollateral(drip: felt, on_belhalf_of: felt, underlying: felt, amount: Uint256) {
     }
 
-    func closeDrip(to: felt, _call_len: felt, _call: Call*) {
+    func closeDrip(borrower: felt, is_liquidated: felt, total_value: Uint256, payer: felt, to: felt) -> (remaining_funds: Uint256) {
     }
 
-    func openDrip(amount: Uint256, on_belhalf_of: felt, leverage_factor: Uint256) -> (drip: felt) {
+    func openDrip(borrowed_amount: Uint256, on_belhalf_of: felt) -> (drip: felt) {
     }
 
     func manageDebt(_borrower: felt, amount: Uint256, increase: felt) {
@@ -57,7 +57,6 @@ namespace IDripManager {
     
 
     // Getters
-
 
     func calcDripAccruedInterest(drip : felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
     }
@@ -80,7 +79,7 @@ namespace IDripManager {
     func oracleTransit() -> (oracleTransit: felt) {
     }
 
-    func enabledTokensMap(drip: felt) -> (enabledTokensMap: felt) {
+    func enabledTokensMap(drip: felt) -> (enabledTokensMap: Uint256) {
     }
 
     func upgradeContracts(drip_transit: felt, oracle_transit: felt) {
@@ -122,13 +121,7 @@ namespace IDripManager {
     func underlying() -> (underlying: felt) {
     }
 
-    func fullCollateralCheck(
-        _drip: felt,
-        _token_in: felt,
-        _token_out: felt,
-        _balance_in_before: Uint256,
-        _balance_out_before: Uint256,
-    ) {
+    func fullCollateralCheck(drip: felt) {
     }
 
     func getDripOrRevert(borrower: felt) -> (drip: felt) {
