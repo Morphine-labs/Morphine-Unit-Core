@@ -208,7 +208,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @external
-func openCreditAccount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _on_belhalf_of: felt
 ) -> (drip: felt) {
     ReentrancyGuard._start();
@@ -700,6 +700,14 @@ func getDripOrRevert{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 }
 
 @view
+func getDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _borrower: felt
+) -> (drip: felt) {
+    let (drip_) = borrower_to_drip.read(_borrower);
+    return (drip_);
+}
+
+@view
 func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip: felt
 ) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
@@ -898,7 +906,7 @@ func disable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 func safe_drip_set{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _drip: felt
 ) {
-    let (drip_) = borrower_to_drip(_borrower);
+    let (drip_) = borrower_to_drip.read(_borrower);
     let (has_drip_) = is_lt(0, drip_);
     with_attr error_message("zero address or user already has a drip") {
         assert_not_zero(_borrower * (1 - has_drip_));
