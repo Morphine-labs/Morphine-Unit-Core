@@ -72,7 +72,7 @@ func NewExpectedLiquidityLimit(value: Uint256) {
 }
 
 @event
-func NewCreditManagerConnected(value: Uint256) {
+func NewDripManagerConnected(drip: felt) {
 }
 
 @event
@@ -287,21 +287,21 @@ func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 }
 
 @external
-func connectCreditManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager: felt
 ) {
     alloc_locals;
     Ownable.assert_only_owner();
     let (this_) = get_contract_address();
     // TODO
-    let (wanted_pool_) = IDripManager.pool(_drip_manager);
+    let (wanted_pool_) = IDripManager.getPool(_drip_manager);
 
     with_attr error_message("Pool: incompatible pool for credit manager") {
         assert this_ = wanted_pool_;
     }
 
     drip_manager.write(_drip_manager);
-    NewCreditManagerConnected.emit(_drip_manager);
+    NewDripManagerConnected.emit(_drip_manager);
     return ();
 }
 
@@ -338,7 +338,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ERC20._mint(_receiver, shares_);
 
     let (expected_liquidity_) = expected_liquidity_last_update.read();
-    let (new_expected_liqudity_, _) = SafeUint256.add(expected_liquidity_, _assets);
+    let (new_expected_liqudity_) = SafeUint256.add(expected_liquidity_, _assets);
     expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
@@ -379,7 +379,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ERC20._mint(_receiver, _shares);
 
     let (expected_liquidity_) = expected_liquidity_last_update.read();
-    let (new_expected_liqudity_, _) = SafeUint256.add(expected_liquidity_, assets_);
+    let (new_expected_liqudity_) = SafeUint256.add(expected_liquidity_, assets_);
     expected_liquidity_last_update.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
@@ -523,7 +523,10 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     if (is_profit_ == 1) {
         deposit(_profit, treasury_);
         let (expected_liquidity_last_update_) = expected_liquidity_last_update.read();
-        let (new_expected_liqudity_, _) = SafeUint256.add(expected_liquidity_last_update_, _profit);
+        let (new_expected_liqudity_) = SafeUint256.add(expected_liquidity_last_update_, _profit);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     } else {
         let (amount_to_burn_) = convertToShares(_loss);
         let (this_) = get_contract_address();
@@ -531,17 +534,25 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         let (is_treasury_balance_enough_) = uint256_le(amount_to_burn_, treasury_balance_);
 
         if (is_treasury_balance_enough_ == 0) {
-            let (amount_to_burn_) = treasury_balance_;
             let (uncovered_loss_) = SafeUint256.sub_le(amount_to_burn_, treasury_balance_);
             UncoveredLoss.emit(uncovered_loss_);
+            ERC20._burn(treasury_, treasury_balance_);
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        } else {
+            ERC20._burn(treasury_, amount_to_burn_);
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         }
-        ERC20._burn(treasury_, amount_to_burn_);
     }
-    let (total_borrowed_) = total_borrowed.read();
-    let (new_total_borrowed_) = SafeUint256.sub_le(total_borrowed_, _repay_amount);
-    total_borrowed.write(new_total_borrowed_);
-
     update_borrow_rate(_loss);
+    let (total_borrowed_) = total_borrowed.read();
+    let (new_total_borrowed_) = SafeUint256.sub_le(total_borrowed_, _borrowed_amound);
+    total_borrowed.write(new_total_borrowed_);
+    
+
     ReentrancyGuard._end();
     RepayDebt.emit(_borrowed_amound, _profit, _loss);
     return ();
@@ -573,14 +584,6 @@ func treasury{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}()
     let (treasury_) = IRegistery.getTreasury(registery_);
     return (treasury_,);
 }
-
-@view
-func factory{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (factory: felt) {
-    let (registery_) = registery.read();
-    let (factory_) = IRegistery.getPoolFactory(registery_);
-    return (factory_,);
-}
-
 @view
 func maxDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt) -> (
     maxAssets: Uint256
@@ -748,15 +751,15 @@ func totalAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     let (total_borrowed_) = totalBorrowed();
     let (borrow_rate_) = borrowRate();
 
-    // currentBorrowRate * timeDifference
+    //                                  currentBorrowRate * timeDifference
     //  interestAccrued = totalBorrow *  ------------------------------------
     //                                             SECONDS_PER_YEAR
     //
 
     let (step1_) = mul_div_down(borrow_rate_, Uint256(delta, 0), Uint256(SECONDS_PER_YEAR, 0));
-    let (step2_, _) = SafeUint256.mul(total_borrowed_, step1_);
+    let (step2_) = SafeUint256.mul(total_borrowed_, step1_);
     let (interest_accrued_, _) = SafeUint256.div_rem(step2_, Uint256(PRECISION, 0));
-    let (total_assets_, _) = SafeUint256.add(expected_liquidity_last_update_, interest_accrued_);
+    let (total_assets_) = SafeUint256.add(expected_liquidity_last_update_, interest_accrued_);
     return (total_assets_,);
 }
 
@@ -776,14 +779,13 @@ func borrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (borrow_rate_,);
 }
 
-@view
-func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    borrowRate: Uint256
-) {
-    let (cumulative_index_) = cumulative_index.read();
-    let (new_cumulative_index_) = calculLinearCumulativeIndex(cumulative_index_);
-    return (new_cumulative_index_,);
-}
+// @view
+// func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+//     borrowRate: Uint256
+// ) {
+//     let (cumulative_index_) = cumulative_index.read();
+//     return (cumulative_index_,);
+// }
 
 @view
 func lastUpdatedTimestamp{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
@@ -857,7 +859,7 @@ func calculBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         let (step1_) = SafeUint256.mul(liquidity_utilization_, Uint256(PRECISION, 0));
         let (step2_, _) = SafeUint256.div_rem(step1_, optimal_liquidity_utilization_);
         let (step3_) = SafeUint256.mul(step2_, slop1_);
-        let (borrow_rate_, _) = SafeUint256.add(step3_, base_rate_);
+        let (borrow_rate_) = SafeUint256.add(step3_, base_rate_);
         return (borrow_rate_,);
     } else {
         // if liquidity_utilization_ >= optimal_liquidity_utilization_:
@@ -869,10 +871,10 @@ func calculBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         let (slop2_) = slop2.read();
         let (step2_) = SafeUint256.mul(Uint256(PRECISION, 0), step1_);
         let (step3_) = SafeUint256.sub_le(Uint256(PRECISION, 0), optimal_liquidity_utilization_);
-        let (step4_, _) = SafeUint256.div_rem(step2_, step3_);
-        let (step5_, _) = SafeUint256.mul(step4_, slop2_);
-        let (step6_, _) = SafeUint256.add(step5_, slop1_);
-        let (borrow_rate_, _) = SafeUint256.add(step6_, base_rate_);
+        let (step4_,_) = SafeUint256.div_rem(step2_, step3_);
+        let (step5_) = SafeUint256.mul(step4_, slop2_);
+        let (step6_) = SafeUint256.add(step5_, slop1_);
+        let (borrow_rate_) = SafeUint256.add(step6_, base_rate_);
         return (borrow_rate_,);
     }
 }
@@ -914,6 +916,7 @@ func withdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     loss: Uint256
 ) {
+    alloc_locals;
     let (expected_liquidity_) = expected_liquidity_last_update.read();
     let (new_expected_liqudity_) = SafeUint256.sub_le(expected_liquidity_, loss);
     expected_liquidity_last_update.write(new_expected_liqudity_);
@@ -942,7 +945,7 @@ func ERC20_decrease_allowance_manual{
         assert is_le_ = 1;
     }
     let (new_allowance_) = SafeUint256.sub_le(current_allowance_, _subtracted_value);
-    ERC20._approve(_owner, _spender, new_allowance);
+    ERC20._approve(_owner, _spender, new_allowance_);
     return ();
 }
 
@@ -954,8 +957,7 @@ func ERC20_decrease_allowance_manual{
         }
         return ();
     }
-    return ();
-}
+    
 
     func assert_borrow_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = borrow_frozen.read();
@@ -964,8 +966,6 @@ func ERC20_decrease_allowance_manual{
         }
         return ();
     }
-    return ();
-}
 
     func assert_repay_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = repay_frozen.read();
@@ -974,8 +974,6 @@ func ERC20_decrease_allowance_manual{
         }
         return ();
     }
-    return ();
-}
 
     func assert_repay_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = repay_frozen.read();
@@ -984,9 +982,6 @@ func ERC20_decrease_allowance_manual{
         }
         return ();
     }
-    return ();
-}
-
 // ERC 20 STUFF
 
 // Getters
