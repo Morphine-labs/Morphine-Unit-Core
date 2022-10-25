@@ -41,9 +41,6 @@ namespace IPool {
     func borrow(borrow_amount: Uint256, drip: felt) {
     }
 
-    func repayDebt(_repay_amount: Uint256) {
-    }
-
     func repayDripDebt(borrowed_amound: Uint256, profit: Uint256, loss: Uint256) {
     }
 

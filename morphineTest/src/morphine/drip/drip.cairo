@@ -76,6 +76,7 @@ func lastUpdate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (since_,);
 }
 
+
 // External
 
 @external
