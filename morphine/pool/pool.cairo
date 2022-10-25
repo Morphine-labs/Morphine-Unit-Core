@@ -28,6 +28,8 @@ from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
 from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IInterestRateModel import IInterestRateModel
+
 
 // Events
 
@@ -79,6 +81,11 @@ func NewDripManagerConnected(drip: felt) {
 func UncoveredLoss(value: Uint256) {
 }
 
+@event
+func NewInterestRateModel(interest_rate_model: felt) {
+}
+
+
 // Storage
 
 @storage_var
@@ -94,19 +101,7 @@ func underlying() -> (asset: felt) {
 }
 
 @storage_var
-func optimal_liquidity_utilization() -> (res: Uint256) {
-}
-
-@storage_var
-func base_rate() -> (res: Uint256) {
-}
-
-@storage_var
-func slop1() -> (res: Uint256) {
-}
-
-@storage_var
-func slop2() -> (res: Uint256) {
+func interest_rate_model() -> (asset: felt) {
 }
 
 @storage_var
@@ -168,28 +163,11 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     _name: felt,
     _symbol: felt,
     _expected_liquidity_limit: Uint256,
-    _optimal_liquidity_utilization: Uint256,
-    _base_rate: Uint256,
-    _slop1: Uint256,
-    _slop2: Uint256,
-) {
+    _interest_rate_model: felt
+    ) {
     with_attr error_message("Zero address not allowed") {
         assert_not_zero(_registery);
     }
-
-    let (is_optimal_liquidity_utilization_in_range_) = uint256_le(
-        _optimal_liquidity_utilization, Uint256(PRECISION, 0)
-    );
-    let (is_base_rate_in_range_) = uint256_le(
-        _optimal_liquidity_utilization, Uint256(PRECISION, 0)
-    );
-    let (is_slop1_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION, 0));
-    let (is_slop2_in_range_) = uint256_le(_optimal_liquidity_utilization, Uint256(PRECISION, 0));
-
-    with_attr error_message("Parameter out of range") {
-        assert is_optimal_liquidity_utilization_in_range_ * is_base_rate_in_range_ * is_slop1_in_range_ * is_slop2_in_range_ = 1;
-    }
-
     let (decimals_) = IERC20.decimals(_asset);
     ERC20.initializer(_name, _symbol, decimals_);
     underlying.write(_asset);
@@ -197,10 +175,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     let (owner_) = IRegistery.owner(_registery);
     Ownable.initializer(owner_);
     registery.write(_registery);
-    optimal_liquidity_utilization.write(_optimal_liquidity_utilization);
-    base_rate.write(_base_rate);
-    slop1.write(_slop1);
-    slop2.write(_slop2);
+    expected_liquidity_limit.write(_expected_liquidity_limit);
+    updateInterestRateModel(_interest_rate_model);
     return ();
 }
 
@@ -287,13 +263,26 @@ func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 }
 
 @external
+func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _interest_rate_model: felt
+) {
+    Ownable.assert_only_owner();
+    with_attr error_message("zero address not allowed") {
+        assert_not_zero(_interest_rate_model);
+    }
+    interest_rate_model.write(_interest_rate_model);
+    update_borrow_rate(Uint256(0,0));
+    NewInterestRateModel.emit(_interest_rate_model);
+    return ();
+}
+
+@external
 func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager: felt
 ) {
     alloc_locals;
     Ownable.assert_only_owner();
     let (this_) = get_contract_address();
-    // TODO
     let (wanted_pool_) = IDripManager.getPool(_drip_manager);
 
     with_attr error_message("Pool: incompatible pool for credit manager") {
@@ -675,7 +664,7 @@ func calculLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*,
     let (last_updated_cumulative_index_) = cumulative_index.read();
     let (borrow_rate_) = borrow_rate.read();
 
-    // /     currentBorrowRate * timeDifference \
+    //                                                           /     currentBorrowRate * timeDifference \
     //  new_cumulative_index  = last_updated_cumulative_index * | 1 + ------------------------------------ |
     //                                                          \              SECONDS_PER_YEAR          /
 
@@ -814,69 +803,10 @@ func expectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 func availableLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     availableLiquidity: Uint256
 ) {
-    let (ERC4626_asset_) = underlying.read();
+    let (underlying_) = underlying.read();
     let (this_) = get_contract_address();
-    let (available_liquidity_) = IERC20.balanceOf(ERC4626_asset_, this_);
+    let (available_liquidity_) = IERC20.balanceOf(underlying_, this_);
     return (available_liquidity_,);
-}
-
-@view
-func calculBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    borrowRate: Uint256
-) {
-    alloc_locals;
-    let (available_liquidity_) = availableLiquidity();
-    let (expected_liquidity_) = expected_liquidity_last_update.read();
-    let (is_expected_liquidity_nul_) = uint256_eq(expected_liquidity_, Uint256(0, 0));
-    // prevent from sending token to the pool
-    let (is_expected_liquidity_lt_expected_liquidity_) = uint256_le(
-        expected_liquidity_, available_liquidity_
-    );
-    let (base_rate_) = base_rate.read();
-    if (is_expected_liquidity_nul_ + is_expected_liquidity_lt_expected_liquidity_ != 0) {
-        return (base_rate_,);
-    }
-
-    // expected_liquidity_last_update - available_liquidity
-    // liquidity_utilization_ = -------------------------------------
-    //                               expected_liquidity_last_update
-
-    let (step1_) = SafeUint256.sub_le(expected_liquidity_, available_liquidity_);
-    let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION, 0));
-    let (liquidity_utilization_, _) = SafeUint256.div_rem(step2_, expected_liquidity_);
-    let (optimal_liquidity_utilization_) = optimal_liquidity_utilization.read();
-    let (is_utilization_lt_optimal_utilization_) = uint256_le(
-        liquidity_utilization_, optimal_liquidity_utilization_
-    );
-
-    // if liquidity_utilization_ < optimal_liquidity_utilization_:
-    //                                    liquidity_utilization_
-    // borrow_rate = base_rate +  slop1 * -----------------------------
-    //                                     optimal_liquidity_utilization_
-
-    let (slop1_) = slop1.read();
-    if (is_utilization_lt_optimal_utilization_ == 1) {
-        let (step1_) = SafeUint256.mul(liquidity_utilization_, Uint256(PRECISION, 0));
-        let (step2_, _) = SafeUint256.div_rem(step1_, optimal_liquidity_utilization_);
-        let (step3_) = SafeUint256.mul(step2_, slop1_);
-        let (borrow_rate_) = SafeUint256.add(step3_, base_rate_);
-        return (borrow_rate_,);
-    } else {
-        // if liquidity_utilization_ >= optimal_liquidity_utilization_:
-        //
-        //                                           liquidity_utilization_ - optimal_liquidity_utilization_
-        // borrow_rate = base_rate + slop1 + slop2 * ------------------------------------------------------
-        //                                              1 - optimal_liquidity_utilization
-
-        let (slop2_) = slop2.read();
-        let (step2_) = SafeUint256.mul(Uint256(PRECISION, 0), step1_);
-        let (step3_) = SafeUint256.sub_le(Uint256(PRECISION, 0), optimal_liquidity_utilization_);
-        let (step4_,_) = SafeUint256.div_rem(step2_, step3_);
-        let (step5_) = SafeUint256.mul(step4_, slop2_);
-        let (step6_) = SafeUint256.add(step5_, slop1_);
-        let (borrow_rate_) = SafeUint256.add(step6_, base_rate_);
-        return (borrow_rate_,);
-    }
 }
 
 @view
@@ -924,7 +854,9 @@ func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     let (new_cumulative_index_) = calculLinearCumulativeIndex();
     cumulative_index.write(new_cumulative_index_);
 
-    let (new_borrow_rate_) = calculBorrowRate();
+    let (interest_rate_model_) = interest_rate_model.read();
+    let (available_liquidity_) = availableLiquidity();
+    let (new_borrow_rate_) = IInterestRateModel.calculBorrowRate(interest_rate_model_, new_expected_liqudity_, available_liquidity_);
     borrow_rate.write(new_borrow_rate_);
 
     let (block_timestamp_) = get_block_timestamp();
