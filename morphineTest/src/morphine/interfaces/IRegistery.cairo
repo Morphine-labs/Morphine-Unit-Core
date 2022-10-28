@@ -3,7 +3,7 @@
 @contract_interface
 namespace IRegistery {
 
-    func owner() -> (governance: felt) {
+    func owner() -> (owner: felt) {
     }
 
     func getTreasury() -> (treasuary: felt) {

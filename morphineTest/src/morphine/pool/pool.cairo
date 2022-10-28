@@ -176,7 +176,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     Ownable.initializer(owner_);
     registery.write(_registery);
     expected_liquidity_limit.write(_expected_liquidity_limit);
-    updateInterestRateModel(_interest_rate_model);
+    update_interest_rate_model(_interest_rate_model);
     return ();
 }
 
@@ -267,12 +267,7 @@ func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     _interest_rate_model: felt
 ) {
     Ownable.assert_only_owner();
-    with_attr error_message("zero address not allowed") {
-        assert_not_zero(_interest_rate_model);
-    }
-    interest_rate_model.write(_interest_rate_model);
-    update_borrow_rate(Uint256(0,0));
-    NewInterestRateModel.emit(_interest_rate_model);
+    update_interest_rate_model(_interest_rate_model);
     return ();
 }
 
@@ -842,6 +837,19 @@ func withdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 //
 // INTERNALS
 //
+
+@external
+func update_interest_rate_model{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _interest_rate_model: felt
+) {
+    with_attr error_message("zero address not allowed") {
+        assert_not_zero(_interest_rate_model);
+    }
+    interest_rate_model.write(_interest_rate_model);
+    update_borrow_rate(Uint256(0,0));
+    NewInterestRateModel.emit(_interest_rate_model);
+    return ();
+}
 
 func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     loss: Uint256

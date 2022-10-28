@@ -89,8 +89,6 @@ func setOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return();
 }
 
-
-
 @external
 func setTreasury{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_treasury: felt) {
     assert_only_owner();
