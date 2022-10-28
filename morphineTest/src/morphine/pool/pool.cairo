@@ -864,7 +864,7 @@ func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 
     let (interest_rate_model_) = interest_rate_model.read();
     let (available_liquidity_) = availableLiquidity();
-    let (new_borrow_rate_) = IInterestRateModel.calculBorrowRate(interest_rate_model_, new_expected_liqudity_, available_liquidity_);
+    let (new_borrow_rate_) = IInterestRateModel.calcBorrowRate(interest_rate_model_, new_expected_liqudity_, available_liquidity_);
     borrow_rate.write(new_borrow_rate_);
 
     let (block_timestamp_) = get_block_timestamp();

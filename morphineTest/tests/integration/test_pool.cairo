@@ -72,9 +72,8 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         print(ids.registery_contract)
 
         ids.pool_contract = deploy_contract("./src/morphine/pool/pool.cairo", [ids.registery_contract, ids.token_contract, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
-        context.pool_contract = ids.pool_contract
+        context.pool_contract = ids.pool_contract    
     %}
-    
     return();
 }
 

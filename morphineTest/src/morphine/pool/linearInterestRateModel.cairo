@@ -2,10 +2,11 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256
-
+from openzeppelin.security.safemath.library import SafeUint256
 from starkware.cairo.common.uint256 import (
     uint256_check,
-    uint256_le
+    uint256_le,
+    uint256_eq
 )
 
 from morphine.utils.various import PRECISION
@@ -59,14 +60,70 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
+@external
+func calcBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_expected_liqudity: Uint256, _available_liquidity: Uint256) -> (
+    borrowRate: Uint256
+) {
+    alloc_locals;
+    let (is_expected_liquidity_nul_) = uint256_eq(_expected_liqudity, Uint256(0, 0));
+    // prevent from sending token to the pool
+    let (is_expected_liquidity_le_expected_liquidity_) = uint256_le(
+        _expected_liqudity, _available_liquidity
+    );
+    let (base_rate_) = base_rate.read();
+    if (is_expected_liquidity_nul_ + is_expected_liquidity_le_expected_liquidity_ != 0) {
+        return (base_rate_,);
+    }
+
+    //                      expected_liquidity_last_update - available_liquidity
+    // liquidity_utilization_ = -------------------------------------
+    //                               expected_liquidity_last_update
+
+    let (step1_) = SafeUint256.sub_lt(_expected_liqudity, _available_liquidity);
+    let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION, 0));
+    let (liquidity_utilization_, _) = SafeUint256.div_rem(step2_, _expected_liqudity);
+    let (optimal_liquidity_utilization_) = optimal_liquidity_utilization.read();
+    let (is_utilization_le_optimal_utilization_) = uint256_le(
+        liquidity_utilization_, optimal_liquidity_utilization_
+    );
+
+    // if liquidity_utilization_ <= optimal_liquidity_utilization_:
+    //                                    liquidity_utilization_
+    // borrow_rate = base_rate +  slope1 * -----------------------------
+    //                                     optimal_liquidity_utilization_
+
+    let (slop1_) = slope1.read();
+    if (is_utilization_le_optimal_utilization_ == 1) {
+        let (step1_) = SafeUint256.mul(liquidity_utilization_,slop1_);
+        let (step2_, _) = SafeUint256.div_rem(step1_, optimal_liquidity_utilization_);
+        let (borrow_rate_) = SafeUint256.add(step2_, base_rate_);
+        return (borrow_rate_,);
+    } else {
+        // if liquidity_utilization_ >= optimal_liquidity_utilization_:
+        //
+        //                                           liquidity_utilization_ - optimal_liquidity_utilization_
+        // borrow_rate = base_rate + slope1 + slope2 * ------------------------------------------------------
+        //                                              1 - optimal_liquidity_utilization
+
+        let (slop2_) = slope2.read();
+        let (step1_) = SafeUint256.sub_le(liquidity_utilization_ , optimal_liquidity_utilization_);
+        let (step2_) = SafeUint256.mul(slop2_, step1_);
+        let (step3_) = SafeUint256.sub_le(Uint256(PRECISION, 0), optimal_liquidity_utilization_);
+        let (step4_,_) = SafeUint256.div_rem(step2_, step3_);
+        let (step5_) = SafeUint256.add(step4_, slop1_);
+        let (borrow_rate_) = SafeUint256.add(step5_, base_rate_);
+        return (borrow_rate_,);
+    }
+}
+
 
 
 @view
 func modelParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     optimalLiquidityUtilization: Uint256,
     baseRate: Uint256,
-    slop1: Uint256,
-    slop2: Uint256) {
+    slope1: Uint256,
+    slope2: Uint256) {
     alloc_locals;
     let (optimal_liquidity_utilization_) = optimal_liquidity_utilization.read();
     let (base_rate_) = base_rate.read();
