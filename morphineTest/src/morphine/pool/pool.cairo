@@ -393,7 +393,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         assert shares_is_zero = 0;
     }
 
-    let (max_withdraw_) = maxWithdraw(_receiver);
+    let (max_withdraw_) = maxWithdraw(_owner);
     let (is_limit_not_exceeded_) = uint256_le(_assets, max_withdraw_);
     with_attr error_message("amount exceeds max withdraw") {
         assert is_limit_not_exceeded_ = 1;
@@ -436,19 +436,19 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (registery_) = registery.read();
     let (treasury_) = IRegistery.getTreasury(registery_);
 
-    with_attr error_message("cannot reedem for 0 assets") {
+    with_attr error_message("cannot redeem for 0 assets") {
         let (shares_is_zero) = uint256_eq(_shares, Uint256(0, 0));
         assert shares_is_zero = 0;
     }
 
-    let (max_reedem_) = maxRedeem(_receiver);
+    let (max_reedem_) = maxRedeem(_owner);
     let (is_limit_not_exceeded_) = uint256_le(_shares, max_reedem_);
-    with_attr error_message("amount exceeds max reedem") {
+    with_attr error_message("amount exceeds max redeem") {
         assert is_limit_not_exceeded_ = 1;
     }
 
     with_attr error_message("zero address not allowed") {
-        assert_not_zero(_receiver * _owner);
+        assert_not_zero(_receiver);
     }
 
     let (caller_) = get_caller_address();
