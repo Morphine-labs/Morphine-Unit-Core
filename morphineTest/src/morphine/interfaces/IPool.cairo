@@ -4,11 +4,12 @@ from starkware.cairo.common.uint256 import Uint256
 
 @contract_interface
 namespace IPool {
-    func pause() {
-    }
 
-    // Need to implem it
-    func registery() -> (address: felt) {
+    // setters
+
+    //owner stuff
+
+    func pause() {
     }
 
     func unpause() {
@@ -20,11 +21,13 @@ namespace IPool {
     func unfreezeBorrow() {
     }
 
-    func setWithdrawFee(_base_withdraw_fee: Uint256) {
+    func setWithdrawFee(withdraw_fee: Uint256) {
     }
 
     func setExpectedLiquidityLimit(_expected_liquidity_limit: Uint256) {
     }
+
+    //supply stuff
 
     func deposit(_assets: Uint256, _receiver: felt) -> (shares: Uint256) {
     }
@@ -38,10 +41,37 @@ namespace IPool {
     func redeem(_shares: Uint256, _receiver: felt, _owner: felt) -> (assets: Uint256) {
     }
 
+    // max actions
+
+    func maxDeposit(to: felt) -> (maxAssets: Uint256) {
+    }
+
+    func maxMint(to: felt) -> (maxShares: Uint256) {
+    }
+
+    func maxWithdraw(to: felt) -> (maxAssets: Uint256) {
+    }
+
+    func maxRedeem(to: felt) -> (maxShares: Uint256) {
+    }
+
+    
+
+    //borrow stuff
+
     func borrow(borrow_amount: Uint256, drip: felt) {
     }
 
     func repayDripDebt(borrowed_amound: Uint256, profit: Uint256, loss: Uint256) {
+    }
+
+
+    // getters
+
+    func isPaused() -> (state: felt) {
+    }
+
+    func isBorrowFrozen() -> (state: felt) {
     }
 
     func getRegistery() -> (registery: felt) {
@@ -50,26 +80,22 @@ namespace IPool {
     func asset() -> (asset: felt) {
     }
 
-    func treasury() -> (treasury: felt) {
+    func withdrawFee() -> (withdrawFee: Uint256) {
     }
 
-    func getUnderlying() -> (underlying: felt) {
+    func expectedLiquidityLimit() -> (expectedLiquidityLimit: Uint256) {
     }
 
-    func factory() -> (factory: felt) {
+    func totalAssets() -> (totalManagedAssets: Uint256) {
     }
 
-    func maxDeposit(_to: felt) -> (maxAssets: Uint256) {
+    func expectedLiquidity() -> (expectedLiquidity: Uint256) {
     }
 
-    func maxMint(_to: felt) -> (maxShares: Uint256) {
+    func availableLiquidity() -> (availableLiquidity: Uint256) {
     }
 
-    func maxWithdraw(_from: felt) -> (maxAssets: Uint256) {
-    }
-
-    func maxRedeem(caller: felt) -> (maxShares: Uint256) {
-    }
+    // quote price
 
     func previewDeposit(_assets: Uint256) -> (shares: Uint256) {
     }
@@ -83,17 +109,13 @@ namespace IPool {
     func previewRedeem(_shares: Uint256) -> (assets: Uint256) {
     }
 
-    func calculLinearCumulativeIndex() -> (cumulativeIndex: Uint256) {
-    }
-
     func convertToShares(_assets: Uint256) -> (shares: Uint256) {
     }
 
     func convertToAssets(_shares: Uint256) -> (assets: Uint256) {
     }
 
-    func totalAssets() -> (totalManagedAssets: Uint256) {
-    }
+    // borrow info 
 
     func totalBorrowed() -> (totalBorrowed: Uint256) {
     }
@@ -101,23 +123,20 @@ namespace IPool {
     func borrowRate() -> (borrowRate: Uint256) {
     }
 
+    func calculLinearCumulativeIndex() -> (cumulativeIndex: Uint256) {
+    }
+
+    func cumulativeIndex() -> (cumulativeIndex: Uint256) {
+    }
+
     func lastUpdatedTimestamp() -> (lastUpdatedTimestamp: felt) {
     }
 
-    func expectedLiquidityLastUpdate() -> (expectedLiquidityLastUpdate: Uint256) {
-    }
 
-    func expectedLiquidityLimit() -> (lastUpdatedTimestamp: Uint256) {
-    }
 
-    func availableLiquidity() -> (availableLiquidity: Uint256) {
-    }
 
-    func calculBorrowRate() -> (borrowRate: Uint256) {
-    }
 
-    func withdrawFee() -> (withdrawFee: Uint256) {
-    }
+    // ERC 20 STUFF
 
     func name() -> (name: felt) {
     }
