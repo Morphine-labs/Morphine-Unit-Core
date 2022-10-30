@@ -228,7 +228,7 @@ func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @external
-func unfreezerepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+func unfreezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
     assert_repay_frozen();
     repay_frozen.write(0);
@@ -349,7 +349,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (max_mint_) = maxMint(_receiver);
     let (is_limit_not_exceeded_) = uint256_le(_shares, max_mint_);
-    with_attr error_message("amount exceeds max deposit") {
+    with_attr error_message("amount exceeds max mint") {
         assert is_limit_not_exceeded_ = 1;
     }
 
@@ -380,9 +380,6 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     alloc_locals;
     ReentrancyGuard._start();
     Pausable.assert_not_paused();
-    with_attr error_message("not a valid Uint256") {
-        uint256_check(_assets);
-    }
 
     let (shares_) = convertToShares(_assets);
     let (withdraw_fee_) = withdrawFee();
@@ -398,12 +395,12 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (max_withdraw_) = maxWithdraw(_receiver);
     let (is_limit_not_exceeded_) = uint256_le(_assets, max_withdraw_);
-    with_attr error_message("amount exceeds max deposit") {
+    with_attr error_message("amount exceeds max withdraw") {
         assert is_limit_not_exceeded_ = 1;
     }
 
     with_attr error_message("zero address not allowed") {
-        assert_not_zero(_receiver * _owner);
+        assert_not_zero(_receiver);
     }
 
     let (caller_) = get_caller_address();
@@ -446,7 +443,7 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (max_reedem_) = maxRedeem(_receiver);
     let (is_limit_not_exceeded_) = uint256_le(_shares, max_reedem_);
-    with_attr error_message("amount exceeds max deposit") {
+    with_attr error_message("amount exceeds max reedem") {
         assert is_limit_not_exceeded_ = 1;
     }
 
@@ -552,15 +549,21 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 //
 
 @view
-func isPaused{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (is_paused : felt){
+func isPaused{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_paused_) = Pausable.is_paused();
     return(is_paused_,);
 }
 
 @view
-func isBorrowFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (is_borrow_frozen : felt){
+func isBorrowFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_borrow_frozen_) = borrow_frozen.read();
     return(is_borrow_frozen_,);
+}
+
+@view
+func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
+    let (is_repay_frozen_) = repay_frozen.read();
+    return(is_repay_frozen_,);
 }
 
 
@@ -718,9 +721,6 @@ func convertToAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     _shares: Uint256
 ) -> (assets: Uint256) {
     alloc_locals;
-    with_attr error_message("shares is not a valid Uint256") {
-        uint256_check(_shares);
-    }
 
     let (supply_) = ERC20.total_supply();
     let (all_assets_) = totalAssets();
@@ -901,7 +901,7 @@ func ERC20_decrease_allowance_manual{
 
     func assert_borrow_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = borrow_frozen.read();
-        with_attr error_message("borrow is frozen") {
+        with_attr error_message("borrow frozen") {
             assert is_frozen_ = 0;
         }
         return ();
@@ -910,7 +910,7 @@ func ERC20_decrease_allowance_manual{
 
     func assert_borrow_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = borrow_frozen.read();
-        with_attr error_message("borrow is not frozen") {
+        with_attr error_message("borrow not frozen") {
             assert is_frozen_ = 1;
         }
         return ();
@@ -918,7 +918,7 @@ func ERC20_decrease_allowance_manual{
 
     func assert_repay_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = repay_frozen.read();
-        with_attr error_message("repay is frozen") {
+        with_attr error_message("repay frozen") {
             assert is_frozen_ = 0;
         }
         return ();
@@ -926,7 +926,7 @@ func ERC20_decrease_allowance_manual{
 
     func assert_repay_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (is_frozen_) = repay_frozen.read();
-        with_attr error_message("repay is not frozen") {
+        with_attr error_message("repay not frozen") {
             assert is_frozen_ = 1;
         }
         return ();

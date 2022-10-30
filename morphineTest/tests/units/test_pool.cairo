@@ -75,6 +75,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 }
 
 
+// OWNER STUFF
 
 @view
 func test_pause_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
@@ -95,6 +96,8 @@ func test_pause_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     %{ expect_events({"name": "Paused", "data": [ids.ADMIN],"from_address": ids.pool_}) %}
     pool_instance.pause();
     %{ [stop_prank() for stop_prank in stop_pranks] %}
+    let (is_paused_) = pool_instance.isPaused();
+    assert is_paused_ = 1;
     return ();
 }
 
@@ -110,17 +113,6 @@ func test_pause_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     return ();
 }
 
-@view
-func test_pause_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    let (pool_) = pool_instance.deployed();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.pause();
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    let (is_paused_) = pool_instance.isPaused();
-    assert is_paused_ = 1;
-    return ();
-}
 
 @view
 func test_unpause_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
@@ -140,6 +132,8 @@ func test_unpause_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
     pool_instance.pause();
     pool_instance.unpause();
     %{ [stop_prank() for stop_prank in stop_pranks] %}
+    let (is_paused_) = pool_instance.isPaused();
+    assert is_paused_ = 0;
     return ();
 }
 
@@ -152,20 +146,6 @@ func test_unpause_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
     %{ expect_revert(error_message="Pausable: not paused") %}
     pool_instance.unpause();
     %{ [stop_prank() for stop_prank in stop_pranks] %}
-    return ();
-}
-
-@view
-func test_unpause_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    let (pool_) = pool_instance.deployed();
-    
-     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.pause();
-    pool_instance.unpause();
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    let (is_paused_) = pool_instance.isPaused();
-    assert is_paused_ = 0;
     return ();
 }
 
@@ -272,11 +252,12 @@ func test_unfreeze_borrow_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ra
 func test_unfreeze_borrow_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     let (pool_) = pool_instance.deployed();
-     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
     %{ expect_events({"name": "BorrowUnfrozen","from_address": ids.pool_}) %}
+     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
     pool_instance.freezeBorrow();
+    pool_instance.unfreezeBorrow();
     let (is_borrow_frozen_) = pool_instance.isBorrowFrozen();
-    assert is_borrow_frozen_ = 1;
+    assert is_borrow_frozen_ = 0;
     return ();
 }
 
@@ -292,37 +273,496 @@ func test_unfreeze_borrow_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ra
     return ();
 }
 
+@view
+func test_freeze_repay_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    pool_instance.freezeRepay();
+    return ();
+}
+
+@view
+func test_freeze_repay_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    %{ expect_events({"name": "RepayFrozen","from_address": ids.pool_}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.freezeRepay();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    let (is_repay_frozen_) = pool_instance.isRepayFrozen();
+    assert is_repay_frozen_ = 1;
+    return ();
+}
+
+@view
+func test_freeze_repay_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.freezeRepay();
+    %{ expect_revert(error_message="repay frozen") %}
+    pool_instance.freezeRepay();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_unfreeze_repay_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    pool_instance.unfreezeRepay();
+    return ();
+}
+
+@view
+func test_unfreeze_repay_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    %{ expect_events({"name": "RepayUnfrozen","from_address": ids.pool_}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.freezeRepay();
+    pool_instance.unfreezeRepay();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    let (is_repay_frozen_) = pool_instance.isRepayFrozen();
+    assert is_repay_frozen_ = 0;
+    return ();
+}
+
+@view
+func test_unfreeze_repay_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="repay not frozen") %}
+    pool_instance.unfreezeRepay();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+// SUPPLY STUFF
+
+@view
+func test_deposit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.pause();
+    %{ expect_revert(error_message="Pausable: paused") %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+    pool_instance.unpause();
+    %{ [stop_prank() for a in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_deposit_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="cannot deposit for 0 shares") %}
+    let (shares_)  = pool_instance.deposit(Uint256(0,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_deposit_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="amount exceeds max deposit") %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_deposit_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="zero address not allowed") %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), 0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_deposit_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ expect_events({"name": "Deposit", "data": [ids.ADMIN, ids.ADMIN, 1000000000, 0, 1000000000, 0], "from_address": ids.pool_}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    assert shares_ = Uint256(1000000000,0);
+
+    let (balance_) = IERC20.balanceOf(pool_, ADMIN);
+    assert balance_ = Uint256(1000000000,0);
+    return ();
+}
+
+@view
+func test_preview_deposit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    let (shares_) = pool_instance.previewDeposit(Uint256(1000000000,0));
+    assert shares_ = Uint256(1000000000,0);
+    return ();
+}
+
+@view
+func test_max_deposit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    // Before deposit
+    let (max_deposit_) = pool_instance.maxDeposit(ADMIN);
+    assert max_deposit_ = Uint256(EXPECTED_LIQUIDITY_LIMIT_LO,0);
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    assert shares_ = Uint256(1000000000,0);
+
+    // Before deposit
+    let (max_deposit_) = pool_instance.maxDeposit(ADMIN);
+    assert max_deposit_ = Uint256(EXPECTED_LIQUIDITY_LIMIT_LO - 1000000000,0);
+    return ();
+}
+
+
+@view
+func test_mint_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.pause();
+    %{ expect_revert(error_message="Pausable: paused") %}
+    let (shares_)  = pool_instance.mint(Uint256(1000000000,0), ADMIN);
+    pool_instance.unpause();
+    %{ [stop_prank() for a in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_mint_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="cannot mint for 0 assets") %}
+    let (shares_)  = pool_instance.mint(Uint256(0,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_mint_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="amount exceeds max mint") %}
+    let (shares_)  = pool_instance.mint(Uint256(1000000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_mint_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="zero address not allowed") %}
+    let (shares_)  = pool_instance.mint(Uint256(1000000000,0), 0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_mint_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ expect_events({"name": "Deposit", "data": [ids.ADMIN, ids.ADMIN, 1000000000, 0, 1000000000, 0], "from_address": ids.pool_}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (assets_)  = pool_instance.mint(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    assert assets_ = Uint256(1000000000,0);
+    let (balance_) = IERC20.balanceOf(pool_, ADMIN);
+    assert balance_ = Uint256(1000000000,0);
+    return ();
+}
+
+@view
+func test_preview_mint_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    let (assets_) = pool_instance.previewMint(Uint256(1000000000,0));
+    assert assets_ = Uint256(1000000000,0);
+    return ();
+}
+
+@view
+func test_max_mint_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    // Before deposit
+    let (max_mint_) = pool_instance.maxDeposit(ADMIN);
+    assert max_mint_ = Uint256(EXPECTED_LIQUIDITY_LIMIT_LO,0);
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (shares_)  = pool_instance.mint(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    assert shares_ = Uint256(1000000000,0);
+
+    // Before deposit
+    let (max_mint_) = pool_instance.maxDeposit(ADMIN);
+    assert max_mint_ = Uint256(EXPECTED_LIQUIDITY_LIMIT_LO - 1000000000,0);
+    return ();  
+}
+
+@view
+func test_max_withdraw_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    // Before deposit
+    let (max_withdraw_) = pool_instance.maxWithdraw(ADMIN);
+    assert max_withdraw_ = Uint256(0,0);
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    // after deposit
+    let (max_withdraw_) = pool_instance.maxWithdraw(ADMIN);
+    assert max_withdraw_ = Uint256(1000000000,0);
+    return ();
+}
+
+
+@view
+func test_withdraw_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(pool_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    pool_instance.pause();
+    %{ expect_revert(error_message="Pausable: paused") %}
+    let (shares_)  = pool_instance.withdraw(Uint256(1000000000,0), ADMIN, ADMIN);
+    pool_instance.unpause();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_withdraw_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(pool_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="cannot withdraw for 0 shares") %}
+    let (shares_)  = pool_instance.withdraw(Uint256(0,0), ADMIN, ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+
+@view
+func test_withdraw_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(pool_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="amount exceeds max withdraw") %}
+    let (shares_)  = pool_instance.withdraw(Uint256(1000000000,0), ADMIN, ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_withdraw_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    let (dai_) = dai_instance.deployed();
+
+    // deposit first
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+    IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (dai_) = dai_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+    %{ expect_revert(error_message="zero address not allowed") %}
+    let (shares_)  = pool_instance.withdraw(Uint256(1000000000,0), 0, ADMIN);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
 
 // @view
-// func test_pause_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+// func test_withdraw_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
 //     alloc_locals;
 //     let (pool_) = pool_instance.deployed();
+//     let (dai_) = dai_instance.deployed();
+//     // %{ expect_events({"name": "Withdraw", "data": [ids.ADMIN, ids.ADMIN, 1000000000, 0, 1000000000, 0], "from_address": ids.pool_}) %}
 
+//     // deposit first
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+//     IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+//     let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     let (dai_) = dai_instance.deployed();
 
 //     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-//     %{ expect_events({"name": "BorrowFrozen","from_address": ids.pool_}) %}
-//     pool_instance.freezeBorrow();
-//     %{ expect_revert(error_message="borrow frozen") %}
-//     pool_instance.freezeBorrow();
-
+//     IERC20.approve(pool_, pool_, Uint256(1000000000,0));
 //     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (is_borrow_frozen_) = pool_instance.isBorrowFrozen();
-//     assert is_borrow_frozen_ = 1;
 
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     pool_instance.unfreezeBorrow();
-
+//     let (allowance_) = IERC20.allowance(pool_, ADMIN, pool_);
+//     assert allowance_ = Uint256(1000000000,0);
 //     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-//     %{ expect_events({"name": "BorrowUnfrozen","from_address": ids.pool_}) %}
-//     pool_instance.unfreezeBorrow();
-//     %{ expect_revert(error_message="borrow not frozen") %}
-//     pool_instance.unfreezeBorrow();
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (is_borrow_frozen_) = pool_instance.isBorrowFrozen();
-//     assert is_borrow_frozen_ = 0;
+//     let (shares_)  = pool_instance.withdraw(Uint256(1000000000,0), ADMIN, ADMIN);
+//     %{ [stop_prank() for a in stop_pranks] %}
+//     // assert shares_ = Uint256(1000000000,0);
+//     let (balance_) = IERC20.balan 
+//     return ()
+// }
+
+
+// @view
+// func test_preview_withdraw_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (pool_) = pool_instance.deployed();
+//     let (dai_) = dai_instance.deployed();
+//     let (shares_) = pool_instance.previewDeposit(Uint256(1000000000,0));
+//     assert shares_ = Uint256(1000000000,0);
 //     return ();
 // }
 
+
+
+
+
+
+
+// @view
+// func test_liquidity_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (pool_) = pool_instance.deployed();
+//     let (dai_) = dai_instance.deployed();
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
+//     IERC20.approve(dai_, pool_, Uint256(1000000000,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     // Before deposit
+
+//     let (total_assets_) = pool_instance.totalAssets();
+//     assert total_assets_ = Uint256(0,0);
+//     let (expected_liquidity_) = pool_instance.expectedLiquidity();
+//     assert expected_liquidity_ = Uint256(0,0);
+//     let (available_liquidity_) = pool_instance.availableLiquidity();
+//     assert available_liquidity_ = Uint256(0,0);
+
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
+//     let (shares_)  = pool_instance.deposit(Uint256(1000000000,0), ADMIN);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     assert shares_ = Uint256(1000000000,0);
+
+//     // Before deposit
+
+//     let (total_assets_) = pool_instance.totalAssets();
+//     assert total_assets_ = Uint256(1000000000,0);
+//     let (expected_liquidity_) = pool_instance.expectedLiquidity();
+//     assert expected_liquidity_ = Uint256(1000000000,0);
+//     let (available_liquidity_) = pool_instance.availableLiquidity();
+//     assert available_liquidity_ = Uint256(1000000000,0);
+
+
+//     return ();
+// }
 
 // @view
 // func test_supply_stuff{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
@@ -431,6 +871,29 @@ namespace pool_instance{
     let (is_borrow_frozen_) = IPool.isBorrowFrozen(pool); 
     return(is_borrow_frozen_,);
     }
+
+    func freezeRepay{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() {
+    tempvar pool;
+    %{ ids.pool = context.pool %}
+    IPool.freezeRepay(pool); 
+    return();
+    }
+
+    func unfreezeRepay{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() {
+    tempvar pool;
+    %{ ids.pool = context.pool %}
+    IPool.unfreezeRepay(pool); 
+    return();
+    }
+
+    func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state: felt) {
+    tempvar pool;
+    %{ ids.pool = context.pool %}
+    let (is_repay_frozen_) = IPool.isRepayFrozen(pool); 
+    return(is_repay_frozen_,);
+    }
+
+
 
     func setWithdrawFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(withdraw_fee: Uint256) {
     tempvar pool;
@@ -556,7 +1019,7 @@ namespace pool_instance{
     func maxWithdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_to: felt) -> (maxAssets: Uint256) {
     tempvar pool;
     %{ ids.pool = context.pool %}
-    let (max_assets_) = IPool.previewRedeem(pool, _to); 
+    let (max_assets_) = IPool.maxWithdraw(pool, _to); 
     return(max_assets_,);
     }
 

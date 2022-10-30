@@ -21,6 +21,12 @@ namespace IPool {
     func unfreezeBorrow() {
     }
 
+    func freezeRepay() {
+    }
+
+    func unfreezeRepay() {
+    }
+
     func setWithdrawFee(withdraw_fee: Uint256) {
     }
 
@@ -72,6 +78,9 @@ namespace IPool {
     }
 
     func isBorrowFrozen() -> (state: felt) {
+    }
+
+    func isRepayFrozen() -> (state: felt) {
     }
 
     func getRegistery() -> (registery: felt) {
