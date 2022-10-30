@@ -9,4 +9,12 @@ namespace IEmpiricOracle {
         num_sources_aggregated: felt
     ) {
     }
+    
+    func set_spot_median(
+    _pair_id: felt,
+    _price: felt, 
+    _decimals: felt, 
+    _last_updated_timestamp: felt, 
+    _num_sources_aggregated: felt) {
+    }
 }

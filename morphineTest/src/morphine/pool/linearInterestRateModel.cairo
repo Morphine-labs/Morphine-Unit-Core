@@ -88,6 +88,7 @@ func calcBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     );
 
     // if liquidity_utilization_ <= optimal_liquidity_utilization_:
+    
     //                                    liquidity_utilization_
     // borrow_rate = base_rate +  slope1 * -----------------------------
     //                                     optimal_liquidity_utilization_

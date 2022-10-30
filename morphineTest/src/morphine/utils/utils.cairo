@@ -110,6 +110,6 @@ func pow{pedersen_ptr: HashBuiltin*, range_check_ptr}(x: felt , power: felt) -> 
 
     let (prev_res) = pow(x, power - 1);
     let res = x * prev_res;
-    assert_in_range(res, 0, 2 ** 252 - 1);
+    // assert_in_range(res, 0,2 ** 128 - 1);
     return (res,);
 }

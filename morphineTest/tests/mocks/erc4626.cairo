@@ -10,9 +10,9 @@ from starkware.cairo.common.uint256 import ALL_ONES, Uint256, uint256_check, uin
 from openzeppelin.token.erc20.library import ERC20
 from openzeppelin.token.erc20.IERC20 import IERC20
 
-from yagi.erc4626.library import ERC4626, ERC4626_asset, Deposit, Withdraw
-from yagi.utils.fixedpointmathlib import mul_div_down, mul_div_up
-from yagi.utils.safeerc20 import SafeERC20
+from morphine.utils.yagilib import ERC4626, ERC4626_asset, Deposit, Withdraw
+from morphine.utils.fixedpointmathlib import mul_div_down, mul_div_up
+from morphine.utils.safeerc20 import SafeERC20
 
 // @title Generic ERC4626 vault (copy this to build your own).
 // @description An ERC4626-style vault implementation.
@@ -296,11 +296,11 @@ func convertToAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 //
 
 @view
-func totalAssets() -> (totalManagedAssets: Uint256) {
+func totalAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (totalManagedAssets: Uint256) {
     let (underlying_) = ERC4626_asset.read();
     let (this_) = get_contract_address();
     let (total_assets_) = IERC20.balanceOf(underlying_, this_);
-    return (Uint256(0, 0),);
+    return (total_assets_,);
 }
 
 func _before_withdraw(assets: Uint256, shares: Uint256) {
@@ -309,4 +309,95 @@ func _before_withdraw(assets: Uint256, shares: Uint256) {
 
 func _after_deposit(assets: Uint256, shares: Uint256) {
     return ();
+}
+
+
+// ERC 20 STUFF
+
+// Getters
+
+@view
+func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (name: felt) {
+    let (name_) = ERC20.name();
+    return (name_,);
+}
+
+@view
+func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (symbol: felt) {
+    let (symbol_) = ERC20.symbol();
+    return (symbol_,);
+}
+
+@view
+func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    totalSupply: Uint256
+) {
+    let (totalSupply_: Uint256) = ERC20.total_supply();
+    return (totalSupply_,);
+}
+
+@view
+func decimals{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    decimals: felt
+) {
+    let (decimals_) = ERC20.decimals();
+    return (decimals_,);
+}
+
+@view
+func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
+    balance: Uint256
+) {
+    let (balance_: Uint256) = ERC20.balance_of(account);
+    return (balance_,);
+}
+
+@view
+func allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _owner: felt, _spender: felt
+) -> (remaining: Uint256) {
+    let (remaining_: Uint256) = ERC20.allowance(_owner, _spender);
+    return (remaining_,);
+}
+
+// Externals
+
+@external
+func transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    recipient: felt, amount: Uint256
+) -> (success: felt) {
+    ERC20.transfer(recipient, amount);
+    return (1,);
+}
+
+@external
+func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    sender: felt, recipient: felt, amount: Uint256
+) -> (success: felt) {
+    ERC20.transfer_from(sender, recipient, amount);
+    return (1,);
+}
+
+@external
+func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _spender: felt, amount: Uint256
+) -> (success: felt) {
+    ERC20.approve(_spender, amount);
+    return (1,);
+}
+
+@external
+func increaseAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _spender: felt, added_value: Uint256
+) -> (success: felt) {
+    ERC20.increase_allowance(_spender, added_value);
+    return (1,);
+}
+
+@external
+func decreaseAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _spender: felt, subtracted_value: Uint256
+) -> (success: felt) {
+    ERC20.decrease_allowance(_spender, subtracted_value);
+    return (1,);
 }

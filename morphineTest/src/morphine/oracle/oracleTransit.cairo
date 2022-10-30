@@ -16,14 +16,15 @@ from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
+from openzeppelin.access.ownable.library import Ownable
 
 from morphine.interfaces.IEmpiricOracle import IEmpiricOracle
 
 from morphine.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
-
+from morphine.interfaces.IRegistery import IRegistery
 from morphine.utils.utils import pow
 
-from morphine.utils.various import EMPIRIC_ORACLE_ADDRESS
+
 
 // Events
 
@@ -38,7 +39,6 @@ func NewDerivative(token: felt, price_feed: felt) {
 // Storage
 
 @storage_var
-@storage_var
 func oracle() -> (oracle: felt) {
 }
 
@@ -50,23 +50,15 @@ func pair_id(primitive: felt) -> (pair_id: felt) {
 func derivative_to_price_feed(derivative: felt) -> (res: felt) {
 }
 
-// Protector
-func configurator_only{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (caller_) = get_caller_address();
-    let (contract_address_) = get_contract_address();
-    with_attr error_message("Only the configurator can call this function") {
-        assert caller_ = contract_address_;
-    }
-    return();
-}
-
 // Constructor
 @constructor
-func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle: felt) {
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle: felt, _registery: felt) {
     with_attr error_message("zero address") {
         assert_not_zero(_oracle);
     }
     oracle.write(_oracle);
+    let (owner_) = IRegistery.owner(_registery);
+    Ownable.initializer(owner_);
     return ();
 }
 
@@ -76,18 +68,19 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func addPrimitive{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _pair_id: felt
 ) {
-    configurator_only();
+    Ownable.assert_only_owner();
     with_attr error_message("zero address or pair id") {
         assert_not_zero(_token * _pair_id);
     }
     let (decimals_) = IERC20.decimals(_token);
-    let is_le_ = is_le(18, decimals_);
+    let is_le_ = is_le(decimals_, 18);
     with_attr error_message("token decimals greater than 18") {
         assert_not_zero(is_le_);
     }
+    let (oracle_) = oracle.read();
 
-    let (_, price_feed_decimals_, _, _) = IEmpiricOracle.get_spot_median(EMPIRIC_ORACLE_ADDRESS,_token);
-    with_attr error_message("price feed fecimals not equal to 8") {
+    let (_, price_feed_decimals_, _, _) = IEmpiricOracle.get_spot_median(oracle_,_pair_id);
+    with_attr error_message("price feed decimals not equal to 8") {
         assert price_feed_decimals_ = 8;
     }
     pair_id.write(_token, _pair_id);
@@ -97,19 +90,18 @@ func addPrimitive{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 
 @external
 func addDerivative{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _token: felt, _derivative_price_feed: felt, _amount: Uint256
+    _token: felt, _derivative_price_feed: felt
 ) {
-    configurator_only();
-    let (contract_address_) = get_contract_address();
+    Ownable.assert_only_owner();
     with_attr error_message("zero address") {
         assert_not_zero(_token * _derivative_price_feed);
     }
     let (decimals_) = IERC20.decimals(_token);
-    let is_le_ = is_le(18, decimals_);
+    let is_le_ = is_le(decimals_, 18);
     with_attr error_message("token decimals greater than 18") {
         assert_not_zero(is_le_);
     }
-    let (underlying_assets_len: felt, _, _, _) = IDerivativePriceFeed.calcUnderlyingValues(contract_address_,_token,_amount);
+    let (underlying_assets_len: felt, _, _, _) = IDerivativePriceFeed.calcUnderlyingValues(_derivative_price_feed,_token,Uint256(0,0));
     with_attr error_message("quote price error") {
         assert_not_zero(underlying_assets_len);
     }
@@ -186,29 +178,28 @@ func fastCheck{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
 func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_token: felt) -> (
     token_price_usd: Uint256
 ) {
+    alloc_locals;
     let (derivative_to_price_feed_) = derivative_to_price_feed.read(_token);
+    let (oracle_) = oracle.read();
     if (derivative_to_price_feed_ == 0) {
         let (pair_id_) = pair_id.read(_token);
         with_attr error_message("token not supported") {
             assert_not_zero(pair_id_);
         }
-        let (price_, _, _, _) = IEmpiricOracle.get_spot_median(EMPIRIC_ORACLE_ADDRESS,_token);
+        let (price_, _, _, _) = IEmpiricOracle.get_spot_median(oracle_,pair_id_);
         with_attr error_message("zero price") {
             assert_not_zero(price_);
         }
         return (Uint256(price_, 0),);
     } else {
-        let (price_, _, _, _) = IEmpiricOracle.get_spot_median(EMPIRIC_ORACLE_ADDRESS,_token);
-        let price_uint256_ = Uint256(price_, 0);
-        with_attr error_message("Uint256 overflow") {
-            uint256_check(price_uint256_);
-        }
+        let (decimals_) = IERC20.decimals(_token);
+        let (multiplier_) = pow(10, decimals_);
         let (
             underlying_assets_len: felt,
             underlying_assets: felt*,
             underlyings_amounts_len: felt,
             underlyings_amounts: Uint256*,
-        ) = IDerivativePriceFeed.calcUnderlyingValues(derivative_to_price_feed_, _token, price_uint256_);
+        ) = IDerivativePriceFeed.calcUnderlyingValues(derivative_to_price_feed_, _token, Uint256(multiplier_,0));
         with_attr error_message("quote price error") {
             assert_not_zero(underlying_assets_len);
         }
