@@ -82,14 +82,8 @@ const TREASURY = 'morphine_treasyury';
 const ORACLE_TRANSIT = 'oracle_transit';
 const DRIP_HASH = 'drip_hash';
 
-// ERC4626
-const ERC4626_NAME = 'Methereum';
-const ERC4626_SYMBOL = 'METH';
-const EXPECTED_LIQUIDITY_LIMIT_LO = 100*10**18;
-const EXPECTED_LIQUIDITY_LIMIT_HI = 0;
 
 // LP
-
 @view
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     tempvar eth;
