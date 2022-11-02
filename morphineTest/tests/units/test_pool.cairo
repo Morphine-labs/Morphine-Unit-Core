@@ -184,7 +184,7 @@ func test_withdraw_fee_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range
 }
 
 @view
-func test_epected_liquidity_limit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_expected_liquidity_limit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     let (pool_) = pool_instance.deployed();
     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
@@ -193,7 +193,7 @@ func test_epected_liquidity_limit_1{syscall_ptr : felt*, pedersen_ptr : HashBuil
 }
 
 @view
-func test_epected_liquidity_limit_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_expected_liquidity_limit_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     let (pool_) = pool_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
