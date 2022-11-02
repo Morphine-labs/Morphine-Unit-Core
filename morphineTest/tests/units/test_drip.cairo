@@ -43,16 +43,17 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     tempvar drip;
 
     %{
-        ids.drip = deploy_contract("./lib/morphine/drip/drip.cairo", []).contract_address 
+        declared = declare("./lib/morphine/drip/drip.cairo")
+        prepared = prepare(declared, [])
+        stop_pranks = [start_prank(ids.DRIP_FACTORY, contract) for contract in [prepared.contract_address]]
+        # constructor will be affected by prank
+        ids.drip = deploy(prepared).contract_address
         context.drip = ids.drip    
-
+        [stop_prank() for stop_prank in stop_pranks]
         ids.dai = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME, ids.TOKEN_SYMBOL, ids.TOKEN_DECIMALS, ids.TOKEN_INITIAL_SUPPLY_LO, ids.TOKEN_INITIAL_SUPPLY_HI, ids.drip, ids.drip]).contract_address 
         context.dai = ids.dai
     %}
     
-    %{ stop_pranks = [start_prank(ids.DRIP_FACTORY, contract) for contract in [ids.drip] ] %}
-    drip_instance.initialize();
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
 
@@ -222,13 +223,6 @@ namespace drip_instance{
         tempvar drip;
         %{ ids.drip = context.drip %}
         return (drip,);
-    }
-
-    func initialize{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-        tempvar drip;
-        %{ ids.drip = context.drip %}
-        IDrip.initialize(drip);
-        return ();
     }
 
     func connectTo{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256) {

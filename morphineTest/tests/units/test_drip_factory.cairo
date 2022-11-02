@@ -31,7 +31,6 @@ const TOKEN_INITIAL_SUPPLY_HI = 0;
 // Registery
 const TREASURY = 'morphine_treasyury';
 const ORACLE_TRANSIT = 'oracle_transit';
-const DRIP_HASH = 'drip_hash';
 
 
 //drip
@@ -43,6 +42,7 @@ const CUMULATIVE_INDEX_HI = 0;
 @view
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     tempvar dai;
+    tempvar drip_hash;
     tempvar drip_factory;
     tempvar drip;
     tempvar registery;
@@ -51,10 +51,13 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.drip = deploy_contract("./lib/morphine/drip/drip.cairo", []).contract_address 
         context.drip = ids.drip    
 
-        ids.dai = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME, ids.TOKEN_SYMBOL, ids.TOKEN_DECIMALS, ids.TOKEN_INITIAL_SUPPLY_LO, ids.TOKEN_INITIAL_SUPPLY_HI, ids.addDrip, ids.ADMIN]).contract_address 
+        ids.dai = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME, ids.TOKEN_SYMBOL, ids.TOKEN_DECIMALS, ids.TOKEN_INITIAL_SUPPLY_LO, ids.TOKEN_INITIAL_SUPPLY_HI, ids.ADMIN, ids.ADMIN]).contract_address 
         context.dai = ids.dai
 
-        ids.registery = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
+        ids.drip_hash = declare("./lib/morphine/drip/drip.cairo").class_hash
+        context.drip_hash = ids.drip_hash
+
+        ids.registery = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.drip_hash]).contract_address 
         context.registery = ids.registery
 
         ids.drip_factory = deploy_contract("./lib/morphine/drip/dripFactory.cairo", [ids.registery]).contract_address 
@@ -63,7 +66,14 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     return();
 }
 
-
+@view
+func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ expect_events({"name": "NewDrip"}) %}
+    let (drip_length_) = drip_factory_instance.dripsLength();
+    assert drip_length_ = 1;
+    return ();
+}
 
 namespace drip_factory_instance{
 
@@ -108,10 +118,10 @@ namespace drip_factory_instance{
         return (next_drip_,);
     }
 
-    func dripLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (dripLength: felt) {
+    func dripsLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (dripLength: felt) {
         tempvar drip_factory;
         %{ ids.drip_factory = context.drip_factory %}
-        let (drip_length_) = IDripFactory.dripLength(drip_factory);
+        let (drip_length_) = IDripFactory.dripsLength(drip_factory);
         return (drip_length_,);
     }
 
@@ -149,13 +159,6 @@ namespace drip_instance{
         tempvar drip;
         %{ ids.drip = context.drip %}
         return (drip,);
-    }
-
-    func initialize{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-        tempvar drip;
-        %{ ids.drip = context.drip %}
-        IDrip.initialize(drip);
-        return ();
     }
 
     func connectTo{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256) {

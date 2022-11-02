@@ -5,10 +5,6 @@ from starkware.cairo.common.uint256 import Uint256
 @contract_interface
 namespace IDrip {
 
-
-    func initialize() {
-    }
-
     func connectTo(_drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256) {
     }
 

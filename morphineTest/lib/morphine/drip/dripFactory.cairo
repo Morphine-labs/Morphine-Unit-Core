@@ -99,11 +99,11 @@ func registery() -> (res: felt) {
 // Protector
 
 func only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (contract_address: felt) = get_contract_address();
+    let (registery_) = registery.read();
     let (caller_: felt) = get_caller_address();
-    let (manager: felt) = IRegistery.dripManager(contract_address);
+    let (state_: felt) = IRegistery.isDripManager(registery_, caller_);
     with_attr error_message("account factory : Caller is not dripManager") {
-        assert manager = caller_;
+        assert state_ = 1;
     }
     return ();
 }
@@ -184,9 +184,9 @@ func dripStockLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 @external
 func addDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     alloc_locals;
+    let (registery_) = registery.read();
     let (this_: felt) = get_contract_address();
     let (new_drip_: felt) = deploy_drip_account();
-    IDrip.initialize(new_drip_, this_);
     let (tail_: felt) = tail.read();
     next_drip.write(tail_, new_drip_);
     tail.write(new_drip_);

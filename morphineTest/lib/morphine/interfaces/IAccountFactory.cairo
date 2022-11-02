@@ -19,8 +19,7 @@ namespace IAccountFactory {
     func addDripAccount() -> (address: felt) {
     }
 
-    func removeDripAccount(_borrowed_amount: Uint256, _cumulative_index: Uint256) -> (
-        address: felt
+    func removeDripAccount(_borrowed_amount: Uint256, _cumulative_index: Uint256) -> (address: felt
     ) {
     }
 
