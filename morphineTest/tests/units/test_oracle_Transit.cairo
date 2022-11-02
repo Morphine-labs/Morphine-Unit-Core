@@ -82,8 +82,8 @@ const TREASURY = 'morphine_treasyury';
 const ORACLE_TRANSIT = 'oracle_transit';
 const DRIP_HASH = 'drip_hash';
 
+// TODO: LP 
 
-// LP
 @view
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     tempvar eth;
@@ -128,7 +128,6 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     // Set assets value
     IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
     IEmpiricOracle.set_spot_median(empiric_oracle, BTC_USD, BTC_PRICE, DECIMALS_FEED, LUT, NSA);
-    IEmpiricOracle.set_spot_median(empiric_oracle, DAI_USD, DAI_PRICE, DECIMALS_FEED, LUT, NSA);
     IEmpiricOracle.set_spot_median(empiric_oracle, DAI_USD, DAI_PRICE, DECIMALS_FEED, LUT, NSA);
     IEmpiricOracle.set_spot_median(empiric_oracle, DMYT_USD, 93, 9, LUT, NSA);
 
