@@ -32,44 +32,23 @@ func pools_length() -> (len: felt) {
 }
 
 @storage_var
-func is_drip(address: felt) -> (is_drip_account: felt) {
+func is_pool(address: felt) -> (is_drip_account: felt) {
 }
 
 @storage_var
-func id_to_drip(id: felt) -> (drip: felt) {
+func id_to_pool(id: felt) -> (drip: felt) {
 }
 
 @storage_var
-func drip_to_id(address: felt) -> (drip_id: felt) {
+func drip_managers_length() -> (len: felt) {
 }
 
 @storage_var
-func drip_length() -> (len: felt) {
+func is_drip_manager(address: felt) -> (is_drip_account: felt) {
 }
 
 @storage_var
-func is_drip(address: felt) -> (is_drip_account: felt) {
-}
-
-@storage_var
-func id_to_drip(id: felt) -> (drip: felt) {
-}
-
-@storage_var
-func drip_to_id(address: felt) -> (drip_id: felt) {
-}
-
-
-func assert_only_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (owner) = Ownable.owner();
-    let (caller) = get_caller_address();
-    with_attr error_message("Ownable: caller is the zero address") {
-        assert_not_zero(caller);
-    }
-    with_attr error_message("Ownable: caller is not the owner") {
-        assert owner = caller;
-    }
-    return ();
+func id_to_drip_manager(id: felt) -> (drip: felt) {
 }
 
 @constructor
@@ -112,6 +91,41 @@ func oracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     return(oracle_,);
 }
 
+@view
+func isPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_pool: felt) -> (state : felt) {
+    let (state_) = is_pool.read(_pool);
+    return(state_,);
+}
+
+@view
+func isDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager: felt) -> (state : felt) {
+    let (state_) = is_drip_manager.read(_drip_manager);
+    return(state_,);
+}
+
+@view
+func idToPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id: felt) -> (pool : felt) {
+    let (pool_) = id_to_pool.read(_id);
+    return(pool_,);
+}
+
+@view
+func idToDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id: felt) -> (dripManager : felt) {
+    let (drip_manager_) = id_to_drip_manager.read(_id);
+    return(drip_manager_,);
+}
+
+@view
+func poolsLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (poolsLength : felt) {
+    let (pools_length_) = pools_length.read();
+    return(pools_length_,);
+}
+
+@view
+func dripManagerLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (dripManagerLength : felt) {
+    let (drip_managers_length_) = drip_managers_length.read();
+    return(drip_managers_length_,);
+}
 
 
 @external
@@ -150,3 +164,38 @@ func setDripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     drip_hash.write(_new_drip_hash);
     return();
 }
+
+@external
+func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_pool : felt) -> () {
+    Ownable.assert_only_owner();
+    let (pool_exists_) = is_pool.read(_pool);
+    with_attr error_message("pool exists"){
+        assert pool_exists_ = 0;
+    }
+    with_attr error_message("address zero"){
+        assert_not_zero(_pool);
+    }
+    is_pool.write(_pool, 1);
+    let (pools_length_) = pools_length.read();
+    id_to_pool.write(pools_length_, _pool);
+    pools_length.write(pools_length_ + 1);
+    return();
+}
+
+@external
+func addDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager : felt) -> () {
+    Ownable.assert_only_owner();
+    let (drip_manager_exists_) = is_drip_manager.read(_drip_manager);
+    with_attr error_message("drip_manager exists"){
+        assert drip_manager_exists_ = 0;
+    }
+    with_attr error_message("address zero"){
+        assert_not_zero(_drip_manager);
+    }
+    is_drip_manager.write(_drip_manager, 1);
+    let (drip_managers_length_) = drip_managers_length.read();
+    id_to_drip_manager.write(drip_managers_length_, _drip_manager);
+    drip_managers_length.write(drip_managers_length_ + 1);
+    return();
+}
+
