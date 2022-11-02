@@ -17,7 +17,7 @@ from morphine.interfaces.IDrip import IDrip
 
 const ADMIN = 'morphine-admin';
 const DRIP_MANAGER = 'drip-manager';
-const DRIP_FACTORY = 'drip-manager';
+const DRIP_FACTORY = 'drip-factory';
 
 
 // Token 
