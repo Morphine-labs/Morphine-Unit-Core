@@ -249,7 +249,7 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     id_to_allowed_contract.write(allowed_contract_length_, _contract);
     allowed_contract_to_id.write(_contract, allowed_contract_length_);
     allowed_contract_length.write(allowed_contract_length_ + 1);
-
+    is_allowed_contract.write(1);
     ContractAllowed.emit(_contract);
     return();
 }
@@ -280,6 +280,7 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     allowed_contract_to_id.write(last_allowed_contract_, id_to_remove_);
     allowed_contract_length.write(allowed_contract_length_ - 1);
     id_to_allowed_contract.write(allowed_contract_length_ - 1, 0);
+    is_allowed_contract.write(0);
     ContractForbidden.emit(_contract);
     return();
 }
@@ -391,10 +392,24 @@ func idToAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 @view
+func allowedContractToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_allowed_contract: felt) -> (id: felt){
+    alloc_locals;
+    let (id_) = allowed_contract_to_id.read(_allowed_contract);
+    return(id_,);
+}
+
+@view
 func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
     alloc_locals;
     let (allowed_contract_length_) = allowed_contract_length.read();
     return(allowed_contract_length_,);
+}
+
+@view
+func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
+    alloc_locals;
+    let (state_) = is_allowed_contract.read(_contract);
+    return(state_,);
 }
 
 

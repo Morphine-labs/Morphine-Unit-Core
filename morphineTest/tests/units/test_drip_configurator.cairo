@@ -212,6 +212,125 @@ namespace drip_configurator_instance{
         %{ ids.drip_configurator = context.drip_configurator %}
         return (drip_configurator,);
     }
+
+    func addTokenToAllowedList{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.addTokenToAllowedList(drip_configurator, _token);
+    return();
+    }
+
+    func setLiquidationThreshold{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setLiquidationThreshold(drip_configurator, _token, _liquidation_threshold);
+    return();
+    }
+
+    func allowToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.allowToken(drip_configurator, _token);
+    return();
+    }
+
+    func forbidToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.forbidToken(drip_configurator, _token);
+    return();
+    }
+
+    func allowContract{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_contract: felt, _adapter: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.allowContract(drip_configurator, _contract, _adapter);
+    return();
+    }
+
+    func forbidContract{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_contract: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.forbidContract(drip_configurator, _contract);
+    return();
+    }
+
+    func setLimits{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setLimits(drip_configurator, _minimum_borrowed_amount, _maximum_borrowed_amount);
+    return();
+    }
+
+    func setFastCheckParameters{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_chi_threshold: Uint256, _hf_check_interval: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setFastCheckParameters(drip_configurator, _chi_threshold, _hf_check_interval);
+    return();
+    }
+
+    func setFees{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setFees(drip_configurator, _fee_interest, _fee_liquidation, _liquidation_premium);
+    return();
+    }
+
+    func upgradeOracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.upgradeOracleTransit(drip_configurator);
+    return();
+    }
+
+    func upgradeDripTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_transit: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.upgradeDripTransit(drip_configurator, _drip_transit);
+    return();
+    }
+
+    func upgradeConfigurator{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_configurator: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.upgradeConfigurator(drip_configurator, _drip_configurator);
+    return();
+    }
+
+    func setIncreaseDebtForbidden{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_state: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setIncreaseDebtForbidden(drip_configurator, _state);
+    return();
+    }
+
+    // Getters
+
+    func idToAllowedContract{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContract: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    let (allowed_contract_) =  IDripConfigurator.idToAllowedContract(drip_configurator, id);
+    return(allowed_contract_,);
+    }
+
+    func allowedContractToId{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_allowed_contract: felt) -> (id: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    let (id_) =  IDripConfigurator.allowedContractsLength(drip_configurator, id);
+    return(id_,);
+    }
+
+    func allowedContractsLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    let (allowed_contract_length_) =  IDripConfigurator.allowedContractsLength(drip_configurator, id);
+    return();
+    }
+
+
+    func isAllowedContract{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
+    }
+
 }
 
 
