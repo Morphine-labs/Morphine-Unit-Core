@@ -88,7 +88,7 @@ func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     with_attr error_message("Only drip factory can call this function") {
         assert caller_ = factory_;
     }
-    let (block_timestamp_: felt) = get_block_number();
+    let (block_timestamp_: felt) = get_block_timestamp();
     since.write(block_timestamp_);
     drip_manager.write(_drip_manager);
     borrowed_amount.write(_borrowed_amount);

@@ -69,17 +69,18 @@ func test_connect_to_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
 @view
 func test_connect_to_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    %{ stop_warp = warp(31536000, context.drip) %}
+    let (drip_) = drip_instance.deployed();
+    %{ stop_warp = warp(31536000, ids.drip_) %}
     %{ stop_pranks = [start_prank(ids.DRIP_FACTORY, contract) for contract in [context.drip] ] %}
     drip_instance.connectTo(DRIP_MANAGER, Uint256(BORROWED_AMOUNT_LO, BORROWED_AMOUNT_HI), Uint256(CUMULATIVE_INDEX_LO, CUMULATIVE_INDEX_HI));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
-    %{ stop_warp() %}
     let (borrowed_amount_) = drip_instance.borrowedAmount();
     assert borrowed_amount_ = Uint256(BORROWED_AMOUNT_LO, BORROWED_AMOUNT_HI);
     let (cumulative_index_) = drip_instance.cumulativeIndex();
     assert cumulative_index_ = Uint256(CUMULATIVE_INDEX_LO, CUMULATIVE_INDEX_HI);
     let (since_) = drip_instance.lastUpdate();
     assert since_ = 31536000;
+    %{ stop_warp() %}
     return ();
 }
 
