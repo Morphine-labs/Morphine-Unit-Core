@@ -69,13 +69,17 @@ func test_connect_to_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
 @view
 func test_connect_to_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
+    %{ stop_warp = warp(31536000, context.drip) %}
     %{ stop_pranks = [start_prank(ids.DRIP_FACTORY, contract) for contract in [context.drip] ] %}
     drip_instance.connectTo(DRIP_MANAGER, Uint256(BORROWED_AMOUNT_LO, BORROWED_AMOUNT_HI), Uint256(CUMULATIVE_INDEX_LO, CUMULATIVE_INDEX_HI));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
+    %{ stop_warp() %}
     let (borrowed_amount_) = drip_instance.borrowedAmount();
     assert borrowed_amount_ = Uint256(BORROWED_AMOUNT_LO, BORROWED_AMOUNT_HI);
     let (cumulative_index_) = drip_instance.cumulativeIndex();
     assert cumulative_index_ = Uint256(CUMULATIVE_INDEX_LO, CUMULATIVE_INDEX_HI);
+    let (since_) = drip_instance.lastUpdate();
+    assert since_ = 31536000;
     return ();
 }
 
@@ -268,24 +272,24 @@ namespace drip_instance{
     }
 
     func cumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulative_index: Uint256) {
-    tempvar drip;
-    %{ ids.drip = context.drip %}
-    let (cumulative_index_) =  IDrip.cumulativeIndex(drip);
-    return (cumulative_index_,);
+        tempvar drip;
+        %{ ids.drip = context.drip %}
+        let (cumulative_index_) =  IDrip.cumulativeIndex(drip);
+        return (cumulative_index_,);
     }
 
     func borrowedAmount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (borrowed_amount: Uint256) {
-    tempvar drip;
-    %{ ids.drip = context.drip %}
-    let (borrow_amount_) = IDrip.borrowedAmount(drip);
-    return (borrow_amount_,);
+        tempvar drip;
+        %{ ids.drip = context.drip %}
+        let (borrowed_amount_) = IDrip.borrowedAmount(drip);
+        return (borrowed_amount_,);
     }
 
-    func since{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since: felt) {
-    tempvar drip;
-    %{ ids.drip = context.drip %}
-    let (since_) = IDrip.since(drip);
-    return (since_,);
+        func lastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since: felt) {
+        tempvar drip;
+        %{ ids.drip = context.drip %}
+        let (since_) = IDrip.lastUpdate(drip);
+        return (since_,);
     }
 }
 

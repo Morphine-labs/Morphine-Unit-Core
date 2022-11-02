@@ -30,7 +30,7 @@ namespace IDrip {
     func borrowedAmount() -> (borrowed_amount: Uint256) {
     }
 
-    func since() -> (since: felt) {
+    func lastUpdate() -> (since: felt) {
     }
 
 
