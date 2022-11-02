@@ -96,13 +96,18 @@ func drip_to_id(address: felt) -> (drip_id: felt) {
 func registery() -> (res: felt) {
 }
 
+@storage_var
+func salt() -> (res: felt) {
+}
+
+
 // Protector
 
 func only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (registery_) = registery.read();
     let (caller_: felt) = get_caller_address();
     let (state_: felt) = IRegistery.isDripManager(registery_, caller_);
-    with_attr error_message("account factory : Caller is not dripManager") {
+    with_attr error_message("caller is not a drip manager") {
         assert state_ = 1;
     }
     return ();
@@ -176,16 +181,12 @@ func dripStockLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     let (head_) = head.read();
     let (tail_) = tail.read();
     let (length_) = recursive_stock_length(head_, tail_, 0);
-    let (drip_) = id_to_drip.read(length_);
-    let (state_) = is_drip.read(drip_);
-    return (state_,);
+    return (length_,);
 }
 
 @external
 func addDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     alloc_locals;
-    let (registery_) = registery.read();
-    let (this_: felt) = get_contract_address();
     let (new_drip_: felt) = deploy_drip_account();
     let (tail_: felt) = tail.read();
     next_drip.write(tail_, new_drip_);
@@ -224,9 +225,9 @@ func returnDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     with_attr error_message("external drips forbidden") {
         assert is_drip_ = 1;
     }
-    let (since_) = IDrip.since(_used_drip);
+    let (since_) = IDrip.lastUpdate(_used_drip);
     let (block_timestamp_) = get_block_timestamp();
-    with_attr error_message("external drips forbidden") {
+    with_attr error_message("can not return drip in the same block") {
         assert_not_zero(block_timestamp_ - since_);
     }
     let (tail_) = tail.read();
@@ -248,7 +249,22 @@ func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         let (new_head_: felt) = next_drip.read(head_);
         head.write(new_head_);
         next_drip.write(head_, 0);
+        IDrip.connectTo(_drip, _to, Uint256(0, 0), Uint256(0, 0));
+        let (length_) = drips_length.read();
+        let (last_drip_) = id_to_drip.read(length_ - 1);
+        let (drip_to_remove_id_) = drip_to_id.read(_drip);
+        id_to_drip.write(drip_to_remove_id_, last_drip_);
+        id_to_drip.write(length_ - 1, 0);
+        drip_to_id.write(last_drip_, drip_to_remove_id_);
+        drip_to_id.write(_drip, 0);
+        is_drip.write(_drip, 0);
+        drips_length.write(length_ - 1);
+        DripTakenForever.emit(_drip, _to);
         return ();
+    }
+
+    with_attr error_message("zero address") {
+        assert_not_zero(_drip);
     }
 
     let (next_prev_) = next_drip.read(_prev);
@@ -258,7 +274,7 @@ func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (tail_) = tail.read();
     if (_drip == tail_) {
         tail.write(_prev);
-
+        next_drip.write(_prev, 0);
         IDrip.connectTo(_drip, _to, Uint256(0, 0), Uint256(0, 0));
         let (length_) = drips_length.read();
         let (last_drip_) = id_to_drip.read(length_ - 1);
@@ -298,7 +314,9 @@ func deploy_drip_account{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let (registery_) = registery.read();
     let (class_hash_) = IRegistery.dripHash(registery_);
     let (call_data_) = alloc();
-    let (contract_address_) = deploy(class_hash_, 0, 0, call_data_, 0);
+    let (salt_) = salt.read();
+    let (contract_address_) = deploy(class_hash_, salt_, 0, call_data_, 0);
+    salt.write(salt_ + 1);
     return (contract_address_,);
 }
 
@@ -315,9 +333,9 @@ func check_stock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func recursive_stock_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _temp_head: felt, _tail: felt, _count: felt
 ) -> (count: felt) {
-    if (_temp_head == _tail) {
+    if (_temp_head == 0) {
         return (_count,);
     }
     let (next_head_) = next_drip.read(_temp_head);
-    return recursive_stock_length(next_head_, _tail, _count);
+    return recursive_stock_length(next_head_, _tail, _count + 1);
 }
