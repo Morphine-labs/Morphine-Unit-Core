@@ -58,6 +58,17 @@ const TOKEN_SYMBOL_4 = 'VETH';
 const VETH_LT_LOW = 700000;
 const VETH_LT_HIGH = 0;
 
+// Oracle 
+const ETH_USD = 19514442401534788;
+const BTC_USD = 18669995996566340;
+const DAI_USD = 28254602066752356;
+const DECIMALS_FEED = 8;
+const ETH_PRICE = 200000000000;
+const BTC_PRICE = 2500000000000;
+const DAI_PRICE = 100000000;
+const LUT = 0;
+const NSA = 0;
+
 // LinearRateModel
 const SLOPE1_LO = 15000;
 const SLOPE1_HI = 0;
@@ -79,11 +90,11 @@ const EXPECTED_LIQUIDITY_LIMIT_HI = 0;
 const TREASURY = 'morphine_treasyury';
 const ORACLE_TRANSIT = 'oracle_transit';
 const DRIP_HASH = 'drip_hash';
-const DRIP_FACTORY= 'drip_factory'
+const DRIP_FACTORY= 'drip_factory';
 
 
 //drip configurator 
-const DRIP_TRANSIT= 'drip_transit'
+const DRIP_TRANSIT= 'drip_transit';
 const MINIMUM_BORROWED_AMOUNT_LO = 10000*10**6;
 const MINIMUM_BORROWED_AMOUNT_HI = 0;
 const MAXIMUM_BORROWED_AMOUNT_LO = 1000000*10**6;
@@ -124,6 +135,13 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         context.empiric_oracle = ids.empiric_oracle
 
     %}
+        let (local allowed_assets : AllowedToken*) = alloc();
+        assert allowed_assets[0].address = btc;
+        assert allowed_assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
+        assert allowed_assets[1].address = eth;
+        assert allowed_assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+        assert allowed_assets[2].address = veth;
+        assert allowed_assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
 
         IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
         IEmpiricOracle.set_spot_median(empiric_oracle, BTC_USD, BTC_PRICE, DECIMALS_FEED, LUT, NSA);
@@ -134,7 +152,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.registery_contract = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
         context.registery_contract = ids.registery_contract
 
-        ds.erc4626_pricefeed = deploy_contract("./lib/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
+        ids.erc4626_pricefeed = deploy_contract("./lib/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
         context.erc4626_pricefeed = ids.erc4626_pricefeed
 
         ids.oracle_transit = deploy_contract("./lib/morphine/oracle/oracleTransit.cairo",[ids.empiric_oracle, ids.registery]).contract_address 
@@ -145,12 +163,12 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
         stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery, ids.oracle_transit, ids.eth]] 
     %}
-        registery_instance.setDripFactory(DRIP_FACTORY)
-        IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
-        IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
-        IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
-        IOracleTransit.addDerivative(oracle_transit, veth, erc4626_pricefeed);
-        IERC20.approve(eth, veth, Uint256(1000000000000000000000,77));
+        // registery_instance.setDripFactory(DRIP_FACTORY);
+        // IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
+        // IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
+        // IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
+        // IOracleTransit.addDerivative(oracle_transit, veth, erc4626_pricefeed);
+        // IERC20.approve(eth, veth, Uint256(1000000000000000000000,77));
 
     %{
         [stop_prank() for stop_prank in stop_pranks] 
@@ -175,13 +193,6 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         [stop_prank() for stop_prank in stop_pranks]
     %}
 
-    let (local allowed_assets : AllowedToken*) = alloc();
-    assert assets[0].address = btc;
-    assert assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-    assert assets[1].address = eth;
-    assert assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-    assert assets[2].address = veth;
-    assert assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
 
     %{
 
@@ -198,9 +209,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 @view
 func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (pool_) = pool_instance.deployed();
-    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-    pool_instance.pause();
+    let (drip_configurator_) = drip_configurator_instance.deployed();
     return ();
 }
 
@@ -316,7 +325,7 @@ namespace drip_configurator_instance{
     func allowedContractToId{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_allowed_contract: felt) -> (id: felt){
     tempvar drip_configurator;
     %{ ids.drip_configurator = context.drip_configurator %}
-    let (id_) =  IDripConfigurator.allowedContractsLength(drip_configurator, id);
+    let (id_) =  IDripConfigurator.allowedContractToId(drip_configurator, _allowed_contract);
     return(id_,);
     }
 
@@ -324,17 +333,18 @@ namespace drip_configurator_instance{
     tempvar drip_configurator;
     %{ ids.drip_configurator = context.drip_configurator %}
     let (allowed_contract_length_) =  IDripConfigurator.allowedContractsLength(drip_configurator, id);
-    return();
+    return(allowed_contract_length_,);
     }
 
 
     func isAllowedContract{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    let (state_) =  IDripConfigurator.isAllowedContract(drip_configurator, _contract);
+    return(state_,);
     }
 
 }
-
-
-
 
 
 namespace registery_instance{
