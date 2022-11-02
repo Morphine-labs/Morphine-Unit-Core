@@ -9,35 +9,52 @@ struct AllowedToken {
 
 @contract_interface
 namespace IDripConfigurator {
-    func initialize(_factory: felt) {
+
+    // Setters
+    func addTokenToAllowedList(_token: felt){
     }
 
-    func cumulative_index_open() -> (cumulative_index_open: Uint256) {
+    func setLiquidationThreshold(_token: felt, _liquidation_threshold: Uint256){
     }
 
-    func since() -> (since: felt) {
+    func allowToken(_token: felt){
     }
 
-    func total_borrowed_amount() -> (total_borrowed: Uint256) {
+    func forbidToken(_token: felt){
     }
 
-    func connectTo(_drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256) {
+    func allowContract(_contract: felt, _adapter: felt){
     }
 
-    func updateParameters(_borrowed_amount: Uint256, _cumulative_index: Uint256) {
+    func forbidContract(_contract: felt){
     }
 
-    func approveToken(_token: felt, _contract: felt) {
+    func setLimits(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     }
 
-    func cancelAllowance(_token: felt, _contract: felt) {
+    func setFastCheckParameters(_chi_threshold: Uint256, _hf_check_interval: Uint256){
     }
 
-    func safeTransfer(_token: felt, _to: felt, _amount: Uint256) {
+    func setFees(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
     }
 
-    func execute(_to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*) -> (
-        retdata_len: felt, retdata: felt*
-    ) {
+    func upgradeOracleTransit(){
+    }
+
+    func upgradeDripTransit(_drip_transit: felt){
+    }
+
+    func upgradeConfigurator(_drip_configurator: felt){
+    }
+
+    func setIncreaseDebtForbidden(_state: felt){
+    }
+
+    // Getters
+
+    func idToAllowedContract(id: felt) -> (allowedContract: felt){
+    }
+
+    func allowedContractsLength(id: felt) -> (allowedContractsLength: felt){
     }
 }
