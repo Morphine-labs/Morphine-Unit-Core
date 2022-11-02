@@ -1,0 +1,243 @@
+%lang starknet
+
+// Starkware dependencies
+from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.bool import TRUE, FALSE
+from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.uint256 import Uint256
+from starkware.starknet.common.syscalls import get_block_timestamp, get_block_number
+from starkware.cairo.common.alloc import alloc
+
+
+// OpenZeppelin dependencies
+from openzeppelin.token.erc20.IERC20 import IERC20
+
+// Project dependencies
+from morphine.interfaces.IPool import IPool
+from morphine.interfaces.IEmpiricOracle import IEmpiricOracle
+from morphine.interfaces.IOracleTransit import IOracleTransit
+from morphine.interfaces.IRegistery import IRegistery
+from morphine.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
+from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from morphine.interfaces.IERC4626 import IERC4626
+from morphine.utils.utils import pow
+
+
+const ADMIN = 'morphine-admin';
+const USER_1 = 'user-1';
+
+// Token 1 ETH
+const TOKEN_NAME_1 = 'ethereum';
+const TOKEN_SYMBOL_1 = 'ETH';
+const TOKEN_DECIMALS_1 = 18;
+const TOKEN_INITIAL_SUPPLY_LO_1 = 10000000000000000000;
+const TOKEN_INITIAL_SUPPLY_HI_1 = 0;
+const ETH_LT_LOW = 800000;
+const ETH_LT_HIGH = 0;
+
+
+// Token 2 BTC
+const TOKEN_NAME_2 = 'bitcoin';
+const TOKEN_SYMBOL_2 = 'BTC';
+const TOKEN_DECIMALS_2 = 18;
+const TOKEN_INITIAL_SUPPLY_LO_2 = 5*10**18;
+const TOKEN_INITIAL_SUPPLY_HI_2 = 0;
+const BTC_LT_LOW = 850000;
+const BTC_LT_HIGH = 0;
+
+// Token 3 DAI
+const TOKEN_NAME_3 = 'dai';
+const TOKEN_SYMBOL_3 = 'DAI';
+const TOKEN_DECIMALS_3 = 6;
+const TOKEN_INITIAL_SUPPLY_LO_3 = 20000*10**6;
+const TOKEN_INITIAL_SUPPLY_HI_3 = 0;
+
+// Token 4 ERC4626 VETH
+const TOKEN_NAME_4 = 'vethereum';
+const TOKEN_SYMBOL_4 = 'VETH';
+const VETH_LT_LOW = 700000;
+const VETH_LT_HIGH = 0;
+
+// LinearRateModel
+const SLOPE1_LO = 15000;
+const SLOPE1_HI = 0;
+const SLOPE2_LO = 1000000; 
+const SLOPE2_HI = 0; 
+const BASE_RATE_LO =  0;
+const BASE_RATE_HI =  0;
+const OPTIMAL_RATE_LO = 800000; 
+const OPTIMAL_RATE_HI = 0; 
+
+// Pool
+const ERC4626_NAME = 'Mdai';
+const ERC4626_SYMBOL = 'MDAI';
+const EXPECTED_LIQUIDITY_LIMIT_LO = 1000000*10**6;
+const EXPECTED_LIQUIDITY_LIMIT_HI = 0;
+
+
+// Registery
+const TREASURY = 'morphine_treasyury';
+const ORACLE_TRANSIT = 'oracle_transit';
+const DRIP_HASH = 'drip_hash';
+const DRIP_FACTORY= 'drip_factory'
+
+
+//drip configurator 
+const DRIP_TRANSIT= 'drip_transit'
+const MINIMUM_BORROWED_AMOUNT_LO = 10000*10**6;
+const MINIMUM_BORROWED_AMOUNT_HI = 0;
+const MAXIMUM_BORROWED_AMOUNT_LO = 1000000*10**6;
+const MAXIMUM_BORROWED_AMOUNT_HI = 0;
+
+
+@view
+func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    tempvar eth;
+    tempvar btc;
+    tempvar dai;
+    tempvar veth;
+    tempvar empiric_oracle;
+    tempvar registery;
+    tempvar erc4626_pricefeed;
+    tempvar oracle_transit;
+    tempvar interest_rate_model_contract;
+    tempvar registery_contract;
+    tempvar pool;
+    tempvar drip_manager;
+    tempvar drip_configurator;
+
+    %{
+        ids.eth = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME_1, ids.TOKEN_SYMBOL_1, ids.TOKEN_DECIMALS_1, ids.TOKEN_INITIAL_SUPPLY_LO_1, ids.TOKEN_INITIAL_SUPPLY_HI_1, ids.ADMIN, ids.ADMIN]).contract_address 
+        context.eth = ids.eth
+
+        ids.btc = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME_2, ids.TOKEN_SYMBOL_2, ids.TOKEN_DECIMALS_2, ids.TOKEN_INITIAL_SUPPLY_LO_2, ids.TOKEN_INITIAL_SUPPLY_HI_2, ids.ADMIN, ids.ADMIN]).contract_address 
+        context.btc = ids.btc
+
+        ids.dai = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME_3, ids.TOKEN_SYMBOL_3, ids.TOKEN_DECIMALS_3, ids.TOKEN_INITIAL_SUPPLY_LO_3, ids.TOKEN_INITIAL_SUPPLY_HI_3, ids.ADMIN, ids.ADMIN]).contract_address 
+        context.dai = ids.dai
+
+        ids.veth = deploy_contract("./tests/mocks/erc4626.cairo", [ids.eth, ids.TOKEN_NAME_4, ids.TOKEN_SYMBOL_4]).contract_address 
+        context.veth = ids.veth
+
+        ids.empiric_oracle = deploy_contract("./tests/mocks/empiricOracle.cairo",[]).contract_address 
+        context.empiric_oracle = ids.empiric_oracle
+
+    %}
+
+        IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
+        IEmpiricOracle.set_spot_median(empiric_oracle, BTC_USD, BTC_PRICE, DECIMALS_FEED, LUT, NSA);
+        IEmpiricOracle.set_spot_median(empiric_oracle, DAI_USD, DAI_PRICE, DECIMALS_FEED, LUT, NSA);
+
+    %{
+
+        ids.registery_contract = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
+        context.registery_contract = ids.registery_contract
+
+        ds.erc4626_pricefeed = deploy_contract("./lib/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
+        context.erc4626_pricefeed = ids.erc4626_pricefeed
+
+        ids.oracle_transit = deploy_contract("./lib/morphine/oracle/oracleTransit.cairo",[ids.empiric_oracle, ids.registery]).contract_address 
+        context.oracle_transit = ids.oracle_transit
+
+        ids.interest_rate_model_contract = deploy_contract("./lib/morphine/pool/linearInterestRateModel.cairo", [ids.OPTIMAL_RATE_LO, ids.OPTIMAL_RATE_HI, ids.SLOPE1_LO, ids.SLOPE1_HI, ids.SLOPE2_LO, ids.SLOPE2_HI, ids.BASE_RATE_LO, ids.BASE_RATE_HI]).contract_address 
+        context.interest_rate_model_contract = ids.interest_rate_model_contract
+
+        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery, ids.oracle_transit, ids.eth]] 
+    %}
+        registery_instance.setDripFactory(DRIP_FACTORY)
+        IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
+        IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
+        IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
+        IOracleTransit.addDerivative(oracle_transit, veth, erc4626_pricefeed);
+        IERC20.approve(eth, veth, Uint256(1000000000000000000000,77));
+
+    %{
+        [stop_prank() for stop_prank in stop_pranks] 
+        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.veth]] 
+    %}
+        IERC4626.deposit(veth, Uint256(1000000000000000000,0), 7383);
+    %{
+        [stop_prank() for stop_prank in stop_pranks] 
+        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth]] 
+    %}
+        IERC20.transfer(eth, veth, Uint256(1000000000000000000,0));
+    %{
+        ids.pool = deploy_contract("./lib/morphine/pool/pool.cairo", [ids.registery_contract, ids.dai, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
+        context.pool = ids.pool    
+
+        declared = declare("./lib/morphine/drip/dripManager.cairo")
+        prepared = prepare(declared, [ids.pool])
+        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [prepared.contract_address]]
+        # constructor will be affected by prank
+        ids.drip_manager = deploy(prepared).contract_address
+        context.drip_manager = ids.drip_manager    
+        [stop_prank() for stop_prank in stop_pranks]
+    %}
+
+    let (local allowed_assets : AllowedToken*) = alloc();
+    assert assets[0].address = btc;
+    assert assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
+    assert assets[1].address = eth;
+    assert assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    assert assets[2].address = veth;
+    assert assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
+
+    %{
+
+        ids.drip_configurator = deploy_contract("./lib/morphine/drip/drip_configurator.cairo", [ids.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_HI, 3, ids.allowed_assets]).contract_address 
+        context.pool = ids.pool    
+    %}
+
+    
+    return();
+}
+
+
+
+@view
+func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (pool_) = pool_instance.deployed();
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    pool_instance.pause();
+    return ();
+}
+
+
+
+namespace drip_configurator_instance{
+    func deployed() -> (drip_configurator : felt){
+        tempvar drip_configurator;
+        %{ ids.drip_configurator = context.drip_configurator %}
+        return (drip_configurator,);
+    }
+}
+
+
+
+
+
+namespace registery_instance{
+    func deployed() -> (registery : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        return (registery,);
+    }
+
+    func setDripFactory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(drip_factory : felt) -> () {
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.setDripFactory(registery, drip_factory);
+        return ();
+    }
+}
+
+
+namespace dai_instance{
+    func deployed() -> (dai : felt){
+        tempvar dai;
+        %{ ids.dai = context.dai %}
+        return (dai,);
+    }
+}
