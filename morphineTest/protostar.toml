@@ -5,10 +5,6 @@ protostar_version = "0.4.2"
 libs_path = "lib"
 
 ["protostar.contracts"]
-mockEmpiricOracle = [
-    "tests/mocks/empiricOracle.cairo",
-]
-
 pool = [
     "src/morphine/pool/pool.cairo",
 ]

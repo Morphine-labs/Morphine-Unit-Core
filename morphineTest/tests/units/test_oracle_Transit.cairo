@@ -141,13 +141,13 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
     %{
 
-        ids.registery = deploy_contract("./src/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
+        ids.registery = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
         context.registery = ids.registery
 
-        ids.erc4626_pricefeed = deploy_contract("./src/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
+        ids.erc4626_pricefeed = deploy_contract("./lib/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
         context.erc4626_pricefeed = ids.erc4626_pricefeed
 
-        ids.oracle_transit = deploy_contract("./src/morphine/oracle/oracleTransit.cairo",[ids.empiric_oracle, ids.registery]).contract_address 
+        ids.oracle_transit = deploy_contract("./lib/morphine/oracle/oracleTransit.cairo",[ids.empiric_oracle, ids.registery]).contract_address 
         context.oracle_transit = ids.oracle_transit
 
     %}
@@ -177,53 +177,142 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
 
 @view
-func test_add_price_feed{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_add_primitive_price_feed_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (eth_) = eth_instance.deployed();
-    let (veth_) = veth_instance.deployed();
-    let (dmy_) = dmy_instance.deployed();
     let (dmyt_) = dmyt_instance.deployed();
-    let (erc4626_pricefeed_) = erc4626_pricefeed_instance.deployed();
-
     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
     oracle_transit_instance.addPrimitive(dmyt_, DMYT_USD);
+    return ();
+}
 
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit_] ] %}
 
+
+
+@view
+func test_add_primitive_price_feed_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
     %{ expect_revert(error_message="zero address or pair id") %}
     oracle_transit_instance.addPrimitive(0, DMYT_USD);
-    %{ expect_revert(error_message="zero address or pair id") %}
-    oracle_transit_instance.addPrimitive(dmyt_, 0);
-    %{ expect_revert(error_message="token decimals greater than 18") %}
-    oracle_transit_instance.addPrimitive(dmy_, DMYT_USD);
-    %{ expect_revert(error_message="price feed decimals not equal to 8") %}
-    oracle_transit_instance.addPrimitive(dmyt_, DMYT_USD);
-
-    %{ expect_events({"name": "NewPrimitive", "data": [ids.eth_, ETH_USD],"from_address": context.oracle_transit}) %}
-    oracle_transit_instance.addPrimitive(eth_, ETH_USD);
-
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-
-    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-    oracle_transit_instance.addDerivative(dmyt_, DMYT_USD);
-    
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit_] ] %}
-
-    %{ expect_revert(error_message="zero address") %}
-    oracle_transit_instance.addDerivative(0, DMYT_USD);
-    %{ expect_revert(error_message="zero address") %}
-    oracle_transit_instance.addDerivative(dmyt_, 0);
-    %{ expect_revert(error_message="token decimals greater than 18") %}
-    oracle_transit_instance.addDerivative(dmy_, DMYT_USD);
-    %{ expect_revert(error_message="quote price error") %}
-    oracle_transit_instance.addDerivative(veth_, 867);
-
-    %{ expect_events({"name": "NewDerivative", "data": [ids.veth_, ids.erc4626_pricefeed_],"from_address": context.oracle_transit}) %}
-    oracle_transit_instance.addDerivative(veth_, erc4626_pricefeed_);
-    
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
 }
+
+
+@view
+func test_add_primitive_price_feed_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmyt_) = dmyt_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="zero address or pair id") %}
+    oracle_transit_instance.addPrimitive(dmyt_, 0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+
+@view
+func test_add_primitive_price_feed_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmy_) = dmy_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="token decimals greater than 18") %}
+    oracle_transit_instance.addPrimitive(dmy_, DMYT_USD);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_add_primitive_price_feed_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmyt_) = dmyt_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="price feed decimals not equal to 8") %}
+    oracle_transit_instance.addPrimitive(dmyt_, DMYT_USD);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+
+@view
+func test_add_primitive_price_feed_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (eth_) = eth_instance.deployed();
+    %{ expect_events({"name": "NewPrimitive", "data": [ids.eth_, ids.ETH_USD],"from_address": context.oracle_transit}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    oracle_transit_instance.addPrimitive(eth_, ETH_USD);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_add_derivative_price_feed_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmyt_) = dmyt_instance.deployed();
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    oracle_transit_instance.addDerivative(dmyt_, DMYT_USD);
+    return ();
+}
+
+@view
+func test_add_derivative_price_feed_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="zero address") %}
+    oracle_transit_instance.addDerivative(0, DMYT_USD);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_add_derivative_price_feed_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmyt_) = dmyt_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="zero address") %}
+    oracle_transit_instance.addDerivative(dmyt_, 0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_add_derivative_price_feed_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (dmy_) = dmy_instance.deployed();
+    
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="token decimals greater than 18") %}
+    oracle_transit_instance.addDerivative(dmy_, DMYT_USD);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@view
+func test_add_derivative_price_feed_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (veth_) = veth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    %{ expect_revert(error_message="quote price error") %}
+    oracle_transit_instance.addDerivative(veth_, 867);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+
+@view
+func test_add_derivative_price_feed_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (veth_) = veth_instance.deployed();
+    let (erc4626_pricefeed_) = erc4626_pricefeed_instance.deployed();
+    %{ expect_events({"name": "NewDerivative", "data": [ids.veth_, ids.erc4626_pricefeed_],"from_address": context.oracle_transit}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.oracle_transit] ] %}
+    oracle_transit_instance.addDerivative(veth_, erc4626_pricefeed_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+
 
 @view
 func test_get_price_feed{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
