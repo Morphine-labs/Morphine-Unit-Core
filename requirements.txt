@@ -1,3 +1,4 @@
 cairo-lang==0.10
 starknet-py==0.6.0a
 openzeppelin-cairo-contracts==0.4.0b
+eth-hash==0.3.1
