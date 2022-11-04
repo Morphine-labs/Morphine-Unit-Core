@@ -112,6 +112,51 @@ func test_registery_change_drip_factory_fail {syscall_ptr: felt*, pedersen_ptr: 
     return ();
 }
 
+@external
+func test_registery_ctor_oracle_transit {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (drip_registery) = registery_instance.oracle_transit();
+    assert drip_registery = ORACLE_TRANSIT;
+    return ();
+}
+
+@external
+func test_registery_change_oracle_transit {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.setOracleTransit(123);
+    let (oracle_registery) = registery_instance.oracle_transit();
+    assert oracle_registery = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_change_oracle_transit_fail {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    registery_instance.setOracleTransit(123);
+    let (oracle_registery) = registery_instance.oracle_transit();
+    assert oracle_registery = 123;
+    return ();
+}
+
+@external
+func test_registery_ctor_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    let (len) = registery_instance.nbPool();
+    assert len = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    let (len) = registery_instance.nbPool();
+    assert len = 1;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
 namespace registery_instance {
 
     func deployed() -> (registery : felt){
@@ -160,5 +205,33 @@ namespace registery_instance {
         %{ ids.registery = context.registery %}
         IRegistery.setDripFactory(registery,new_drip);
         return();
+    }
+
+    func oracle_transit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (tresuary : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (drip) = IRegistery.oracleTransit(registery);
+        return(drip,);
+    }
+
+    func setOracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_oracle : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.setOracleTransit(registery,new_oracle);
+        return();
+    }
+
+    func nbPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (pool : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (nb) = IRegistery.poolsLength(registery);
+        return (nb,);
+    }
+
+    func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.addPool(registery,pool);
+        return ();
     }
 }
