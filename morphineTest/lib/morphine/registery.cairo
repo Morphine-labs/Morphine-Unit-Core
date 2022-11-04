@@ -11,6 +11,8 @@ from starkware.cairo.common.math import (
     assert_not_equal,
 )
 
+from starkware.cairo.common.math_cmp import is_le
+
 @storage_var
 func treasury() -> (treasury : felt) {
 }
@@ -105,6 +107,10 @@ func isDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 
 @view
 func idToPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id: felt) -> (pool : felt) {
+    let (len) = pools_length.read();
+    with_attr error_message("Id to pool: id is greater than length of pool"){
+        is_le(len - _id, 1);
+    }
     let (pool_) = id_to_pool.read(_id);
     return(pool_,);
 }
@@ -138,6 +144,9 @@ func setOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
 @external
 func setTreasury{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_treasury: felt) {
     Ownable.assert_only_owner();
+    with_attr error_message("Treasury: address is zero") {
+        assert_not_zero(_new_treasury);
+    }
     treasury.write(_new_treasury);
     return();
 }
@@ -146,6 +155,9 @@ func setTreasury{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 @external
 func setDripFactory{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_factory: felt) {
     Ownable.assert_only_owner();
+    with_attr error_message("Drip factory: address is zero") {
+        assert_not_zero(_drip_factory);
+    }
     drip_factory.write(_drip_factory);
     return();
 }
@@ -154,6 +166,9 @@ func setDripFactory{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 @external
 func setOracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_oracle_transit : felt) -> () {
     Ownable.assert_only_owner();
+    with_attr error_message("Oracle transit: address is zero") {
+        assert_not_zero(_new_oracle_transit);
+    }
     oracle_transit.write(_new_oracle_transit);
     return();
 }
@@ -161,6 +176,9 @@ func setOracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
 @external
 func setDripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_drip_hash : felt) -> () {
     Ownable.assert_only_owner();
+    with_attr error_message("Drip hash: address is zero") {
+        assert_not_zero(_new_drip_hash);
+    }
     drip_hash.write(_new_drip_hash);
     return();
 }
@@ -169,10 +187,10 @@ func setDripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_pool : felt) -> () {
     Ownable.assert_only_owner();
     let (pool_exists_) = is_pool.read(_pool);
-    with_attr error_message("pool exists"){
+    with_attr error_message("Pool: already exist"){
         assert pool_exists_ = 0;
     }
-    with_attr error_message("address zero"){
+    with_attr error_message("Pool: address is zero"){
         assert_not_zero(_pool);
     }
     is_pool.write(_pool, 1);

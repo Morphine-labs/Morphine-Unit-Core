@@ -61,6 +61,17 @@ func test_registery_change_owner_fail {syscall_ptr: felt*, pedersen_ptr: HashBui
 }
 
 @external
+func test_registery_change_owner_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Ownable: new owner is the zero address") %}
+    registery_instance.setOwner(0);
+    let (admin_registery) = registery_instance.owner();
+    assert admin_registery = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
 func test_registery_ctor_tresuary {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (tresuary_registery) = registery_instance.treasury();
     assert tresuary_registery = TREASURY;
@@ -83,6 +94,15 @@ func test_registery_change_treasury_fail {syscall_ptr: felt*, pedersen_ptr: Hash
     registery_instance.setTreasury(123);
     let (trea_registery) = registery_instance.treasury();
     assert trea_registery = 123;
+    return ();
+}
+
+@external
+func test_registery_change_treasury_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Treasury: address is zero") %}
+    registery_instance.setTreasury(0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
 }
 
@@ -113,6 +133,17 @@ func test_registery_change_drip_factory_fail {syscall_ptr: felt*, pedersen_ptr: 
 }
 
 @external
+func test_registery_change_drip_factory_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Drip factory: address is zero") %}
+    registery_instance.setDripFactory(0);
+    let (trea_registery) = registery_instance.drip_factory();
+    assert trea_registery = 0 ;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
 func test_registery_ctor_oracle_transit {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (drip_registery) = registery_instance.oracle_transit();
     assert drip_registery = ORACLE_TRANSIT;
@@ -139,6 +170,17 @@ func test_registery_change_oracle_transit_fail {syscall_ptr: felt*, pedersen_ptr
 }
 
 @external
+func test_registery_change_oracle_transit_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Oracle transit: address is zero") %}
+    registery_instance.setOracleTransit(0);
+    let (oracle_registery) = registery_instance.oracle_transit();
+    assert oracle_registery = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
 func test_registery_ctor_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
     let (len) = registery_instance.nbPool();
@@ -155,6 +197,112 @@ func test_registery_add_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, rang
     assert len = 1;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
+}
+
+@external
+func test_registery_add_pool_2{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    let (state) = registery_instance.isPool(123);
+    assert state = 1;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_multiple_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(1);
+    registery_instance.addPool(2);
+    registery_instance.addPool(3);
+    registery_instance.addPool(4);
+    let (nb) = registery_instance.nbPool();
+    assert nb = 4;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_multiple_pool_2{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(1);
+    registery_instance.addPool(2);
+    registery_instance.addPool(3);
+    registery_instance.addPool(4);
+    let (nb) = registery_instance.isPool(1);
+    assert nb = 1;
+
+    let (nb) = registery_instance.isPool(3);
+    assert nb = 1;
+
+    let (nb) = registery_instance.isPool(2);
+    assert nb = 1;
+
+    let (nb) = registery_instance.isPool(4);
+    assert nb = 1;
+
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_pool_fail_2{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    let (state) = registery_instance.isPool(100);
+    assert state = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_multiple_pool_fail{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(1);
+    %{expect_revert(error_message="Pool: already exist") %}
+    registery_instance.addPool(1);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_pool_zero {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{expect_revert(error_message="Pool: address is zero") %}
+    registery_instance.addPool(0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_multiple_pool_fail_2{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    let (state) = registery_instance.isPool(100);
+    assert state = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_id_to_pool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    let (pool) = registery_instance.idToPool(0);
+    assert pool = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return();
+}
+
+@external
+func test_registery_id_to_pool_fail{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addPool(123);
+    %{expect_revert(error_message="Id to pool: id is greater than length of pool")%}
+    let (pool) = registery_instance.idToPool(1);
+    assert pool = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return();
 }
 
 namespace registery_instance {
@@ -234,4 +382,19 @@ namespace registery_instance {
         IRegistery.addPool(registery,pool);
         return ();
     }
+
+    func isPool {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(pool : felt) -> (pool : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (state) = IRegistery.isPool(registery,pool);
+        return(state,);
+    }
+
+    func idToPool {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id : felt) -> (pool: felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (pool) = IRegistery.idToPool(registery,_id);
+        return(pool,);
+    }
+
 }
