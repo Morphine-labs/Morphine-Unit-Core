@@ -136,6 +136,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _maximum_borrowed_amount: Uint256, // maximum amount for drip 
     _allowed_tokens_len: felt,
     _allowed_tokens: AllowedToken*) {
+    assert 1 = 0;
     drip_manager.write(_drip_manager);
     drip_transit.write(_drip_transit);
     let (pool_) = IDripManager.getPool(_drip_manager);
@@ -249,7 +250,7 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     id_to_allowed_contract.write(allowed_contract_length_, _contract);
     allowed_contract_to_id.write(_contract, allowed_contract_length_);
     allowed_contract_length.write(allowed_contract_length_ + 1);
-    is_allowed_contract.write(1);
+    is_allowed_contract.write(_contract, 1);
     ContractAllowed.emit(_contract);
     return();
 }
@@ -280,7 +281,7 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     allowed_contract_to_id.write(last_allowed_contract_, id_to_remove_);
     allowed_contract_length.write(allowed_contract_length_ - 1);
     id_to_allowed_contract.write(allowed_contract_length_ - 1, 0);
-    is_allowed_contract.write(0);
+    is_allowed_contract.write(_contract, 0);
     ContractForbidden.emit(_contract);
     return();
 }
@@ -414,7 +415,6 @@ func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 
 // Internals
-
 func allow_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_allowed_tokens_len: felt, _allowed_tokens: AllowedToken*){
     alloc_locals;
     if(_allowed_tokens_len == 0){

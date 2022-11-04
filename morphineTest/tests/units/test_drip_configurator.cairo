@@ -104,6 +104,7 @@ const MAXIMUM_BORROWED_AMOUNT_HI = 0;
 @view
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
+
     tempvar eth;
     tempvar btc;
     tempvar dai;
@@ -112,13 +113,10 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     tempvar registery;
     tempvar erc4626_pricefeed;
     tempvar oracle_transit;
-    tempvar interest_rate_model_contract;
-    tempvar registery_contract;
-    tempvar pool;
-    tempvar drip_manager;
-    tempvar drip_configurator;
 
     %{
+        #Deploying 3 tokens + ERC4626
+
         ids.eth = deploy_contract("./tests/mocks/erc20.cairo", [ids.TOKEN_NAME_1, ids.TOKEN_SYMBOL_1, ids.TOKEN_DECIMALS_1, ids.TOKEN_INITIAL_SUPPLY_LO_1, ids.TOKEN_INITIAL_SUPPLY_HI_1, ids.ADMIN, ids.ADMIN]).contract_address 
         context.eth = ids.eth
 
@@ -131,26 +129,22 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.veth = deploy_contract("./tests/mocks/erc4626.cairo", [ids.eth, ids.TOKEN_NAME_4, ids.TOKEN_SYMBOL_4]).contract_address 
         context.veth = ids.veth
 
+        # Deploying empiric oracle 
+
         ids.empiric_oracle = deploy_contract("./tests/mocks/empiricOracle.cairo",[]).contract_address 
         context.empiric_oracle = ids.empiric_oracle
-
     %}
-        let (local allowed_assets : AllowedToken*) = alloc();
-        assert allowed_assets[0].address = btc;
-        assert allowed_assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-        assert allowed_assets[1].address = eth;
-        assert allowed_assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-        assert allowed_assets[2].address = veth;
-        assert allowed_assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
 
-        IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
-        IEmpiricOracle.set_spot_median(empiric_oracle, BTC_USD, BTC_PRICE, DECIMALS_FEED, LUT, NSA);
-        IEmpiricOracle.set_spot_median(empiric_oracle, DAI_USD, DAI_PRICE, DECIMALS_FEED, LUT, NSA);
+    // Set assets value
+    IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
+    IEmpiricOracle.set_spot_median(empiric_oracle, BTC_USD, BTC_PRICE, DECIMALS_FEED, LUT, NSA);
+    IEmpiricOracle.set_spot_median(empiric_oracle, DAI_USD, DAI_PRICE, DECIMALS_FEED, LUT, NSA);
+
 
     %{
 
-        ids.registery_contract = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
-        context.registery_contract = ids.registery_contract
+        ids.registery = deploy_contract("./lib/morphine/registery.cairo", [ids.ADMIN, ids.TREASURY, ids.ORACLE_TRANSIT, ids.DRIP_HASH]).contract_address 
+        context.registery = ids.registery
 
         ids.erc4626_pricefeed = deploy_contract("./lib/morphine/oracle/derivativePriceFeed/erc4626.cairo", []).contract_address 
         context.erc4626_pricefeed = ids.erc4626_pricefeed
@@ -158,45 +152,62 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.oracle_transit = deploy_contract("./lib/morphine/oracle/oracleTransit.cairo",[ids.empiric_oracle, ids.registery]).contract_address 
         context.oracle_transit = ids.oracle_transit
 
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.oracle_transit, ids.eth] ] %}
+
+    IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
+    IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
+    IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
+    IOracleTransit.addDerivative(oracle_transit, veth, erc4626_pricefeed);
+    IERC20.approve(eth, veth, Uint256(1000000000000000000000,77));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.veth] ] %}
+    IERC4626.deposit(veth, Uint256(1000000000000000000,0), 7383);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.eth] ] %}
+    IERC20.transfer(eth, veth, Uint256(1000000000000000000,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (local allowed_assets : AllowedToken*) = alloc();
+    assert allowed_assets[0].address = btc;
+    assert allowed_assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
+    assert allowed_assets[1].address = eth;
+    assert allowed_assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    assert allowed_assets[2].address = veth;
+    assert allowed_assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
+
+
+    %{
+        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery]] 
+    %}
+        registery_instance.setDripFactory(DRIP_FACTORY);
+    %{
+        [stop_prank() for stop_prank in stop_pranks] 
+    %}
+
+    tempvar drip_manager;
+    tempvar drip_configurator;
+    tempvar interest_rate_model_contract;
+    tempvar pool;
+  
+    %{
         ids.interest_rate_model_contract = deploy_contract("./lib/morphine/pool/linearInterestRateModel.cairo", [ids.OPTIMAL_RATE_LO, ids.OPTIMAL_RATE_HI, ids.SLOPE1_LO, ids.SLOPE1_HI, ids.SLOPE2_LO, ids.SLOPE2_HI, ids.BASE_RATE_LO, ids.BASE_RATE_HI]).contract_address 
         context.interest_rate_model_contract = ids.interest_rate_model_contract
 
-        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery, ids.oracle_transit, ids.eth]] 
-    %}
-        // registery_instance.setDripFactory(DRIP_FACTORY);
-        // IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
-        // IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
-        // IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
-        // IOracleTransit.addDerivative(oracle_transit, veth, erc4626_pricefeed);
-        // IERC20.approve(eth, veth, Uint256(1000000000000000000000,77));
-
-    %{
-        [stop_prank() for stop_prank in stop_pranks] 
-        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.veth]] 
-    %}
-        IERC4626.deposit(veth, Uint256(1000000000000000000,0), 7383);
-    %{
-        [stop_prank() for stop_prank in stop_pranks] 
-        stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth]] 
-    %}
-        IERC20.transfer(eth, veth, Uint256(1000000000000000000,0));
-    %{
-        ids.pool = deploy_contract("./lib/morphine/pool/pool.cairo", [ids.registery_contract, ids.dai, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
+        ids.pool = deploy_contract("./lib/morphine/pool/pool.cairo", [context.registery, context.dai, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
         context.pool = ids.pool    
 
         declared = declare("./lib/morphine/drip/dripManager.cairo")
         prepared = prepare(declared, [ids.pool])
         stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [prepared.contract_address]]
-        # constructor will be affected by prank
         ids.drip_manager = deploy(prepared).contract_address
         context.drip_manager = ids.drip_manager    
         [stop_prank() for stop_prank in stop_pranks]
-    %}
 
-
-    %{
-
-        ids.drip_configurator = deploy_contract("./lib/morphine/drip/drip_configurator.cairo", [ids.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_HI, 3, ids.allowed_assets]).contract_address 
+        ids.drip_configurator = deploy_contract("./lib/morphine/drip/dripConfigurator.cairo", [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_HI, 3, ids.allowed_assets]).contract_address 
         context.pool = ids.pool    
     %}
 
@@ -209,7 +220,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 @view
 func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (drip_configurator_) = drip_configurator_instance.deployed();
+    let (btc_) = btc_instance.deployed();
     return ();
 }
 
@@ -362,6 +373,13 @@ namespace registery_instance{
     }
 }
 
+namespace btc_instance{
+    func deployed() -> (btc : felt){
+        tempvar btc;
+        %{ ids.btc = context.btc %}
+        return (btc,);
+    }
+}
 
 namespace dai_instance{
     func deployed() -> (dai : felt){
