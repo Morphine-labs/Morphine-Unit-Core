@@ -203,7 +203,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     }
     let (registery_) = IPool.getRegistery(_pool);
     registery.write(registery_);
-    let (underlying_) = IPool.getUnderlying(_pool);
+    let (underlying_) = IPool.asset(_pool);
     underlying.write(underlying_);
     add_token(underlying_);
     let (oracle_transit_) = IRegistery.oracleTransit(registery_);
