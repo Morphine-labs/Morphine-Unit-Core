@@ -201,6 +201,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     with_attr error_message("pool is address zero") {
         assert_not_zero(_pool);
     }
+    pool.write(_pool);
     let (registery_) = IPool.getRegistery(_pool);
     registery.write(registery_);
     let (underlying_) = IPool.asset(_pool);

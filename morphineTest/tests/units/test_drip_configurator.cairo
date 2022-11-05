@@ -7,6 +7,7 @@ from starkware.cairo.common.math import assert_not_zero
 from starkware.cairo.common.uint256 import Uint256
 from starkware.starknet.common.syscalls import get_block_timestamp, get_block_number
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.registers import get_fp_and_pc
 
 
 // OpenZeppelin dependencies
@@ -19,6 +20,7 @@ from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
 from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IERC4626 import IERC4626
 from morphine.utils.utils import pow
 
@@ -104,7 +106,7 @@ const MAXIMUM_BORROWED_AMOUNT_HI = 0;
 @view
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-
+    let (__fp__, _) = get_fp_and_pc();
     tempvar eth;
     tempvar btc;
     tempvar dai;
@@ -134,6 +136,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.empiric_oracle = deploy_contract("./tests/mocks/empiricOracle.cairo",[]).contract_address 
         context.empiric_oracle = ids.empiric_oracle
     %}
+    
 
     // Set assets value
     IEmpiricOracle.set_spot_median(empiric_oracle, ETH_USD, ETH_PRICE, DECIMALS_FEED, LUT, NSA);
@@ -171,15 +174,6 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     IERC20.transfer(eth, veth, Uint256(1000000000000000000,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
-    let (local allowed_assets : AllowedToken*) = alloc();
-    assert allowed_assets[0].address = btc;
-    assert allowed_assets[0].liquidation_threshold = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-    assert allowed_assets[1].address = eth;
-    assert allowed_assets[1].liquidation_threshold =  Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-    assert allowed_assets[2].address = veth;
-    assert allowed_assets[2].liquidation_threshold =  Uint256(VETH_LT_LOW, VETH_LT_HIGH);
-
-
     %{
         stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery]] 
     %}
@@ -192,6 +186,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     tempvar drip_configurator;
     tempvar interest_rate_model_contract;
     tempvar pool;
+    tempvar drip_configurator_address;
   
     %{
         ids.interest_rate_model_contract = deploy_contract("./lib/morphine/pool/linearInterestRateModel.cairo", [ids.OPTIMAL_RATE_LO, ids.OPTIMAL_RATE_HI, ids.SLOPE1_LO, ids.SLOPE1_HI, ids.SLOPE2_LO, ids.SLOPE2_HI, ids.BASE_RATE_LO, ids.BASE_RATE_HI]).contract_address 
@@ -203,15 +198,30 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         declared = declare("./lib/morphine/drip/dripManager.cairo")
         prepared = prepare(declared, [ids.pool])
         stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [prepared.contract_address]]
+
         ids.drip_manager = deploy(prepared).contract_address
         context.drip_manager = ids.drip_manager    
-        [stop_prank() for stop_prank in stop_pranks]
 
-        ids.drip_configurator = deploy_contract("./lib/morphine/drip/dripConfigurator.cairo", [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_HI, 3, ids.allowed_assets]).contract_address 
-        context.pool = ids.pool    
+        declared = declare("./lib/morphine/drip/dripConfigurator.cairo")
+        drip_configurator_prepared = prepare(declared, [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_LO, ids.MAXIMUM_BORROWED_AMOUNT_HI, 2, context.btc, ids.BTC_LT_LOW, ids.BTC_LT_HIGH, context.eth, ids.ETH_LT_LOW, ids.ETH_LT_HIGH])
+
+        ids.drip_configurator_address = drip_configurator_prepared.contract_address
+        print(drip_configurator_prepared.contract_address)
     %}
 
-    
+        drip_manager_instance.setDripConfigurator(drip_configurator_address);
+
+    %{
+        [stop_prank() for stop_prank in stop_pranks]
+        declared = declare("./lib/morphine/drip/dripConfigurator.cairo")
+        preparedd = prepare(declared, [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_LO, ids.MAXIMUM_BORROWED_AMOUNT_HI, 2, context.btc, ids.BTC_LT_LOW, ids.BTC_LT_HIGH, context.eth, ids.ETH_LT_LOW, ids.ETH_LT_HIGH])
+        print(preparedd.contract_address)
+        context.drip_configurator = ids.drip_configurator    
+    %}
+            // ids.drip_configurator = deploy(preparedd).contract_address 
+                    // context.drip_configurator = ids.drip_configurator    
+
+
     return();
 }
 
@@ -220,7 +230,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 @view
 func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (btc_) = btc_instance.deployed();
+    // let (btc_) = btc_instance.deployed();
     return ();
 }
 
@@ -357,6 +367,24 @@ namespace drip_configurator_instance{
 
 }
 
+
+namespace drip_manager_instance{
+    func deployed() -> (drip_manager : felt){
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        return (drip_manager,);
+    }
+
+    func setDripConfigurator{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(drip_configurator: felt) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        IDripManager.setDripConfigurator(drip_manager, drip_configurator);
+        return ();
+    }
+
+    
+
+}
 
 namespace registery_instance{
     func deployed() -> (registery : felt){

@@ -136,7 +136,6 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _maximum_borrowed_amount: Uint256, // maximum amount for drip 
     _allowed_tokens_len: felt,
     _allowed_tokens: AllowedToken*) {
-    assert 1 = 0;
     drip_manager.write(_drip_manager);
     drip_transit.write(_drip_transit);
     let (pool_) = IDripManager.getPool(_drip_manager);
