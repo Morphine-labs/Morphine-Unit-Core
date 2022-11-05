@@ -181,6 +181,34 @@ func test_registery_change_oracle_transit_zero {syscall_ptr: felt*, pedersen_ptr
 }
 
 @external
+func test_registery_change_drip_hash {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.setDripHash(123);
+    let (drip_h_registery) = registery_instance.drip_hash();
+    assert drip_h_registery = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_change_drip_hash_fail {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    registery_instance.setDripHash(123);
+    return ();
+}
+
+@external
+func test_registery_change_drip_hash_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Drip hash: address is zero") %}
+    registery_instance.setDripHash(0);
+    let (drip_h_registery) = registery_instance.drip_hash();
+    assert drip_h_registery = 123;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
 func test_registery_ctor_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
     let (len) = registery_instance.nbPool();
@@ -298,12 +326,119 @@ func test_registery_id_to_pool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
 func test_registery_id_to_pool_fail{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
     registery_instance.addPool(123);
-    %{expect_revert(error_message="Id to pool: id is greater than length of pool")%}
     let (pool) = registery_instance.idToPool(1);
-    assert pool = 123;
+    assert pool = 0 ;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
+
+@external
+func test_registery_ctor_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    let (drip_m_registery) = registery_instance.drip_manager_length();
+    assert drip_m_registery = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(123);
+    let (len) = registery_instance.drip_manager_length();
+    assert len = 1;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_2 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(1);
+    registery_instance.addDripManager(2);
+    registery_instance.addDripManager(3);
+    registery_instance.addDripManager(4);
+    let (len) = registery_instance.drip_manager_length();
+    assert len = 4;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_3 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(1);
+    registery_instance.addDripManager(2);
+    registery_instance.addDripManager(3);
+    registery_instance.addDripManager(4);
+    let (state) = registery_instance.isDripManager(2);
+    assert state = 1;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_4 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(1);
+    registery_instance.addDripManager(2);
+    registery_instance.addDripManager(3);
+    registery_instance.addDripManager(4);
+    let (drip) = registery_instance.idToDripManager(2);
+    assert drip = 3;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_fail {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    registery_instance.setDripHash(123);
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_fail_2 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(123);
+    %{ expect_revert(error_message="Drip manager: already exist") %}
+    registery_instance.addDripManager(123);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_fail_3 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(123);
+    let (state) = registery_instance.isDripManager(124);
+    assert state = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_fail_4 {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    registery_instance.addDripManager(123);
+    let (state) = registery_instance.idToDripManager(1);
+    assert state = 0;
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
+@external
+func test_registery_add_drip_manager_zero {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
+    %{ expect_revert(error_message="Drip manager: address is zero") %}
+    registery_instance.addDripManager(0);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return ();
+}
+
 
 namespace registery_instance {
 
@@ -395,6 +530,48 @@ namespace registery_instance {
         %{ ids.registery = context.registery %}
         let (pool) = IRegistery.idToPool(registery,_id);
         return(pool,);
+    }
+
+    func drip_hash {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (hash: felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (drip_hash) = IRegistery.dripHash(registery);
+        return(drip_hash,);
+    }
+
+    func setDripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(hash: felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.setDripHash(registery,hash);
+        return();
+    }
+
+    func drip_manager_length{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}()-> (len : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (len) = IRegistery.dripManagerLength(registery);
+        return(len,);
+    }
+
+    func addDripManager {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager : felt) {
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.addDripManager(registery,_drip_manager);
+        return();
+    }
+
+    func isDripManager {syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip : felt) -> (state : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (state) = IRegistery.isDripManager(registery,_drip);
+        return(state,);
+    }
+
+    func idToDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id : felt) -> (dripManager : felt){
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        let (drip) = IRegistery.idToDripManager(registery,_id);
+        return(drip,);
     }
 
 }

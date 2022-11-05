@@ -108,9 +108,6 @@ func isDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 @view
 func idToPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_id: felt) -> (pool : felt) {
     let (len) = pools_length.read();
-    with_attr error_message("Id to pool: id is greater than length of pool"){
-        is_le(len - _id, 1);
-    }
     let (pool_) = id_to_pool.read(_id);
     return(pool_,);
 }
@@ -204,10 +201,10 @@ func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 func addDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager : felt) -> () {
     Ownable.assert_only_owner();
     let (drip_manager_exists_) = is_drip_manager.read(_drip_manager);
-    with_attr error_message("drip_manager exists"){
+    with_attr error_message("Drip manager: already exist"){
         assert drip_manager_exists_ = 0;
     }
-    with_attr error_message("address zero"){
+    with_attr error_message("Drip manager: address is zero"){
         assert_not_zero(_drip_manager);
     }
     is_drip_manager.write(_drip_manager, 1);
