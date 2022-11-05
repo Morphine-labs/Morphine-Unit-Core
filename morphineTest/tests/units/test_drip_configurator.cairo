@@ -213,13 +213,10 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
     %{
         [stop_prank() for stop_prank in stop_pranks]
-        declared = declare("./lib/morphine/drip/dripConfigurator.cairo")
-        preparedd = prepare(declared, [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_LO, ids.MAXIMUM_BORROWED_AMOUNT_HI, 2, context.btc, ids.BTC_LT_LOW, ids.BTC_LT_HIGH, context.eth, ids.ETH_LT_LOW, ids.ETH_LT_HIGH])
-        print(preparedd.contract_address)
-        context.drip_configurator = ids.drip_configurator    
+        ids.drip_configurator = deploy(drip_configurator_prepared).contract_address 
+        context.drip_configurator = ids.drip_configurator  
     %}
-            // ids.drip_configurator = deploy(preparedd).contract_address 
-                    // context.drip_configurator = ids.drip_configurator    
+  
 
 
     return();

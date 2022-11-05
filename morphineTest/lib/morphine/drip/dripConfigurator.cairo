@@ -145,9 +145,11 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     registery.write(registery_);
     let (owner_) = IRegistery.owner(registery_);
     Ownable.initializer(owner_);
+    assert 1 = 0;
     set_parameters(_minimum_borrowed_amount, _maximum_borrowed_amount,Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_CHI_THRESHOLD,0), Uint256(DEFAULT_HF_CHECK_INTERVAL,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
     let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
+    
     IDripManager.upgradeContracts(_drip_manager, _drip_transit, oracle_transit_);
     return();
 }
