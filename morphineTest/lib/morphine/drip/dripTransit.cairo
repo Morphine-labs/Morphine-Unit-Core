@@ -500,7 +500,12 @@ func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 // Getters
 
-
+@view
+func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
+    alloc_locals;
+    let (drip_manager_) = drip_manager.read();
+    return(drip_manager_,);
+}
 
 @view
 func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt) -> (state: felt){
