@@ -23,6 +23,8 @@ from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToke
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IERC4626 import IERC4626
 from morphine.utils.utils import pow
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_CHI_THRESHOLD, DEFAULT_HF_CHECK_INTERVAL, PRECISION, DEFAULT_FEE_LIQUIDATION
+
 
 
 const ADMIN = 'morphine-admin';
@@ -157,8 +159,8 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
     %}
 
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.oracle_transit, ids.eth] ] %}
-
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.oracle_transit, ids.eth, ids.registery] ] %}
+    IRegistery.setOracleTransit(registery, oracle_transit);
     IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
     IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
     IOracleTransit.addPrimitive(oracle_transit, dai, DAI_USD);
@@ -183,7 +185,6 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     %}
 
     tempvar drip_manager;
-    tempvar drip_configurator;
     tempvar interest_rate_model_contract;
     tempvar pool;
     tempvar drip_configurator_address;
@@ -206,11 +207,11 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         drip_configurator_prepared = prepare(declared, [context.drip_manager, ids.DRIP_TRANSIT, ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_LO, ids.MAXIMUM_BORROWED_AMOUNT_HI, 2, context.btc, ids.BTC_LT_LOW, ids.BTC_LT_HIGH, context.eth, ids.ETH_LT_LOW, ids.ETH_LT_HIGH])
 
         ids.drip_configurator_address = drip_configurator_prepared.contract_address
-        print(drip_configurator_prepared.contract_address)
     %}
 
         drip_manager_instance.setDripConfigurator(drip_configurator_address);
 
+        tempvar drip_configurator;
     %{
         [stop_prank() for stop_prank in stop_pranks]
         ids.drip_configurator = deploy(drip_configurator_prepared).contract_address 
@@ -225,9 +226,24 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
 
 @view
-func test_deploy{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_drip_configurator_deployement{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    // let (btc_) = btc_instance.deployed();
+    let (minimum_borrowed_amount_) = drip_manager_instance.minBorrowedAmount();
+    let (maximum_borrowed_amount_) = drip_manager_instance.maxBorrowedAmount();
+    let (fee_interest_) = drip_manager_instance.feeInterest();
+    let (fee_liqudidation_) = drip_manager_instance.feeLiquidation();
+    let (liquidation_discount_) = drip_manager_instance.liquidationDiscount();
+    let (chi_threshold_) = drip_manager_instance.chiThreshold();
+    let (hf_check_interval_) = drip_manager_instance.hfCheckInterval();
+    assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
+    assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI);
+    assert fee_interest_ = Uint256(DEFAULT_FEE_INTEREST,0);
+    assert fee_liqudidation_ = Uint256(DEFAULT_FEE_LIQUIDATION, 0);
+    assert liquidation_discount_ = Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM, 0);
+    assert chi_threshold_ = Uint256(DEFAULT_CHI_THRESHOLD, 0);
+    assert hf_check_interval_ = Uint256(DEFAULT_HF_CHECK_INTERVAL, 0);
+
+    
     return ();
 }
 
@@ -379,7 +395,76 @@ namespace drip_manager_instance{
         return ();
     }
 
-    
+    func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (fee_interest_) = IDripManager.feeInterest(drip_manager);
+        return(fee_interest_,);
+    }
+
+
+    func feeLiquidation{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeLiquidation: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (fee_liqudidation_) = IDripManager.feeLiquidation(drip_manager);
+        return(fee_liqudidation_,);
+    }
+
+
+    func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (liquidation_discount_) = IDripManager.liquidationDiscount(drip_manager);
+        return(liquidation_discount_,);
+    }
+
+
+    func chiThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (chiThreshold: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (chi_threshold_) = IDripManager.chiThreshold(drip_manager);
+        return(chi_threshold_,);
+    }
+
+
+    func hfCheckInterval{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (hf_check_interval: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (hf_check_interval_) = IDripManager.hfCheckInterval(drip_manager);
+        return(hf_check_interval_,);
+    }
+
+
+    func minBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (minimum_borrowed_amount: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (minimum_borrowed_amount_) = IDripManager.minBorrowedAmount(drip_manager);
+        return(minimum_borrowed_amount_,);
+    }
+
+
+    func maxBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (maximum_borrowed_amount: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (maximum_borrowed_amount_) = IDripManager.maxBorrowedAmount(drip_manager);
+        return(maximum_borrowed_amount_,);
+    }
+
+
+    func getPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (pool: felt) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (pool_) = IDripManager.getPool(drip_manager);
+        return(pool_,);
+    }
+
+
+    func dripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (drip_configurator: felt) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (drip_configurator_) = IDripManager.dripConfigurator(drip_manager);
+        return(drip_configurator_,);
+    }
 
 }
 
@@ -396,7 +481,41 @@ namespace registery_instance{
         IRegistery.setDripFactory(registery, drip_factory);
         return ();
     }
+
+    func setOracleTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_oracle_transit: felt) -> () {
+    tempvar registery;
+    %{ ids.registery = context.registery %}
+    IRegistery.setOracleTransit(registery, new_oracle_transit);
+    return ();
+    }
+
 }
+
+
+
+namespace oracle_transit_instance{
+
+    func deployed() -> (oracle_transit : felt){
+        tempvar oracle_transit;
+        %{ ids.oracle_transit = context.oracle_transit %}
+        return (oracle_transit,);
+    }
+
+    func primitivePairId{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(primitive: felt) -> (pair_id: felt){
+        tempvar oracle_transit;
+        %{ ids.oracle_transit = context.oracle_transit %}
+        let (pair_id_) = IOracleTransit.primitivePairId(oracle_transit, primitive);
+        return (pair_id_,);
+    }
+
+    func derivativePriceFeed{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(derivative: felt) -> (derivative_price_feed: felt){
+        tempvar oracle_transit;
+        %{ ids.oracle_transit = context.oracle_transit %}
+        let (derivative_price_feed_) = IOracleTransit.derivativePriceFeed(oracle_transit, derivative);
+        return (derivative_price_feed_,);
+    }
+}
+
 
 namespace btc_instance{
     func deployed() -> (btc : felt){

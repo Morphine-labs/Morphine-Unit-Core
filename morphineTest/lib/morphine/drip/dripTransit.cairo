@@ -89,7 +89,23 @@ func underlying() -> (address : felt) {
 }
 
 @storage_var
-func contract_to_adapter(contract: felt) -> (adapter : felt) {
+func expirable() -> (state : felt) {
+}
+
+@storage_var
+func expiration_date() -> (expiration_date : felt) {
+}
+
+@storage_var
+func max_borrowed_amount_per_block() -> (max_borrowed_amount_per_block : Uint256) {
+}
+
+@storage_var
+func minimum_borrowed_amount() -> (minimum_borrowed_amount : Uint256) {
+}
+
+@storage_var
+func maximum_borrowed_amount() -> (maximum_borrowed_amount : Uint256) {
 }
 
 @storage_var
@@ -312,7 +328,7 @@ func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     alloc_locals;
     ReentrancyGuard._start();
     let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
-    with_attr error_message("increase debt forbidden for now"){
+    with_attr error_message("increase debt forbidden"){
         assert is_increase_debt_forbidden_ = 0;
     }
     let (drip_manager_) = drip_manager.read();
@@ -454,14 +470,36 @@ func setPermisionless{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return();
 }
 
+@external
+func setMaxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_max_borrowed_amount_per_block: Uint256){
+    alloc_locals;
+    assert_only_drip_configurator();
+    max_borrowed_amount_per_block.write(_max_borrowed_amount_per_block);
+    return();
+}
+
+@external
+func setDripLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
+    alloc_locals;
+    assert_only_drip_configurator();
+    minimum_borrowed_amount.write(_minimum_borrowed_amount);
+    maximum_borrowed_amount.write(_maximum_borrowed_amount);
+    return();
+}
+
+@external
+func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_expiration_date: felt){
+    alloc_locals;
+    assert_only_drip_configurator();
+    expiration_date.write(_expiration_date);
+    return();
+}
+
+
+
+
 // Getters
 
-@view
-func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
-    alloc_locals;
-    let (adapter_) = contract_to_adapter.read(_contract);
-    return(adapter_,);
-}
 
 
 @view
@@ -519,7 +557,46 @@ func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     }
 }
 
+@view
+func maxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (max_borrowed_amount_per_block_: Uint256){
+    alloc_locals;
+    let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
+    return(max_borrowed_amount_per_block_,);
+}
 
+@view
+func isIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (is_increase_debt_forbidden: felt){
+    alloc_locals;
+    let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
+    return(is_increase_debt_forbidden_,);
+}
+
+@view
+func expirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (expiration_date: felt){
+    alloc_locals;
+    let (expiration_date_) = expiration_date.read();
+    return(expiration_date_,);
+}
+
+@view
+func isExpirable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (expirable: felt){
+    alloc_locals;
+    let (is_expirable) = expirable.read();
+    return(is_expirable,);
+}
+
+@view
+func limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (minimum_borrowed_amount: Uint256, max_borrowed_amount: Uint256){
+    alloc_locals;
+    let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
+    let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
+    let (is_expirable) = expirable.read();
+    return(minimum_borrowed_amount_, maximum_borrowed_amount_,);
+}
+
+
+
+expiration_date
 
 // Internals
 

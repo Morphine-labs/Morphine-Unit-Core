@@ -26,15 +26,12 @@ namespace IDripManager {
     func addToken(token: felt) {
     }
 
-    func setParameters(
-        minimum_borrowed_amount: Uint256,
-        maximum_borrowed_amount: Uint256,
+    func setFees(
         fee_interest: Uint256,
         fee_liqudidation: Uint256,
         liquidation_discount: Uint256,
-        chi_threshold: Uint256,
-        hf_check_interval: Uint256,
-    ) {
+        fee_liqudidation_expired: Uint256,
+        liquidation_discount_expired: Uint256,) {
     }
 
     func addCollateral(drip: felt, on_belhalf_of: felt, underlying: felt, amount: Uint256) {
@@ -54,6 +51,12 @@ namespace IDripManager {
 
     func transferDripOwnership(_from : felt, _to: felt) {
     }
+
+    func addEmergencyLiquidator(liquidator : felt) {
+    }
+
+    func removeEmergencyLiquidator(liquidator : felt) {
+    }
     
 
     // Getters
@@ -62,6 +65,9 @@ namespace IDripManager {
     }
 
     func getPool() -> (pool: felt) {
+    }
+
+    func dripTransit() -> (dripTransit: felt) {
     }
 
     func getDrip(borrower: felt) -> (drip: felt) {
@@ -85,6 +91,12 @@ namespace IDripManager {
     func upgradeContracts(drip_transit: felt, oracle_transit: felt) {
     }
 
+    func upgradeOracleTransit(oracle_transit: felt) {
+    }
+
+    func upgradeDripTransit(drip_transit: felt) {
+    }
+
     func tokenMask(token: felt) -> (token_mask: Uint256) {
     }
 
@@ -94,6 +106,9 @@ namespace IDripManager {
     func adapterToContract(adapter: felt) -> (contract: felt) {
     }
 
+    func contractToAdapter(contract: felt) -> (adapter: felt) {
+    }
+
     func feeInterest() -> (fee_interest: Uint256) {
     }
 
@@ -101,12 +116,6 @@ namespace IDripManager {
     }
 
     func liquidationDiscount() -> (liquidation_discount: Uint256) {
-    }
-
-    func chiThreshold() -> (chi_threshold: Uint256) {
-    }
-
-    func hfCheckInterval() -> (hf_check_interval: Uint256) {
     }
 
     func minBorrowedAmount() -> (minimum_borrowed_amount: Uint256) {

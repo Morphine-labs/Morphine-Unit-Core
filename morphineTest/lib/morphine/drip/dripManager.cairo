@@ -106,6 +106,14 @@ func liquidation_discount() -> (liquidation_discount: Uint256) {
 }
 
 @storage_var
+func fee_liqudidation_expired() -> (fee_liqudidation_expired: Uint256) {
+}
+
+@storage_var
+func liquidation_discount_expired() -> (liquidation_discount_expired: Uint256) {
+}
+
+@storage_var
 func drip_transit() -> (drip_junction: felt) {
 }
 
@@ -150,16 +158,17 @@ func adapter_to_contract(adapter: felt) -> (contract: felt) {
 }
 
 @storage_var
+func contract_to_adapter(adapter: felt) -> (contract: felt) {
+}
+
+@storage_var
 func oracle_transit() -> (oracle_transit: felt) {
 }
 
 @storage_var
-func chi_threshold() -> (mask: Uint256) {
+func can_liquidate_while_paused(liquidator: felt) -> (state: felt) {
 }
 
-@storage_var
-func hf_check_interval() -> (interval: Uint256) {
-}
 
 // Protector
 func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
@@ -462,6 +471,7 @@ func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     alloc_locals;
     assert_only_drip_transit_or_adapters();
     check_and_enable_token(_drip, _token_in);
+    
     let (fast_check_counter_) = fast_check_counter.read(_drip);
     let (hf_check_interval_) = hf_check_interval.read();
     let (oracle_transit_) = oracle_transit.read();
@@ -506,26 +516,19 @@ func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
 }
 
 @external
-func setParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _minimum_borrowed_amount: Uint256,
-    _maximum_borrowed_amount: Uint256,
+func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _fee_interest: Uint256,
     _fee_liquidation: Uint256,
     _liquidation_discount: Uint256,
-    _chi_threshold: Uint256,
-    _hf_check_interval: Uint256,
+    _fee_liquidation_expired: Uint256,
+    _liquidation_discount_expired: Uint256
 ) {
     assert_only_drip_configurator();
-    let (is_lt_) = uint256_lt(_maximum_borrowed_amount, _minimum_borrowed_amount);
-    with_attr error_message("Incorrect limits") {
-        assert is_lt_ = 0;
-    }
-    minimum_borrowed_amount.write(_minimum_borrowed_amount);
-    maximum_borrowed_amount.write(_maximum_borrowed_amount);
     fee_interest.write(_fee_interest);
     fee_liqudidation.write(_fee_liquidation);
-    chi_threshold.write(_chi_threshold);
-    hf_check_interval.write(_hf_check_interval);
+    liquidation_discount.write(_liquidation_discount);
+    fee_liqudidation_expired.write(_fee_liquidation_expired);
+    liquidation_discount_expired.write(_liquidation_discount_expired);
     return ();
 }
 
@@ -567,18 +570,57 @@ func setDripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 func changeContractAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _adapter: felt, _target: felt
 ) {
+    alloc_locals;
     assert_only_drip_configurator();
-    adapter_to_contract.write(_adapter, _target);
+    if(_adapter == 0){
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        adapter_to_contract.write(_adapter, _target);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    }
+
+    if(_target == 0){
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        contract_to_adapter.write(_target, _adapter);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    }
     return ();
 }
 
 @external
-func upgradeContracts{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip_transit: felt, _oracle_transit: felt
-) {
+func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle_transit: felt) {
+    assert_only_drip_configurator();
+    oracle_transit.write(_oracle_transit);
+    return ();
+}
+
+@external
+func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_transit: felt) {
     assert_only_drip_configurator();
     drip_transit.write(_drip_transit);
-    drip_transit.write(_oracle_transit);
+    return ();
+}
+
+@external
+func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt) {
+    assert_only_drip_configurator();
+    can_liquidate_while_paused.write(_liquidator, 1);
+    return ();
+}
+
+@external
+func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt) {
+    assert_only_drip_configurator();
+    can_liquidate_while_paused.write(_liquidator, 0);
     return ();
 }
 
@@ -647,6 +689,13 @@ func adapterToContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 }
 
 @view
+func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (adapter: felt){
+    alloc_locals;
+    let (adapter_) = contract_to_adapter.read(_contract);
+    return(adapter_,);
+}
+
+@view
 func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: Uint256) {
     let (fee_interest_) = fee_interest.read();
     return(fee_interest_,);
@@ -664,17 +713,6 @@ func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return(liquidation_discount_,);
 }
 
-@view
-func chiThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (chiThreshold: Uint256) {
-    let (chi_threshold_) = chi_threshold.read();
-    return(chi_threshold_,);
-}
-
-@view
-func hfCheckInterval{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (hf_check_interval: Uint256) {
-    let (hf_check_interval_) = hf_check_interval.read();
-    return(hf_check_interval_,);
-}
 
 @view
 func minBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (minimum_borrowed_amount: Uint256) {
@@ -699,6 +737,14 @@ func dripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     let (drip_configurator_) = drip_configurator.read();
     return(drip_configurator_,);
 }
+
+@view
+func dripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (drip_configurator: felt) {
+    let (drip_transit_) = drip_transit.read();
+    return(drip_transit_,);
+}
+
+
 
 @view
 func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
