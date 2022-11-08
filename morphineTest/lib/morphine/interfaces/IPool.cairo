@@ -135,7 +135,7 @@ namespace IPool {
     func borrowRate() -> (borrowRate: Uint256) {
     }
 
-    func calculLinearCumulativeIndex() -> (cumulativeIndex: Uint256) {
+    func calcLinearCumulativeIndex() -> (cumulativeIndex: Uint256) {
     }
 
     func cumulativeIndex() -> (cumulativeIndex: Uint256) {

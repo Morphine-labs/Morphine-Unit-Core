@@ -109,6 +109,14 @@ func maximum_borrowed_amount() -> (maximum_borrowed_amount : Uint256) {
 }
 
 @storage_var
+func last_block_saved() -> (block : felt) {
+}
+
+@storage_var
+func last_limit_saved() -> (limit : Uint256) {
+}
+
+@storage_var
 func transfers_allowed(_from: felt, to: felt) -> (is_allowed : felt) {
 }
 
@@ -202,8 +210,8 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     }
 
     let (drip_) = IDripManager.openDrip(drip_manager_, borrowed_amount_, _on_belhalf_of);
-    IDripManager.addCollateral(drip_manager_, caller_, _on_belhalf_of, underlying_, _amount);
     OpenDrip.emit(_on_belhalf_of, drip_, borrowed_amount_);
+    add_collateral(_on_belhalf_of, drip_, underlying_, _amount);
     ReentrancyGuard._end();
     return();
 }
@@ -327,16 +335,11 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_amount: Uint256){
     alloc_locals;
     ReentrancyGuard._start();
-    let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
-    with_attr error_message("increase debt forbidden"){
-        assert is_increase_debt_forbidden_ = 0;
-    }
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-    IDripManager.manageDebt(drip_manager_, caller_, _amount, 1);
+    increase_debt(caller_, drip_, _amount);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
-    IncreaseBorrowedAmount.emit(caller_, _amount);
     ReentrancyGuard._end();
     return();
 }
@@ -348,9 +351,8 @@ func decreaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-    IDripManager.manageDebt(drip_manager_, caller_, _amount, 0);
+    decrease_debt(caller_, drip_, _amount);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
-    DecreaseBorrowedAmount.emit(caller_, _amount);
     ReentrancyGuard._end();
     return();
 }
@@ -360,12 +362,12 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     alloc_locals;
     ReentrancyGuard._start();
     let (drip_manager_) = drip_manager.read();
-    let (caller_) = get_caller_address();
-    IDripManager.addCollateral(drip_manager_, caller_, _on_belhalf_of, _token, _amount);
-    AddCollateral.emit(_on_belhalf_of, _token, _amount);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _on_belhalf_of);
+    add_collateral(_on_belhalf_of, drip_, _token, _amount);
     ReentrancyGuard._end();
     return();
 }
+
 
 @external
 func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
@@ -622,7 +624,8 @@ func _multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 
     IDripManager.transferDripOwnership(drip_manager_, _borrower, this_);
     MultiCallStarted.emit(_borrower);
-    recursive_multicall(_call_array_len, calls, _borrower, _is_closure, _is_increase_debt_was_called, this_, drip_manager_);
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _borrower);
+    recursive_multicall(_call_array_len, calls, _borrower, drip_,_is_closure, _is_increase_debt_was_called, this_, drip_manager_);
     MultiCallFinished.emit();
     IDripManager.transferDripOwnership(drip_manager_, this_, _borrower);
     return();
@@ -632,6 +635,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         _call_len: felt,
         _call: Call*,
         _borrower: felt,
+        _drip: felt,
         _is_closure: felt,
         _is_increase_debt_was_called: felt,
         _this: felt,
@@ -649,38 +653,32 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             with_attr error_message("incorrect datalen"){
                 assert _call[0].calldata_len = 4;
             }
-            tempvar on_belhalf_of_: felt;
+            tempvar temp_drip: felt;
             if(_call[0].calldata[0] == _borrower){
-                on_belhalf_of_ = _this;
+                temp_drip = _drip;
             } else{
-                assert on_belhalf_of_ = _call[0].calldata[0];
+                let (drip_from_on_belhalf_of_) = IDripManager.getDripOrRevert(_call[0].calldata[0]);
+                temp_drip = drip_from_on_belhalf_of_;
             }
-            IDripManager.addCollateral(_drip_manager, caller_, on_belhalf_of_, _call[0].calldata[1], Uint256(_call[0].calldata[3],_call[0].calldata[3]));
-            AddCollateral.emit(_call[0].calldata[0], _call[0].calldata[1], Uint256(_call[0].calldata[3],_call[0].calldata[3]));
-            return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _is_closure, _is_increase_debt_was_called, _this, _drip_manager);
+            add_collateral(_call[0].calldata[0], temp_drip,_call[0].calldata[1], Uint256(_call[0].calldata[2],_call[0].calldata[3]));
+            return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip,_is_closure, _is_increase_debt_was_called, _this, _drip_manager);
         } else{
             if(_call[0].selector == INCREASE_DEBT_SELECTOR){
-                let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
-                with_attr error_message("increase debt forbidden for now"){
-                    assert is_increase_debt_forbidden_ = 0;
-                }
                 with_attr error_message("incorrect datalen"){
                     assert _call[0].calldata_len = 2;
                 }
-                IDripManager.manageDebt(_drip_manager, _this, Uint256(_call[0].calldata[0], _call[0].calldata[1]), 1);
-                IncreaseBorrowedAmount.emit(_borrower, Uint256(_call[0].calldata[0], _call[0].calldata[1]));
-                return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _is_closure, 1, _this, _drip_manager);
+                increase_debt(_borrower, _drip, Uint256(_call[0].calldata[0], _call[0].calldata[1]));
+                return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip, _is_closure, 1, _this, _drip_manager);
             } else {
                 if(_call[0].selector == DECREASE_DEBT_SELECTOR){
-                    with_attr error_message("can't decrease and increase debt in same multicall, stop trying to hack this protocol"){
+                    with_attr error_message("can not decrease and increase debt in multicalll"){
                         assert _is_increase_debt_was_called = 0;
                     }
                     with_attr error_message("incorrect datalen"){
                         assert _call[0].calldata_len = 2;
                     }
-                    IDripManager.manageDebt(_drip_manager, _this, Uint256(_call[0].calldata[0], _call[0].calldata[1]), 0);
-                    DecreaseBorrowedAmount.emit(_borrower, Uint256(_call[0].calldata[0], _call[0].calldata[1]));
-                    return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _is_closure, 0, _this, _drip_manager);
+                    decrease_debt(_borrower, _drip, Uint256(_call[0].calldata[0], _call[0].calldata[1]));
+                    return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip,_is_closure, 0, _this, _drip_manager);
                 } else{
                     with_attr error_message("Unknow method"){
                         assert 1 = 0;
@@ -698,7 +696,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             assert_not_zero(contract_);
         }
         let (retdata_len: felt, retdata: felt*) = call_contract(_call[0].to, _call[0].selector, _call[0].calldata_len, _call[0].calldata);
-        return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _is_closure, _is_increase_debt_was_called, _this, _drip_manager);
+        return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip, _is_closure, _is_increase_debt_was_called, _this, _drip_manager);
     }
 }
 
@@ -775,6 +773,132 @@ func is_drip_liquidatable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     }
 }
 
+func increase_debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_borrower: felt, _drip: felt, _amount: Uint256){
+    alloc_locals;
+    let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
+    with_attr error_message("increase debt forbidden"){
+        assert is_increase_debt_forbidden_ = 0;
+    }
+    check_and_update_borrowed_block_limit(_amount);
+    check_forbidden_tokens(_drip);
+    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, drip_, _amount, 1);
+    revert_if_out_borrowed_limits(new_borrowed_amount_);
+    IncreaseBorrowedAmount.emit(caller_, _amount);
+    return();
+}
+
+func check_forbidden_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_drip: felt) {
+    alloc_locals;
+    let (drip_manager_) = drip_manager.read();
+    let (enabled_tokens_) = IDripManager.enabledTokensMap(drip_manager_, _drip);
+    let (forbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
+    let (low_) = bitwise_and(enabled_tokens_.low, forbidden_token_mask_.low);
+    let (high_) = bitwise_and(enabled_tokens_.high, forbidden_token_mask_.high);
+    let (is_lt_) = uint256_lt(Uint256(0, 0), Uint256(low_, high_));
+    with_attr error_message("action prohibited with forbidden tokens"){
+        assert is_lt_ = 0;
+    }
+    return();
+}
+
+func decrease_debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_borrower: felt, _drip: felt, _amount: Uint256){
+    alloc_locals;
+    let (drip_manager_) = drip_manager.read();
+    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, drip_, _amount, 0);
+    revert_if_out_borrowed_limits(new_borrowed_amount_);
+    DecreaseBorrowedAmount.emit(caller_, _amount);
+    return();
+}
+
+func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
+    alloc_locals;
+    let (permissionless_) = permissionless.read();
+    if(permissionless_ == 1){
+        let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
+        let (last_block_) = last_block_saved.read();
+        let (last_limit_) = last_limit_saved.read();
+        let (block_number_) = get_block_number();
+        tempvar temp_new_limit_: Uint256;
+        if(block_number_ == last_block_){
+            let (new_limit_) = SafeUint256.add(_amount, last_limit_);
+            temp_new_limit_.low = new_limit_.low;
+            temp_new_limit_.high = new_limit_.high;
+        } else {
+            temp_new_limit_.low = _amount.low;
+            temp_new_limit_.high = _amount.high;
+        }
+        let (is_lt_) = uint256_lt(max_borrowed_amount_per_block_, temp_new_limit_);
+        with_attr error_message("borrowed per block limit"){
+            assert is_lt_ = 0;
+        }
+        last_block_saved.write(block_number_);
+        last_limit_saved.write(temp_new_limit_);
+        return();
+    } 
+    return();
+}
+
+func revert_if_out_borrowed_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_borrowed_amount: Uint256){
+    alloc_locals;
+    let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
+    let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
+    let (is_allowed_borrowed_amount1_) = uint256_lt(minimum_borrowed_amount_, _borrowed_amount);
+    let (is_allowed_borrowed_amount2_) = uint256_lt(_borrowed_amount, maximum_borrowed_amount_);
+    with_attr error_message("borrow amount out of limit") {
+        assert_not_zero(is_allowed_borrowed_amount1_ * is_allowed_borrowed_amount2_);
+    }
+    return();
+}
+
+func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
+    alloc_locals;
+    let (permissionless_) = permissionless.read();
+    if(permissionless_ == 1){
+        let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
+        let (last_block_, last_limit_) = getTotalBorrowedInBlock();
+        let (block_number_) = get_block_number();
+        tempvar temp_new_limit_: Uint256;
+        if(block_number_ == last_block_){
+            let (new_limit_) = SafeUint256.add(_amount, last_limit_);
+            temp_new_limit_.low = new_limit_.low;
+            temp_new_limit_.high = new_limit_.high;
+        } else {
+            temp_new_limit_.low = _amount.low;
+            temp_new_limit_.high = _amount.high;
+        }
+        let (is_lt_) = uint256_lt(max_borrowed_amount_per_block_, temp_new_limit_);
+        with_attr error_message("borrowed per block limit"){
+            assert is_lt_ = 0;
+        }
+        update_total_borrowed_in_block(temp_new_limit_);
+        return();
+    }
+}
+
+func add_collateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_on_belhalf_of: felt, _drip: felt, _token: felt, _amount: Uint256){
+    alloc_locals;
+    revert_if_action_on_drip_not_allowed(_on_belhalf_of);
+    let (drip_manager_) = drip_manager.read();
+    let (caller_) = get_caller_address();
+    IDripManager.addCollateral(drip_manager_, caller_, drip_, _token, _amount);
+    AddCollateral.emit(_on_belhalf_of, _token, _amount);
+    return();
+}
+
+func revert_if_action_on_drip_not_allowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_on_belhalf_of: felt){
+    alloc_locals;
+    let (caller_) = get_caller_address();
+    if(caller_ == _on_belhalf_of){
+        return();
+    } else {
+        let (is_tranfer_allowed_) = transfers_allowed.read(caller_, _on_belhalf_of);
+        with_attr error_message("drip transfer not allowed"){
+            assert_not_zero(is_tranfer_allowed_);
+        }
+        return();
+    }
+}
+
 
  func _from_call_array_to_call{syscall_ptr: felt*}(
         call_array_len: felt, call_array: AccountCallArray*, calldata: felt*, calls: Call*
@@ -797,3 +921,4 @@ func is_drip_liquidatable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
         );
         return ();
     }
+

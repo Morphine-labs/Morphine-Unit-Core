@@ -243,7 +243,6 @@ func test_drip_configurator_deployement{syscall_ptr : felt*, pedersen_ptr : Hash
     assert chi_threshold_ = Uint256(DEFAULT_CHI_THRESHOLD, 0);
     assert hf_check_interval_ = Uint256(DEFAULT_HF_CHECK_INTERVAL, 0);
 
-    
     return ();
 }
 

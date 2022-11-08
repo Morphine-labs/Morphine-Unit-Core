@@ -706,7 +706,7 @@ func previewRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
 
 @view
-func calculLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func calcLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ) -> (cumulativeIndex: Uint256) {
     alloc_locals;
     let (current_timestamp) = get_block_timestamp();
@@ -727,23 +727,6 @@ func calculLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*,
     return (new_cumulative_index_,);
 }
 
-@view
-func calculLinearCumulativeIndexAtBorrowMore{
-    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
-}(_amount: Uint256, _desired_amount: Uint256, _drip_cumulative_index: Uint256) -> (
-    cumulativeIndexAtBorrowMore: Uint256
-) {
-    alloc_locals;
-    let (current_cumulative_index_) = calculLinearCumulativeIndex();
-    let (step1_) = SafeUint256.mul(current_cumulative_index_, _drip_cumulative_index);
-    let (step2_) = SafeUint256.add(_amount, _desired_amount);
-    let (step3_) = SafeUint256.mul(step1_, step2_);
-    let (step4_) = SafeUint256.mul(current_cumulative_index_, _amount);
-    let (step5_) = SafeUint256.mul(_drip_cumulative_index, _desired_amount);
-    let (step6_) = SafeUint256.add(step4_, step5_);
-    let (cumulative_index_at_borrow_more_, _) = SafeUint256.div_rem(step3_, step6_);
-    return (cumulative_index_at_borrow_more_,);
-}
 
 @view
 func convertToShares{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(

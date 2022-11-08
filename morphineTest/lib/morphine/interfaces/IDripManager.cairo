@@ -34,7 +34,7 @@ namespace IDripManager {
         liquidation_discount_expired: Uint256,) {
     }
 
-    func addCollateral(drip: felt, on_belhalf_of: felt, underlying: felt, amount: Uint256) {
+    func addCollateral(on_belhalf_of: felt, drip: felt, token: felt, amount: Uint256) {
     }
 
     func closeDrip(borrower: felt, is_liquidated: felt, total_value: Uint256, payer: felt, to: felt) -> (remaining_funds: Uint256) {
@@ -57,6 +57,10 @@ namespace IDripManager {
 
     func removeEmergencyLiquidator(liquidator : felt) {
     }
+
+    func checkEmergencyPausable(_caller: felt, _state: felt) -> (state: felt)  {
+    }
+
     
 
     // Getters
@@ -100,7 +104,7 @@ namespace IDripManager {
     func tokenMask(token: felt) -> (token_mask: Uint256) {
     }
 
-    func forbidenTokenMask() -> (forbiden_token_mask: Uint256) {
+    func forbiddenTokenMask() -> (forbiden_token_mask: Uint256) {
     }
 
     func adapterToContract(adapter: felt) -> (contract: felt) {
