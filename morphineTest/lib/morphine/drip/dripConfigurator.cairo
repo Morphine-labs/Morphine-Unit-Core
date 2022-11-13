@@ -197,18 +197,18 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,
     Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
-    let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
+    let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0), token_mask_);
     let (is_eq2_) = uint256_eq(Uint256(1,0), token_mask_);
     with_attr error_message("token not allowed "){
         assert_not_zero(is_eq1_ * is_eq2_);
     }
-    let (low_) = bitwise_and(fordbiden_token_mask_.low, token_mask_.low);
-    let (high_) = bitwise_and(fordbiden_token_mask_.high, token_mask_.high);
+    let (low_) = bitwise_and(fordbidden_token_mask_.low, token_mask_.low);
+    let (high_) = bitwise_and(fordbidden_token_mask_.high, token_mask_.high);
     let (is_bt_) = uint256_lt(Uint256(0,0), Uint256(low_, high_));
     if (is_bt_ == 1){
-        let (low_) = bitwise_xor(fordbiden_token_mask_.low, token_mask_.low);
-        let (high_) = bitwise_xor(fordbiden_token_mask_.high, token_mask_.high);
+        let (low_) = bitwise_xor(fordbidden_token_mask_.low, token_mask_.low);
+        let (high_) = bitwise_xor(fordbidden_token_mask_.high, token_mask_.high);
         IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
         TokenAllowed.emit(_token);
         return();
@@ -222,18 +222,18 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     Ownable.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
-    let (fordbiden_token_mask_) = IDripManager.forbidenTokenMask(drip_manager_);
+    let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0),token_mask_);
     let (is_eq2_) = uint256_eq(Uint256(1,0),token_mask_);
     with_attr error_message("zero address for token"){
         assert_not_zero(is_eq1_ * is_eq2_);
     }
-    let (low_) = bitwise_and(fordbiden_token_mask_.low, token_mask_.low);
-    let (high_) = bitwise_and(fordbiden_token_mask_.high, token_mask_.high);
+    let (low_) = bitwise_and(fordbidden_token_mask_.low, token_mask_.low);
+    let (high_) = bitwise_and(fordbidden_token_mask_.high, token_mask_.high);
     let (is_bt_) = uint256_lt(Uint256(0,0), Uint256(low_, high_));
     if (is_bt_ == 1){
-        let (low_) = bitwise_or(fordbiden_token_mask_.low, token_mask_.low);
-        let (high_) = bitwise_or(fordbiden_token_mask_.high, token_mask_.high);
+        let (low_) = bitwise_or(fordbidden_token_mask_.low, token_mask_.low);
+        let (high_) = bitwise_or(fordbidden_token_mask_.high, token_mask_.high);
         IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
         TokenAllowed.emit(_token);
         return();

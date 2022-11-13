@@ -417,7 +417,7 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     assert_only_drip_transit();
     Pausable.assert_not_paused();
     check_and_enable_token(_drip, _token);
-    SafeERC20.transferFrom(_token, _payer, drip_, _amount);
+    SafeERC20.transferFrom(_token, _payer, _drip, _amount);
     ReentrancyGuard._end();
     return ();
 }
@@ -550,7 +550,7 @@ func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     }
     
     let (cumulative_drop_) = cumulative_drop.read(_drip);
-    let (step1_) = SafeUint256.mul(Uint256(PRECISION,0), new_amount_out_collateral_)
+    let (step1_) = SafeUint256.mul(Uint256(PRECISION,0), new_amount_out_collateral_);
     let (step2_,_) = SafeUint256.div_rem(step1_, new_amount_in_collateral_);
     let (step3_) = SafeUint256.sub_le(Uint256(PRECISION,0), step2_);
     let (new_cumulative_drop_) = SafeUint256.add(step3_, cumulative_drop_);
@@ -779,7 +779,7 @@ func liquidationThresholdByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 
 @view
 func tokenByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (token: Uint256) {
-    let (token_) = token_from_mask.read(token_mask_);
+    let (token_) = token_from_mask.read(_token_mask);
     return(token_,);
 }
 
@@ -827,19 +827,6 @@ func feeLiquidation{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: Uint256) {
     let (liquidation_discount_) = liquidation_discount.read();
     return(liquidation_discount_,);
-}
-
-
-@view
-func minBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (minimum_borrowed_amount: Uint256) {
-    let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
-    return(minimum_borrowed_amount_,);
-}
-
-@view
-func maxBorrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (maximum_borrowed_amount: Uint256) {
-    let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
-    return(maximum_borrowed_amount_,);
 }
 
 @view
@@ -1086,7 +1073,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
                 let (is_lt_) = uint256_lt(max_allowed_enabled_tokens_length_, total_tokens_enabled_);
                 if(is_lt_ == 1){
                     let (new_max_index_) = SafeUint256.sub_le(_max_index, _index);
-                    optimize_enabled_tokens(_drip, enabled_tokens_, total_tokens_enabled_, Uint256(1,0), _max_index);
+                    optimize_enabled_tokens(_drip, _enabled_tokens, total_tokens_enabled_, Uint256(1,0), _max_index);
                     return();
                 } else {
                     enabled_tokens.write(_drip, _enabled_tokens);
@@ -1094,7 +1081,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
                 }
             } else {
                 with_attr error_message("not enough collateral") {
-                    assert is_eq_ == 0;
+                    assert is_eq_ = 0;
                 }
                 return recursive_calcul_value(_oracle_transit, _drip, _enabled_tokens, new_cumulative_twv_usd_, _borrowed_amount_with_interests, new_index_, _max_index);
             }
@@ -1102,13 +1089,13 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
             let (low_) = bitwise_xor(_enabled_tokens.low, token_mask_.low);
             let (high_) = bitwise_xor(_enabled_tokens.high, token_mask_.high);
             with_attr error_message("not enough collateral") {
-                assert is_eq_ == 0;
+                assert is_eq_ = 0;
             }
             return recursive_calcul_value(_oracle_transit, _drip, Uint256(low_, high_), new_cumulative_twv_usd_, _borrowed_amount_with_interests, new_index_, _max_index);
             }
     } else {
         with_attr error_message("not enough collateral") {
-            assert is_eq_ == 0;
+            assert is_eq_ = 0;
         }
         return recursive_calcul_value(_oracle_transit, _drip, _enabled_tokens, _cumulative_twv_usd, _borrowed_amount_with_interests, new_index_, _max_index);
     }
@@ -1143,7 +1130,7 @@ func recursive_transfer_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     let (high_) = bitwise_and(_enabled_tokens.high, token_mask_.high);
     let (is_bt_) = uint256_lt(Uint256(0, 0), Uint256(low_, high_));
     if (is_bt_ == 1) {
-        let (token_) = tokenByMask.read(token_mask_);
+        let (token_) = token_from_mask.read(token_mask_);
         let (balance_) = IERC20.balanceOf(token_, _drip);
         let (has_token_) = uint256_lt(Uint256(1, 0), balance_);
         if (has_token_ == 1) {
@@ -1316,8 +1303,8 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     alloc_locals;
     let (token_mask_) = uint256_pow2(_index);
     let (new_index_) = SafeUint256.add(_index, Uint256(1,0));
-    let (low_) = bitwise_and(pow2_.low, _mask.low);
-    let (high_) = bitwise_and(pow2_.high, _mask.high);
+    let (low_) = bitwise_and(token_mask_.low, _mask.low);
+    let (high_) = bitwise_and(token_mask_.high, _mask.high);
     let (is_eq_) = uint256_eq(Uint256(0, 0), Uint256(low_, high_));
     let (is_index_max_) = uint256_eq(_max_index, _index);
     if(is_eq_ == 1){
