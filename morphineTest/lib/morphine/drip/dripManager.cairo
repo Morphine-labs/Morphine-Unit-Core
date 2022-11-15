@@ -151,7 +151,7 @@ func contract_to_adapter(adapter: felt) -> (contract: felt) {
 }
 
 @storage_var
-func cumulative_drop() -> (cumulative_drop: Uint256) {
+func cumulative_drop(drip: felt) -> (cumulative_drop: Uint256) {
 }
 
 @storage_var
@@ -236,6 +236,15 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @external
+func updateOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    assert_only_drip_configurator();
+    let (registery_) = registery.read();
+    let (owner_) = IRegistery.owner(registery_);
+    Ownable.transfer_ownership(owner_);
+    return ();
+}
+
+@external
 func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
     Pausable.assert_not_paused();
@@ -253,12 +262,20 @@ func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() 
 
 @external 
 func checkEmergencyPausable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_caller: felt, _state: felt) -> (state: felt) {
+    alloc_locals;
     assert_only_drip_transit();
     let (is_paused_) = Pausable.is_paused();
     let (can_liquidate_while_paused_) = can_liquidate_while_paused.read(_caller);
     let (is_zero_) = is_equal(can_liquidate_while_paused_ * is_paused_,0);
     if ( is_zero_ == 0) {
         emergency_liquidation.write(_state);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
     }
     return(is_paused_,);
 }
@@ -282,7 +299,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (drip_,);
 }
 
-/// @param _type closure type 1: liquidation, 2: drip expired liquidation, 3: pause liquidation
+/// @param _type 0 and other: ordinary closure type 1: liquidation, 2: drip expired liquidation, 3: pause liquidation
 @external
 func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _borrower: felt, _type: felt, _total_value: Uint256, _payer: felt, _to: felt
@@ -357,7 +374,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
 @external
 func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _amount: Uint256, _increase: felt
-) {
+) -> (newBorrowedAmount: Uint256) {
     alloc_locals;
     ReentrancyGuard._start();
     assert_only_drip_transit();
@@ -373,7 +390,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         IPool.borrow(pool_, _amount, drip_);
         IDrip.updateParameters(drip_, new_borrowed_amount_, cumulative_index_at_borrow_more_);
         ReentrancyGuard._end();
-        return ();
+        return (new_borrowed_amount_,);
     } else {
         let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
         let (step2_, _) = SafeUint256.div_rem(step1_, cumulative_index_);
@@ -392,7 +409,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             let (new_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
             IDrip.updateParameters(drip_, new_borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard._end();
-            return();
+            return(new_borrowed_amount_,);
         } else {
             let (step1_) = SafeUint256.mul(_amount, Uint256(PRECISION,0));
             let (step2_) = SafeUint256.mul(Uint256(PRECISION,0), fee_interest_);
@@ -403,7 +420,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             let (new_cumulative_index_) = calc_new_cumulative_index(borrowed_amount_, amount_to_interest_, current_cumulative_index_, cumulative_index_, 0);
             IDrip.updateParameters(drip_, borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard._end();
-            return();
+            return(borrowed_amount_,);
         }
     }
 }
@@ -524,8 +541,25 @@ func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let (amount_in_collateral_, amount_out_collateral_) = IOracleTransit.fastCheck(
         oracle_transit_, diff_in_, _token_in, diff_out_, _token_out
     );
-    let (is_le_) = uint256_le(balance_in_after_, Uint256(1, 0));
-    if(is_le_ == 1){
+    let (is_le1_) = uint256_le(balance_in_after_, Uint256(1, 0));
+
+    let (lt_in_) = liquidationThreshold(_token_in);
+    let (lt_out_) = liquidationThreshold(_token_out);
+    let (step1_) = SafeUint256.mul(amount_in_collateral_, lt_in_);
+    let (new_amount_in_collateral_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    let (step1_) = SafeUint256.mul(amount_out_collateral_, lt_out_);
+    let (new_amount_out_collateral_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
+    let (is_le2_) = uint256_le(new_amount_in_collateral_, new_amount_out_collateral_);
+
+    let (cumulative_drop_) = cumulative_drop.read(_drip);
+    let (step1_) = SafeUint256.mul(Uint256(PRECISION,0), new_amount_out_collateral_);
+    let (step2_,_) = SafeUint256.div_rem(step1_, new_amount_in_collateral_);
+    let (step3_) = SafeUint256.sub_le(Uint256(PRECISION,0), step2_);
+    let (new_cumulative_drop_) = SafeUint256.add(step3_, cumulative_drop_);
+    let (fee_liqudidation_) = fee_liqudidation.read();
+    let (is_le3_) = uint256_le(new_cumulative_drop_, fee_liqudidation_);
+
+    if(is_le1_ == 1){
         disable_token(_drip, _token_in);
         tempvar syscall_ptr = syscall_ptr;
         tempvar range_check_ptr = range_check_ptr;
@@ -537,34 +571,25 @@ func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar bitwise_ptr = bitwise_ptr;
     }
-    let (lt_in_) = liquidationThreshold(_token_in);
-    let (lt_out_) = liquidationThreshold(_token_out);
-    let (step1_) = SafeUint256.mul(amount_in_collateral_, lt_in_);
-    let (new_amount_in_collateral_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
-    let (step1_) = SafeUint256.mul(amount_out_collateral_, lt_out_);
-    let (new_amount_out_collateral_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
-    let (is_le_) = uint256_le(new_amount_in_collateral_, new_amount_out_collateral_);
-    if(is_le_ == 1){
+
+    if(is_le2_ == 1){
         check_and_optimize_enabled_tokens(_drip);
+        ReentrancyGuard._end();
         return();
-    }
+    } 
     
-    let (cumulative_drop_) = cumulative_drop.read(_drip);
-    let (step1_) = SafeUint256.mul(Uint256(PRECISION,0), new_amount_out_collateral_);
-    let (step2_,_) = SafeUint256.div_rem(step1_, new_amount_in_collateral_);
-    let (step3_) = SafeUint256.sub_le(Uint256(PRECISION,0), step2_);
-    let (new_cumulative_drop_) = SafeUint256.add(step3_, cumulative_drop_);
-    let (fee_liqudidation_) = fee_liqudidation.read();
-    let (is_le_) = uint256_le(new_cumulative_drop_, fee_liqudidation_);
-    if(is_le_ == 1){
-        cumulative_drop.write(new_cumulative_drop_);
+    
+    if(is_le3_ == 1){
+        cumulative_drop.write(_drip, new_cumulative_drop_);
         check_and_optimize_enabled_tokens(_drip);
+        ReentrancyGuard._end();
         return();
+    } else {
+        full_collateral_check(_drip);
+        cumulative_drop.write(_drip, Uint256(0,0));
+        ReentrancyGuard._end();
+        return ();
     }
-    full_collateral_check(_drip);
-    cumulative_drop.write(_drip, Uint256(0,0));
-    ReentrancyGuard._end();
-    return ();
 }
 
 @external
@@ -593,14 +618,14 @@ func checkAndOptimizeEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
 func disableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _drip: felt,
     _token: felt
-) {
+)->(was_changed: felt) {
     alloc_locals;
     assert_not_paused_or_emergency();
     assert_only_drip_transit_or_adapters();
     ReentrancyGuard._start();
-    disable_token(_drip, _token);
+    let (was_changed_) = disable_token(_drip, _token);
     ReentrancyGuard._end();
-    return ();
+    return (was_changed_,);
 }
 
 
@@ -763,9 +788,11 @@ func forbiddenTokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 
 @view
 func liquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (liquidation_threshold: Uint256) {
+    alloc_locals;
     let (token_mask_) = token_mask.read(_token);
+    let (is_zero_) = uint256_eq(token_mask_, Uint256(0,0));
     with_attr error_message("token not allowed") {
-        assert_not_zero(token_mask_);
+        is_zero_ = 0;
     }
     let (liquidation_threshold_) = liquidation_threshold_from_mask.read(token_mask_);
     return(liquidation_threshold_,);
@@ -778,12 +805,6 @@ func liquidationThresholdByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 }
 
 @view
-func tokenByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (token: Uint256) {
-    let (token_) = token_from_mask.read(_token_mask);
-    return(token_,);
-}
-
-@view
 func liquidationThresholdById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (liquidation_threshold: Uint256) {
     let (token_mask_) = uint256_pow2(Uint256(_id,0));
     let (liquidation_threshold_) = liquidation_threshold_from_mask.read(token_mask_);
@@ -791,7 +812,13 @@ func liquidationThresholdById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
 }
 
 @view
-func tokenById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (token: Uint256) {
+func tokenByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (token: felt) {
+    let (token_) = token_from_mask.read(_token_mask);
+    return(token_,);
+}
+
+@view
+func tokenById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (token: felt) {
     let (token_mask_) = uint256_pow2(Uint256(_id,0));
     let (token_) = token_from_mask.read(token_mask_);
     return(token_,);
@@ -880,7 +907,7 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
             let (total_funds_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
             let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
             let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-            let (new_amount_to_pool_,_) = SafeUint256.add(step2_, amount_to_pool_);
+            let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
             temp_total_funds_.low = total_funds_.low;
             temp_total_funds_.high = total_funds_.high;
             temp_amount_to_pool_.low = new_amount_to_pool_.low;
@@ -896,7 +923,7 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
                 let (total_funds_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
                 let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_expired_);
                 let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-                let (new_amount_to_pool_,_) = SafeUint256.add(step2_, amount_to_pool_);
+                let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
                 temp_total_funds_.low = total_funds_.low;
                 temp_total_funds_.high = total_funds_.high;
                 temp_amount_to_pool_.low = new_amount_to_pool_.low;
@@ -908,7 +935,7 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
                 let (fee_liqudidation_) = fee_liqudidation.read();
                 let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
                 let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-                let (new_amount_to_pool_,_) = SafeUint256.add(step2_, amount_to_pool_);
+                let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
                 temp_total_funds_.low = _total_value.low;
                 temp_total_funds_.high = _total_value.high;
                 temp_amount_to_pool_.low = new_amount_to_pool_.low;
@@ -926,11 +953,17 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
             temp_remaining_funds_.high = remaining_funds_.high;
             temp_amount_to_pool_.low = temp_amount_to_pool_.low;
             temp_amount_to_pool_.high = temp_amount_to_pool_.high;
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         } else {
             temp_remaining_funds_.low = 0;
             temp_remaining_funds_.high = 0;
             temp_amount_to_pool_.low = temp_total_funds_.low;
             temp_amount_to_pool_.high = temp_total_funds_.high;
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         }
 
         let (is_le_) = uint256_le(_borrowed_amount_with_interests, temp_total_funds_);
@@ -985,14 +1018,19 @@ func getDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 @view
 func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip: felt
-) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
+) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
     alloc_locals;
     let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
-    let (step1_) = SafeUint256.mul(borrowed_amount_, cumulative_index_);
+    let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
     let (borrowed_amount_with_interests_, _) = SafeUint256.div_rem(
-        step1_, current_cumulative_index_
+        step1_, cumulative_index_
     );
-    return (borrowed_amount_, borrowed_amount_with_interests_,);
+    let (fee_interest_) = fee_interest.read();
+    let (interest_) = SafeUint256.sub_le(borrowed_amount_with_interests_, borrowed_amount_);
+    let (fees_precision_) = SafeUint256.mul(interest_, fee_interest_);
+    let (fees_,_) = SafeUint256.div_rem(fees_precision_, Uint256(PRECISION,0));
+    let (borrowed_amount_with_interests_and_fees_) = SafeUint256.add(borrowed_amount_with_interests_, fees_);
+    return (borrowed_amount_, borrowed_amount_with_interests_, borrowed_amount_with_interests_and_fees_,);
 }
 
 @view
@@ -1037,22 +1075,25 @@ func full_collateral_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     let (borrowed_amount_with_interests_and_fees_precision_) = SafeUint256.mul(borrowed_amount_with_interests_and_fees_, Uint256(PRECISION,0));
     let (borrowed_amount_with_interests_and_fees_usd_) = IOracleTransit.convertToUSD(oracle_transit_, borrowed_amount_with_interests_and_fees_precision_, underlying_);
     let (max_index_) = get_max_index(enabled_tokens_);
-    recursive_calcul_value(oracle_transit_, _drip, enabled_tokens_, Uint256(0,0), borrowed_amount_with_interests_and_fees_usd_, Uint256(1,0), max_index_);
+    recursive_calcul_value(oracle_transit_, _drip, enabled_tokens_, Uint256(0,0), borrowed_amount_with_interests_and_fees_usd_, Uint256(0,0), max_index_);
     return ();
 }
 
 
 func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
-    _oracle_transit: felt,
-    _drip: felt,
-    _enabled_tokens: Uint256,
-    _cumulative_twv_usd: Uint256,
-    _borrowed_amount_with_interests: Uint256,
-    _index: Uint256,
-    _max_index: Uint256) {
+        _oracle_transit: felt,
+        _drip: felt,
+        _enabled_tokens: Uint256,
+        _cumulative_twv_usd: Uint256,
+        _borrowed_amount_with_interests: Uint256,
+        _index: Uint256,
+        _max_index: Uint256) {
     alloc_locals;
+    let (is_le_) = uint256_le(_index, _max_index);
+    with_attr error_message("not enough collateral") {
+        assert is_le_ = 1;
+    }
     let (new_index_) = SafeUint256.add(_index, Uint256(1,0));
-    let (is_eq_) = uint256_eq(_index, _max_index);
     let (token_mask_) = uint256_pow2(_index);
     let (low_) = bitwise_and(_enabled_tokens.low, token_mask_.low);
     let (high_) = bitwise_and(_enabled_tokens.high, token_mask_.high);
@@ -1068,7 +1109,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
             let (new_cumulative_twv_usd_) = SafeUint256.add(_cumulative_twv_usd, lt_value_);
             let (is_le_) = uint256_le(_borrowed_amount_with_interests, new_cumulative_twv_usd_);
             if(is_le_ == 1){
-                let (total_tokens_enabled_) = calc_enabled_tokens(_enabled_tokens);
+                let (total_tokens_enabled_) = calc_enabled_tokens(_enabled_tokens,  Uint256(0,0));
                 let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
                 let (is_lt_) = uint256_lt(max_allowed_enabled_tokens_length_, total_tokens_enabled_);
                 if(is_lt_ == 1){
@@ -1080,23 +1121,14 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
                     return();
                 }
             } else {
-                with_attr error_message("not enough collateral") {
-                    assert is_eq_ = 0;
-                }
                 return recursive_calcul_value(_oracle_transit, _drip, _enabled_tokens, new_cumulative_twv_usd_, _borrowed_amount_with_interests, new_index_, _max_index);
             }
         } else {
             let (low_) = bitwise_xor(_enabled_tokens.low, token_mask_.low);
             let (high_) = bitwise_xor(_enabled_tokens.high, token_mask_.high);
-            with_attr error_message("not enough collateral") {
-                assert is_eq_ = 0;
-            }
-            return recursive_calcul_value(_oracle_transit, _drip, Uint256(low_, high_), new_cumulative_twv_usd_, _borrowed_amount_with_interests, new_index_, _max_index);
+            return recursive_calcul_value(_oracle_transit, _drip, Uint256(low_, high_), _cumulative_twv_usd, _borrowed_amount_with_interests, new_index_, _max_index);
             }
     } else {
-        with_attr error_message("not enough collateral") {
-            assert is_eq_ = 0;
-        }
         return recursive_calcul_value(_oracle_transit, _drip, _enabled_tokens, _cumulative_twv_usd, _borrowed_amount_with_interests, new_index_, _max_index);
     }
 }
@@ -1111,7 +1143,7 @@ func transfer_assets_to{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     let (enabled_tokens_) = enabled_tokens.read(_drip);
     let (count_) = allowed_tokens_length.read();
     let (oracle_transit_) = oracle_transit.read();
-    recursive_transfer_token(1, count_, _drip, _to, enabled_tokens_, oracle_transit_);
+    recursive_transfer_token(1, count_, _drip, _to, enabled_tokens_);
     return ();
 }
 
@@ -1193,7 +1225,7 @@ func check_and_enable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 
 func disable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _drip: felt, _token: felt
-) {
+)-> (was_changed: felt) {
     let (token_mask_) = token_mask.read(_token);
     let (enabled_tokens_) = enabled_tokens.read(_drip);
     let (low_) = bitwise_and(enabled_tokens_.low, token_mask_.low);
@@ -1203,17 +1235,9 @@ func disable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         let (low_) = bitwise_xor(enabled_tokens_.low, token_mask_.low);
         let (high_) = bitwise_xor(enabled_tokens_.high, token_mask_.high);
         enabled_tokens.write(_drip, Uint256(low_, high_));
-        tempvar syscall_ptr = syscall_ptr;
-        tempvar range_check_ptr = range_check_ptr;
-        tempvar pedersen_ptr = pedersen_ptr;
-        tempvar bitwise_ptr = bitwise_ptr;
-    } else {
-        tempvar syscall_ptr = syscall_ptr;
-        tempvar range_check_ptr = range_check_ptr;
-        tempvar pedersen_ptr = pedersen_ptr;
-        tempvar bitwise_ptr = bitwise_ptr;
-    }
-    return ();
+        return (1,);
+    } 
+    return (0,);
 }
 
 func safe_drip_set{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
@@ -1251,7 +1275,7 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
 func calc_new_cumulative_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _delta: Uint256, _current_cumulative_index: Uint256, _drip_cumulative_index: Uint256, is_increase: felt) -> (new_cumulative_index: Uint256) {
     alloc_locals;
-    if(increase == 1){
+    if(is_increase == 1){
         let (new_borrowed_amount_) = SafeUint256.add(_borrowed_amount, _delta);
         let (step1_) = SafeUint256.mul(_current_cumulative_index, new_borrowed_amount_);
         let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION,0));
@@ -1289,6 +1313,7 @@ func check_and_optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBui
     if(is_lt_ == 1){
         let (max_index_) = get_max_index(enabled_tokens_);
         optimize_enabled_tokens(_drip, enabled_tokens_, total_tokens_enabled_, Uint256(0,0),max_index_);
+        return ();
     }
     return ();
 }
@@ -1303,8 +1328,8 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     alloc_locals;
     let (token_mask_) = uint256_pow2(_index);
     let (new_index_) = SafeUint256.add(_index, Uint256(1,0));
-    let (low_) = bitwise_and(token_mask_.low, _mask.low);
-    let (high_) = bitwise_and(token_mask_.high, _mask.high);
+    let (low_) = bitwise_and(token_mask_.low, _enabled_tokens.low);
+    let (high_) = bitwise_and(token_mask_.high, _enabled_tokens.high);
     let (is_eq_) = uint256_eq(Uint256(0, 0), Uint256(low_, high_));
     let (is_index_max_) = uint256_eq(_max_index, _index);
     if(is_eq_ == 1){
@@ -1317,8 +1342,8 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         let (balance_) = IERC20.balanceOf(token_, _drip);
         let (is_le_) = uint256_le(Uint256(1,0), balance_);
         if(is_le_ == 1){
-            let (low_) = bitwise_xor(_enabled_tokens.low, token_mask_);
-            let (high_) = bitwise_xor(_enabled_tokens.high, token_mask_);
+            let (low_) = bitwise_xor(_enabled_tokens.low, token_mask_.low);
+            let (high_) = bitwise_xor(_enabled_tokens.high, token_mask_.high);
             enabled_tokens.write(_drip, Uint256(low_, high_));
             let (new_total_tokens_enabled_) = SafeUint256.sub_le(_total_tokens_enabled, Uint256(1,0));
             let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
@@ -1336,25 +1361,25 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
             with_attr error_message("Too many enabled tokens") {
                 assert is_index_max_ = 0;
             }
-            return optimize_enabled_tokens(_drip, _enabled_tokens, _total_tokens_enabled, new_index_);  
+            return optimize_enabled_tokens(_drip, _enabled_tokens, _total_tokens_enabled, new_index_, _max_index);  
         }
     }
 }
 
 
-func get_max_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_mask: Uint256) {
+func get_max_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_mask: Uint256) -> (max_index: Uint256) {
     alloc_locals;
     let (is_one_) = uint256_eq(_mask, Uint256(1,0));
     if(is_one_ == 1){
-        return(Uint256(0,0));
+        return(Uint256(0,0),);
     }
     let (max_index_) =  recursive_search_max_index(Uint256(255,0), _mask);
-    return ();
+    return (max_index_,);
 }
 
 func recursive_search_max_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_cumulative_index_: Uint256, _mask: Uint256) -> (max_index: Uint256) {
     alloc_locals;
-    let (pow2_) = uint256_pow2(Uint256(_cumulative_index_,0));
+    let (pow2_) = uint256_pow2(_cumulative_index_);
     let (low_) = bitwise_and(pow2_.low, _mask.low);
     let (high_) = bitwise_and(pow2_.high, _mask.high);
     let (is_lt_) = uint256_lt(Uint256(0, 0), Uint256(low_, high_));
@@ -1374,10 +1399,10 @@ func calc_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     if(is_lt_ == 1){
         let (is_enabled_) = bitwise_and(1, _enabled_tokens.low);
         let (cum_total_tokens_enabled_) = SafeUint256.add(_cum_total_tokens_enabled, Uint256(is_enabled_, 0));
-        let (enabled_tokens_) = div_rem(_enabled_tokens,2);
+        let (enabled_tokens_,_) = SafeUint256.div_rem(_enabled_tokens,Uint256(2,0));
         return calc_enabled_tokens(enabled_tokens_, _cum_total_tokens_enabled);
     } else {
-        return(_cum_total_tokens_enabled);
+        return(_cum_total_tokens_enabled,);
     }
 }
 

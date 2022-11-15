@@ -50,6 +50,9 @@ namespace IDripConfigurator {
     func setIncreaseDebtForbidden(_state: felt){
     }
 
+    func updateOwner() {
+    }
+
     // Getters
 
     func idToAllowedContract(id: felt) -> (allowedContract: felt){

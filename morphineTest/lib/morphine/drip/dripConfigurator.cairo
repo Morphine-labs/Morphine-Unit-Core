@@ -130,17 +130,6 @@ func registery() -> (registery : felt){
 }
 
 
-// Protector
-
-func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
-    let (caller_) = get_caller_address();
-    let (drip_manager_) = drip_manager.read();
-    with_attr error_message("Drip: only callable by drip manger") {
-        assert caller_ = drip_manager_;
-    }
-    return();
-}
-
 //Constructor
 
 @constructor
@@ -182,6 +171,16 @@ func addTokenToAllowedList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     Ownable.assert_only_owner();
     add_token_to_allowed_list(_token);
     return();
+}
+
+@external
+func updateOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (registery_) = registery.read();
+    let (owner_) = IRegistery.owner(registery_);
+    Ownable.transfer_ownership(owner_);
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.updateOwner(drip_manager_);
+    return ();
 }
 
 @external

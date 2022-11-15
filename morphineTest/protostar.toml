@@ -5,6 +5,7 @@ protostar_version = "0.4.2"
 libs_path = "lib"
 
 ["protostar.contracts"]
-dripConfig = [
+
+dripTransit = [
     "lib/morphine/drip/dripManager.cairo",
 ]

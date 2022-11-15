@@ -18,6 +18,11 @@ struct AccountCallArray {
     data_len: felt,
 }
 
+struct tokenAndBalance {
+    token: felt,
+    balance: Uint256,
+}
+
 @contract_interface
 namespace IDripTransit {
     // setters
@@ -36,6 +41,7 @@ namespace IDripTransit {
 
     func setIncreaseDebtForbidden(state: felt) {
     }
+    
 
 
 
@@ -58,6 +64,9 @@ namespace IDripTransit {
 
     func limits() -> (minimum_borrowed_amount: Uint256, max_borrowed_amount: Uint256) {
     }         
+
+    func getNft() -> (nft: felt){
+    }
 
 
 }

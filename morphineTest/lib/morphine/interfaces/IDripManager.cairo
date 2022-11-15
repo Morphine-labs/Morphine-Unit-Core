@@ -26,6 +26,7 @@ namespace IDripManager {
     func addToken(token: felt) {
     }
 
+
     func setFees(
         fee_interest: Uint256,
         fee_liqudidation: Uint256,
@@ -43,7 +44,7 @@ namespace IDripManager {
     func openDrip(borrowed_amount: Uint256, on_belhalf_of: felt) -> (drip: felt) {
     }
 
-    func manageDebt(_borrower: felt, amount: Uint256, increase: felt) {
+    func manageDebt(_borrower: felt, amount: Uint256, increase: felt) -> (newBorrowedAmount: Uint256){
     }
 
     func approveDrip(borrower: felt, target: felt, token: felt,amount: Uint256) {
@@ -61,11 +62,25 @@ namespace IDripManager {
     func checkEmergencyPausable(_caller: felt, _state: felt) -> (state: felt)  {
     }
 
-    
+    func fullCollateralCheck(drip: felt) {
+    }
+
+    func checkAndOptimizeEnabledTokens(drip: felt) {
+    }
+
+    func disableToken(drip: felt, token: felt) -> (was_changed: felt) {
+    }
+
+    func checkAndEnableToken(_drip: felt, _token: felt){
+    }
+
+    func updateOwner() {
+    }
 
     // Getters
 
-    func calcDripAccruedInterest(drip : felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256) {
+
+    func calcDripAccruedInterest(_drip: felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
     }
 
     func getPool() -> (pool: felt) {
@@ -131,10 +146,20 @@ namespace IDripManager {
     func liquidationThreshold(token: felt) -> (liquidationThresold: Uint256) {
     }
 
-    func underlying() -> (underlying: felt) {
+    
+    func liquidationThresholdByMask(_token_mask: Uint256) -> (liquidation_threshold: Uint256) {
+    }
+    
+    func liquidationThresholdById(_id: felt) -> (liquidation_threshold: Uint256) {
+    }
+    
+    func tokenByMask(_token_mask: Uint256) -> (token: felt) {
+    }
+    
+    func tokenById(_id: felt) -> (token: felt) {
     }
 
-    func fullCollateralCheck(drip: felt) {
+    func underlying() -> (underlying: felt) {
     }
 
     func getDripOrRevert(borrower: felt) -> (drip: felt) {
