@@ -18,7 +18,8 @@ from morphine.interfaces.IRegistery import IRegistery
 func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     tempvar registery;
     tempvar drip_hash;
-
+    // Uncomment if you want 1000 fuzz target (100 by default)
+    //%{ max_examples(1000) %}
     %{
 
         ids.drip_hash = declare("./lib/morphine/drip/drip.cairo").class_hash
@@ -42,11 +43,15 @@ func test_registery_ctor_owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 }
 
 @external
-func test_registery_change_owner {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+func test_registery_change_owner {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_owner : felt) {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
-    registery_instance.setOwner(123);
+    %{
+        if ids.new_owner == 0:
+            expect_revert(error_message="Ownable: new owner is the zero address")
+    %}
+    registery_instance.setOwner(new_owner);
     let (admin_registery) = registery_instance.owner();
-    assert admin_registery = 123;
+    assert admin_registery = new_owner;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
 }
@@ -79,11 +84,15 @@ func test_registery_ctor_tresuary {syscall_ptr: felt*, pedersen_ptr: HashBuiltin
 }
 
 @external
-func test_registery_change_treasury {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+func test_registery_change_treasury {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_treasury : felt) {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
-    registery_instance.setTreasury(123);
+    %{
+        if ids.new_treasury == 0:
+            expect_revert(error_message="Treasury: address is zero")
+    %}
+    registery_instance.setTreasury(new_treasury);
     let (tres_registery) = registery_instance.treasury();
-    assert tres_registery = 123;
+    assert tres_registery = new_treasury;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
 }
@@ -218,9 +227,13 @@ func test_registery_ctor_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, ran
 }
 
 @external
-func test_registery_add_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+func test_registery_add_pool{syscall_ptr:felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(new_pool : felt) {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
-    registery_instance.addPool(123);
+    %{
+        if ids.new_pool == 0:
+            expect_revert(error_message="Pool: address is zero")
+    %}
+    registery_instance.addPool(new_pool);
     let (len) = registery_instance.nbPool();
     assert len = 1;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
@@ -313,11 +326,15 @@ func test_registery_multiple_pool_fail_2{syscall_ptr:felt*, pedersen_ptr: HashBu
 }
 
 @external
-func test_registery_id_to_pool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_registery_id_to_pool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(new_pool : felt){
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
-    registery_instance.addPool(123);
+    %{
+        if ids.new_pool == 0:
+            expect_revert(error_message="Pool: address is zero")
+    %}
+    registery_instance.addPool(new_pool);
     let (pool) = registery_instance.idToPool(0);
-    assert pool = 123;
+    assert pool = new_pool;
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -342,9 +359,13 @@ func test_registery_ctor_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBui
 }
 
 @external
-func test_registery_add_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+func test_registery_add_drip_manager {syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(drip_manager : felt) {
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery] ] %}
-    registery_instance.addDripManager(123);
+    %{
+        if ids.drip_manager == 0:
+            expect_revert(error_message="Drip manager: address is zero")
+    %}
+    registery_instance.addDripManager(drip_manager);
     let (len) = registery_instance.drip_manager_length();
     assert len = 1;
     %{ [stop_prank() for stop_prank in stop_pranks] %}

@@ -156,6 +156,13 @@ func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
 
 // Constructor
 
+// @notice Initialize the contract
+// @param _registery registery address
+// @param _asset asset use in the pool
+// @param _name name of the pool
+// @param _symbol symbol of the pool
+// @param _expected_liquidity_limit pool liquidity limit
+// @param _interest_rate_model pool interest rate
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _registery: felt,
@@ -185,6 +192,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 // Configurator stuff
 
+// @notice pause pool contract
 @external
 func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -193,6 +201,7 @@ func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     return ();
 }
 
+// @notice unpause pool contract
 @external
 func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -201,6 +210,7 @@ func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() 
     return ();
 }
 
+// @notice freeze borrow from pool
 @external
 func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -210,6 +220,7 @@ func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
+// @notice unfreeze borrow from pool
 @external
 func unfreezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -219,6 +230,7 @@ func unfreezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return ();
 }
 
+// @notice freeze repay from pool
 @external
 func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -228,6 +240,7 @@ func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
+// @notice unfreeze repay from pool
 @external
 func unfreezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     Ownable.assert_only_owner();
@@ -238,6 +251,8 @@ func unfreezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     return ();
 }
 
+// @notice set withdraw fee from pool
+// @param _base_withdraw_fee fee when withdraw pool
 @external
 func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _base_withdraw_fee: Uint256
@@ -254,6 +269,8 @@ func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return ();
 }
 
+// @notice liquidity limit in pool
+// @param _expected_liquidity_limit liquidity limit in pool
 @external
 func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _expected_liquidity_limit: Uint256
@@ -264,6 +281,8 @@ func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return ();
 }
 
+// @notice update interest rate model in pool
+// @param _interest_rate_model modify interest rate in pool
 @external
 func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _interest_rate_model: felt
@@ -273,6 +292,8 @@ func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     return ();
 }
 
+// @notice connect a new drip manager to a pool
+// @param _drip_manager drip manager address
 @external
 func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager: felt
@@ -293,6 +314,10 @@ func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 
 // Lender stuff
 
+// @notice deposit assets in pool
+// @param _assets amount of assets you want to deposit in the pool
+// @param _receiver address who will receive the LP token
+// @returns shares the number of LP you receive from deposit
 @external
 func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256, _receiver: felt
@@ -333,6 +358,10 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (shares_,);
 }
 
+// @notice mint LP 
+// @param _shares amount of shares you want to mint
+// @param _receiver address who will receive the LP token
+// @returns assets the number of assets you receive
 @external
 func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256, _receiver: felt
@@ -373,6 +402,12 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     Deposit.emit(caller_, _receiver, assets_, _shares);
     return (assets_,);
 }
+
+// @notice withdraw from pool
+// @param _assets assets you want to retrieve
+// @param _receiver address who will receive the LP token
+// @param _owner owner address
+// @returns shares the number of shares you retrieve
 
 @external
 func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
@@ -437,6 +472,11 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (shares_,);
 }
 
+// @notice redeem from pool
+// @param _shares number of shares you want to redeem
+// @param _receiver address who will receive the reedem assets
+// @param _owner owner address
+// @returns assets the number of assets you reedem
 @external
 func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256, _receiver: felt, _owner: felt
@@ -487,6 +527,9 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
 // Borrower stuff
 
+// @notice borrow from pool
+// @param _borrow_amount amount borrow from the pool
+// @param _drip address of the drip where you will got the assets borrowed
 @external
 func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrow_amount: Uint256, _drip: felt
@@ -497,6 +540,9 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     assert_only_drip_manager();
     assert_borrow_not_frozen();
     let (underlying_) = underlying.read();
+    with_attr error_message("drip address is zero") {
+        assert_not_zero(_drip);
+    }
     SafeERC20.transfer(underlying_, _drip, _borrow_amount);
     update_borrow_rate(Uint256(0, 0));
 
@@ -508,6 +554,10 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return ();
 }
 
+// @notice repay the drip debt
+// @param _borrow_amount total amount you borrowed 
+// @param _profit profit you made from the money you borrowed
+// @param _loss loss you made from the money you borrowed
 @external
 func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _profit: Uint256, _loss: Uint256
@@ -564,18 +614,24 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 // VIEW
 //
 
+// @notice check if contract are paused
+// @return state if contract are paused
 @view
 func isPaused{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_paused_) = Pausable.is_paused();
     return(is_paused_,);
 }
 
+// @notice check if borrow are frozen
+// @return state if borrow are frozen
 @view
 func isBorrowFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_borrow_frozen_) = borrow_frozen.read();
     return(is_borrow_frozen_,);
 }
 
+// @notice check if repay are frozen
+// @return state if repay are frozen
 @view
 func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_repay_frozen_) = repay_frozen.read();
@@ -583,12 +639,16 @@ func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 }
 
 
+// @notice get registery 
+// @return registery registrey address 
 @view
 func getRegistery{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (registery : felt){
     let (registery_) = registery.read();
     return(registery_,);
 }
 
+// @notice get the underlying asset
+// @return asset 
 @view
 func asset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (asset: felt) {
     let (read_asset: felt) = underlying.read();
@@ -596,6 +656,9 @@ func asset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() ->
 }
 
 
+// @notice max deposit authorized 
+// @param _to the address of the pool you want to deposit
+// @return maxAssets the maximum amount of assets you can deposit
 @view
 func maxDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt) -> (
     maxAssets: Uint256
@@ -606,6 +669,9 @@ func maxDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (max_deposit_,);
 }
 
+// @notice max mint authorized 
+// @param _to the address of the pool where you want to mint shares
+// @return maxShares the maximum amount of shares you can mint
 @view
 func maxMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_to: felt) -> (
     maxShares: Uint256
@@ -615,6 +681,9 @@ func maxMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_t
     return (max_mint_,);
 }
 
+// @notice max withdraw authorized 
+// @param _from the address of the pool where you want to withdraw assets
+// @return maxAsssets the maximum amount of assets you can withdraw
 @view
 func maxWithdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_from: felt) -> (
     maxAssets: Uint256
@@ -637,6 +706,9 @@ func maxWithdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 
+// @notice max redeem authorized 
+// @param caller caller address
+// @return maxShares the maximum amount of assets you can redeem
 @view
 func maxRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(caller: felt) -> (
     maxShares: Uint256
@@ -651,6 +723,9 @@ func maxRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (max_reedem_,);
 }
 
+// @notice max redeem authorized 
+// @param caller caller address
+// @return maxShares the maximum amount of assets you can redeem
 @view
 func previewDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256
@@ -658,6 +733,9 @@ func previewDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return convertToShares(_assets);
 }
 
+// @notice give you preview of amount assets you will have if you burn your shares
+// @param _shares number of shares
+// @return assets number of assets you will have
 @view
 func previewMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256
@@ -673,6 +751,9 @@ func previewMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return (assets_,);
 }
 
+// @notice give you preview of amount shares you will have if you withdraw your assets
+// @param _assets number of assets
+// @return shares number of shares you will have
 @view
 func previewWithdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256
@@ -692,6 +773,9 @@ func previewWithdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (shares_,);
 }
 
+// @notice give you preview of amount shares you will have if you withdraw your assets
+// @param _shares number of shares
+// @return assets number of assets you will have
 @view
 func previewRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256
@@ -705,6 +789,11 @@ func previewRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 
+// @notice  calculate the cumulative index
+//                                                           /     currentBorrowRate * timeDifference \
+//  new_cumulative_index  = last_updated_cumulative_index * | 1 + ------------------------------------ |
+//                                                          \              SECONDS_PER_YEAR          /
+// @return cumulativeIndex new cumulativeIndex
 @view
 func calcLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ) -> (cumulativeIndex: Uint256) {
@@ -728,6 +817,9 @@ func calcLinearCumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 }
 
 
+// @notice convert assets to shares
+// @param _assets assets to convert
+// @return shares number of shares you can obtain from assets
 @view
 func convertToShares{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256
@@ -743,6 +835,9 @@ func convertToShares{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (shares_,);
 }
 
+// @notice convert shares to assets
+// @param _shares shares to convert
+// @return assets number of assets you can obtain from shares
 @view
 func convertToAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256
@@ -759,6 +854,8 @@ func convertToAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (assets_,);
 }
 
+// @notice get total assets 
+// @return totalManagedAssets total assets managed by a drip
 @view
 func totalAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     totalManagedAssets: Uint256
@@ -783,6 +880,8 @@ func totalAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return (total_assets_,);
 }
 
+// @notice get total borrowed
+// @return totalBorrowed total borrowed by a drip
 @view
 func totalBorrowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     totalBorrowed: Uint256
@@ -791,6 +890,8 @@ func totalBorrowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     return (total_borrowed_,);
 }
 
+// @notice get borrowed rate
+// @return Borrow rate drip borrow rate
 @view
 func borrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     borrowRate: Uint256
@@ -799,6 +900,8 @@ func borrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (borrow_rate_,);
 }
 
+// @notice get cumulative index
+// @return Borrow rate drip borrow rate after cumulative index
 @view
 func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     borrowRate: Uint256
@@ -807,6 +910,8 @@ func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (cumulative_index_,);
 }
 
+// @notice get last timestamp update
+// @return lastUpdatedTimestamp last time the timestamp was updated
 @view
 func lastUpdatedTimestamp{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     lastUpdatedTimestamp: felt
@@ -815,6 +920,8 @@ func lastUpdatedTimestamp{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return (last_updated_timestamp_,);
 }
 
+// @notice get expected liquidity
+// @return expectedLiquidity expected liquidity
 @view
 func expectedLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ) -> (expectedLiquidity: Uint256) {
@@ -822,14 +929,18 @@ func expectedLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return (expected_liquidity_,);
 }
 
+// @notice get expected liquidity limit
+// @return expectedLiquidityLimit expected liquidity limit
 @view
 func expectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    lastUpdatedTimestamp: Uint256
+    expectedLiquidityLimit: Uint256
 ) {
     let (expected_liquidity_limit_) = expected_liquidity_limit.read();
     return (expected_liquidity_limit_,);
 }
 
+// @notice get available liquidity 
+// @return availableLiquidity available liquidity
 @view
 func availableLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     availableLiquidity: Uint256
@@ -840,6 +951,8 @@ func availableLiquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     return (available_liquidity_,);
 }
 
+// @notice get withdrawFee
+// @return withdrawFee withdraw fee
 @view
 func withdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     withdrawFee: Uint256
@@ -874,19 +987,8 @@ func withdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // INTERNALS
 //
 
-@external
-func update_interest_rate_model{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _interest_rate_model: felt
-) {
-    with_attr error_message("zero address not allowed") {
-        assert_not_zero(_interest_rate_model);
-    }
-    interest_rate_model.write(_interest_rate_model);
-    update_borrow_rate(Uint256(0,0));
-    NewInterestRateModel.emit(_interest_rate_model);
-    return ();
-}
-
+// @notice update borrow_rate
+// @param loss calculate the new borrow rate
 func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     loss: Uint256
 ) {
@@ -908,6 +1010,10 @@ func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     return ();
 }
 
+// @notice Decrease ERC20 allowance manual
+// @param _owner drip owner
+// @param _spender spender
+// @param _subtracted_value allowance amount remove
 func ERC20_decrease_allowance_manual{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }(_owner: felt, _spender: felt, _subtracted_value: Uint256) -> () {
@@ -925,55 +1031,64 @@ func ERC20_decrease_allowance_manual{
     return ();
 }
 
-
-    func assert_borrow_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-        let (is_frozen_) = borrow_frozen.read();
-        with_attr error_message("borrow frozen") {
-            assert is_frozen_ = 0;
-        }
-        return ();
+// @notice protector borrow not frozen
+func assert_borrow_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (is_frozen_) = borrow_frozen.read();
+    with_attr error_message("borrow frozen") {
+        assert is_frozen_ = 0;
     }
-    
+    return ();
+}
 
-    func assert_borrow_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-        let (is_frozen_) = borrow_frozen.read();
-        with_attr error_message("borrow not frozen") {
-            assert is_frozen_ = 1;
-        }
-        return ();
-    }
 
-    func assert_repay_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-        let (is_frozen_) = repay_frozen.read();
-        with_attr error_message("repay frozen") {
-            assert is_frozen_ = 0;
-        }
-        return ();
+// @notice protector borrow frozen
+func assert_borrow_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (is_frozen_) = borrow_frozen.read();
+    with_attr error_message("borrow not frozen") {
+        assert is_frozen_ = 1;
     }
+    return ();
+}
 
-    func assert_repay_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-        let (is_frozen_) = repay_frozen.read();
-        with_attr error_message("repay not frozen") {
-            assert is_frozen_ = 1;
-        }
-        return ();
+// @notice protector repay not frozen
+func assert_repay_not_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (is_frozen_) = repay_frozen.read();
+    with_attr error_message("repay frozen") {
+        assert is_frozen_ = 0;
     }
+    return ();
+}
+
+// @notice protector repay frozen
+func assert_repay_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    let (is_frozen_) = repay_frozen.read();
+    with_attr error_message("repay not frozen") {
+        assert is_frozen_ = 1;
+    }
+    return ();
+}
 // ERC 20 STUFF
 
 // Getters
 
+// @notice get name
+// @return name
 @view
 func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (name: felt) {
     let (name_) = ERC20.name();
     return (name_,);
 }
 
+// @notice get symbol
+// @return symbol
 @view
 func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (symbol: felt) {
     let (symbol_) = ERC20.symbol();
     return (symbol_,);
 }
 
+// @notice get totalSupply
+// @return totalSupply
 @view
 func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     totalSupply: Uint256
@@ -982,6 +1097,8 @@ func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return (totalSupply_,);
 }
 
+// @notice get decimals
+// @return decimals
 @view
 func decimals{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     decimals: felt
@@ -990,6 +1107,8 @@ func decimals{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}()
     return (decimals_,);
 }
 
+// @notice get balanceOf
+// @return balanceOf
 @view
 func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
     balance: Uint256
@@ -998,6 +1117,8 @@ func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (balance_,);
 }
 
+// @notice get allowance
+// @return allowance
 @view
 func allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _owner: felt, _spender: felt
@@ -1008,6 +1129,10 @@ func allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
 // Externals
 
+// @notice transfer ERC20
+// @param  recipient
+// @param  amount
+// @return success
 @external
 func transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     recipient: felt, amount: Uint256
@@ -1016,6 +1141,11 @@ func transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (1,);
 }
 
+// @notice transferFrom ERC20
+// @param  sender
+// @param  recipient
+// @param  amount
+// @return success
 @external
 func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     sender: felt, recipient: felt, amount: Uint256
@@ -1024,6 +1154,10 @@ func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return (1,);
 }
 
+// @notice Approve ERC20
+// @param  _spender
+// @param  amount
+// @return success
 @external
 func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _spender: felt, amount: Uint256
@@ -1032,6 +1166,10 @@ func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (1,);
 }
 
+// @notice increaseAllowance ERC20
+// @param  _spender
+// @param  added_value
+// @return success
 @external
 func increaseAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _spender: felt, added_value: Uint256
@@ -1040,6 +1178,10 @@ func increaseAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return (1,);
 }
 
+// @notice decreaseAllowance ERC20
+// @param  _spender
+// @param  subtracted_value
+// @return success
 @external
 func decreaseAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _spender: felt, subtracted_value: Uint256

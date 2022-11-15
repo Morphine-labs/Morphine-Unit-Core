@@ -11,8 +11,6 @@ from starkware.cairo.common.uint256 import (
 
 from morphine.utils.various import PRECISION
 
-
-
 @storage_var
 func slope1() -> (res: Uint256) {
 }
@@ -33,6 +31,11 @@ func base_rate() -> (res: Uint256) {
 func optimal_liquidity_utilization() -> (res: Uint256) {
 }
 
+// @notice Constructor
+// @param _optimal_liquidity_utilization optimal liquidity utilization
+// @param _slope1 slope1
+// @param _slope2 slope2
+// @param _base_rate base_rate
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _optimal_liquidity_utilization: Uint256,
@@ -60,6 +63,10 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
+// @notice calculate the borrow rate
+// @param _expected_liqudity expected liquidity
+// @param _available_liquidity available liquidity
+// @return borrowRate return the borrow rate
 @external
 func calcBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_expected_liqudity: Uint256, _available_liquidity: Uint256) -> (
     borrowRate: Uint256
@@ -117,8 +124,10 @@ func calcBorrowRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     }
 }
 
-
-
+// @notice modelize all the parameters need in order to calculate the interest rate
+// @param _expected_liqudity expected liquidity
+// @param _available_liquidity available liquidity
+// @return borrowRate return the borrow rate
 @view
 func modelParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     optimalLiquidityUtilization: Uint256,
