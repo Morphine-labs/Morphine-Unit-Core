@@ -151,13 +151,15 @@ func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     _drip_manager: felt,
-    _nft: felt) {
-    with_attr error_message("zero address for drip manager"){
+    _nft: felt,
+    _expirable: felt) {
+    with_attr error_message("zero address"){
         assert_not_zero(_drip_manager);
     }
     let (underlying_)= IDripManager.underlying(_drip_manager);
     drip_manager.write(_drip_manager);
     underlying.write(underlying_);
+    expirable.write(_expirable);
     nft.write(_nft);
     if (_nft == 0){
         permissionless.write(1);
@@ -510,6 +512,20 @@ func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @view
+func isExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (state: felt){
+    alloc_locals;
+    let (is_expirable_) = is_expirable.read();
+    let (block_timestamp_) = get_block_timestamp();
+    let (expiration_date_) = expiration_date.read();
+    let (is_expired_) = uint256_le(Uint256(expiration_date_,0), Uint256(block_timestamp_, 0));
+    if(is_expirable_ * is_expired_ == 0){
+        return(0,)
+    } else {
+        return(1,)
+    }
+}
+
+@view
 func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt) -> (state: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -601,9 +617,6 @@ func limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -
     return(minimum_borrowed_amount_, maximum_borrowed_amount_,);
 }
 
-
-
-expiration_date
 
 // Internals
 
@@ -838,6 +851,47 @@ func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: Has
     return();
 }
 
+func revert_if_open_drip_not_allowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_on_belhalf_of: felt){
+    alloc_locals;
+    let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
+    with_attr error_message("increase debt forbidden") {
+        assert_not_zero(is_increase_debt_forbidden_);
+    }
+    let (is_expired_) = isExpired();
+    with_attr error_message("Drip Transit Expired") {
+        assert_not_zero(is_increase_debt_forbidden_);
+    }
+
+
+    if(permissionless_ == 0){
+        
+        let (nft_) = nft.read();
+        let (nft_balance_) = IERC721.balanceOf(nft_, _on_belhalf_of);
+        let (is_le_) = uint256_le(Uint256(0,0),nft_balance_);
+        with_attr error_message("Get Your Pass"){
+            assert is_le_ = 0;
+        }
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }
+
+    let (is_expirable_) = 
+    let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
+    let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
+    let (is_allowed_borrowed_amount1_) = uint256_lt(minimum_borrowed_amount_, _borrowed_amount);
+    let (is_allowed_borrowed_amount2_) = uint256_lt(_borrowed_amount, maximum_borrowed_amount_);
+    with_attr error_message("borrow amount out of limit") {
+        assert_not_zero(is_allowed_borrowed_amount1_ * is_allowed_borrowed_amount2_);
+    }
+    return();
+}
+
+
 func revert_if_out_borrowed_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_borrowed_amount: Uint256){
     alloc_locals;
     let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
@@ -850,30 +904,6 @@ func revert_if_out_borrowed_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
     return();
 }
 
-func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
-    alloc_locals;
-    let (permissionless_) = permissionless.read();
-    if(permissionless_ == 1){
-        let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
-        let (last_block_, last_limit_) = getTotalBorrowedInBlock();
-        let (block_number_) = get_block_number();
-        tempvar temp_new_limit_: Uint256;
-        if(block_number_ == last_block_){
-            let (new_limit_) = SafeUint256.add(_amount, last_limit_);
-            temp_new_limit_.low = new_limit_.low;
-            temp_new_limit_.high = new_limit_.high;
-        } else {
-            temp_new_limit_.low = _amount.low;
-            temp_new_limit_.high = _amount.high;
-        }
-        let (is_lt_) = uint256_lt(max_borrowed_amount_per_block_, temp_new_limit_);
-        with_attr error_message("borrowed per block limit"){
-            assert is_lt_ = 0;
-        }
-        update_total_borrowed_in_block(temp_new_limit_);
-        return();
-    }
-}
 
 func add_collateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_on_belhalf_of: felt, _drip: felt, _token: felt, _amount: Uint256){
     alloc_locals;
