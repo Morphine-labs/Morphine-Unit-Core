@@ -647,36 +647,3 @@ func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     }
     return loop_liquidation_threshold(_len - 1,  _drip_manager, _lt_underlying);
 }
-
-// func check_fast_check_parameters_coverage{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_chi_threshold: Uint256, _hf_check_interval: Uint256, _fee_liquidation: Uint256){
-//     let (step1_) = calcul_max_possible_drop(_chi_threshold, _hf_check_interval);
-//     let (max_possible_drop_) = SafeUint256.sub_le(Uint256(PRECISION,0), step1_);
-//     let (is_lt_) = uint256_lt(_fee_liquidation, max_possible_drop_);
-//     with_attr error_message("zero address for token"){
-//         assert is_lt_ = 1;
-//     }
-//     return ();
-// }
-
-// func calcul_max_possible_drop{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_percentage: Uint256, _times: Uint256) -> (max_possible_drop: Uint256){
-//     let (is_eq_) = uint256_eq(Uint256(PRECISION,0), _percentage);
-//     if (is_eq_ == 1) {
-//         return(Uint256(PRECISION,0),);
-//     }
-//     let (step1_) = loop_percent(_percentage, _times);
-//     let (new_value_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
-//     return (new_value_,);
-// }
-
-// func loop_percent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_percentage: Uint256, _times: Uint256) -> (max_possible_drop: Uint256){
-//     let (is_eq_) = uint256_le(_times, Uint256(0,0));
-//     if (is_eq_ == 1) {
-//         let (initial_value_) = SafeUint256.mul(_percentage, Uint256(PRECISION,0));
-//         return(initial_value_,);
-//     }
-//     let (time_less_) = SafeUint256.sub_le(_times, Uint256(1,0));
-//     let (previous_value_) = loop_percent(_percentage, time_less_);
-//     let (step1_) = SafeUint256.mul(_percentage, previous_value_); 
-//     let (new_value_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
-//     return (new_value_,);
-// }
