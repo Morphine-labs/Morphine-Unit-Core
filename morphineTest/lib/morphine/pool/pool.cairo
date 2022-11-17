@@ -1061,6 +1061,19 @@ func assert_repay_frozen{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     }
     return ();
 }
+
+func update_interest_rate_model{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_interest_rate_model: felt) {
+    with_attr error_message("repay not frozen") {
+        assert_not_zero(_interest_rate_model);
+    }
+    interest_rate_model.write(_new_interest_rate_model);
+    update_borrow_rate(Uint256(0,0));
+    NewInterestRateModel.emit(_interest_rate_model);
+    return ();
+}
+
+
+
 // ERC 20 STUFF
 
 // Getters
