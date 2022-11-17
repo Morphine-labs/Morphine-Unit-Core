@@ -172,7 +172,12 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     return();
 }
 
-// TOKEN MANAGEMENT
+// 
+// Externals
+//
+
+
+// Drip
 
 @external
 func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
@@ -391,6 +396,8 @@ func liquidateExpiredDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return();
 }
 
+// Drip Management
+
 @external
 func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
     alloc_locals;
@@ -512,6 +519,8 @@ func approveDripTransfers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
 }
 
 
+// Configurator
+
 @external
 func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_state: felt){
     alloc_locals;
@@ -546,9 +555,11 @@ func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 }
 
 
+//
+// Views
+//
 
-
-// Getters
+// Dependencies
 
 @view
 func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (dripManager: felt){
@@ -558,11 +569,13 @@ func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @view
-func getNft{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (dripManager: felt){
+func getNft{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (nft: felt){
     alloc_locals;
     let (nft_) = nft.read();
     return(nft_,);
 }
+
+// Expiration
 
 @view
 func isExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (state: felt){
@@ -578,22 +591,7 @@ func isExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     }
 }
 
-@view
-func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt) -> (state: felt){
-    alloc_locals;
-    let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
-    let (forbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
-    let (low_) = bitwise_and(forbidden_token_mask_.low, token_mask_.low);
-    let (high_) = bitwise_and(forbidden_token_mask_.high, token_mask_.high);
-    let (is_nul_) = uint256_eq(Uint256(0,0),Uint256(low_, high_));
-    let (is_bg_)= uint256_lt(Uint256(0,0), forbidden_token_mask_);
-    if(is_nul_ * is_bg_ == 1){
-        return(1,);
-    } else {
-        return(0,);
-    }
-}
+// Calcul
 
 @view
 func calcTotalValue{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,  bitwise_ptr : BitwiseBuiltin*}(_drip: felt) -> (total: Uint256, twv: Uint256){
@@ -621,6 +619,8 @@ func calcDripHealthFactor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return(hf_,);
 }
 
+// Control
+
 @view
 func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_borrower: felt) -> (hasOpened: felt){
     alloc_locals;
@@ -634,17 +634,36 @@ func hasOpenedDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 }
 
 @view
-func maxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (max_borrowed_amount_per_block_: Uint256){
+func isTokenAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt) -> (state: felt){
     alloc_locals;
-    let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
-    return(max_borrowed_amount_per_block_,);
+    let (drip_manager_) = drip_manager.read();
+    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
+    let (forbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
+    let (low_) = bitwise_and(forbidden_token_mask_.low, token_mask_.low);
+    let (high_) = bitwise_and(forbidden_token_mask_.high, token_mask_.high);
+    let (is_nul_) = uint256_eq(Uint256(0,0),Uint256(low_, high_));
+    let (is_bg_)= uint256_lt(Uint256(0,0), forbidden_token_mask_);
+    if(is_nul_ * is_bg_ == 1){
+        return(1,);
+    } else {
+        return(0,);
+    }
 }
+
+// Parameters
 
 @view
 func isIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (is_increase_debt_forbidden: felt){
     alloc_locals;
     let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
     return(is_increase_debt_forbidden_,);
+}
+
+@view
+func maxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (max_borrowed_amount_per_block_: Uint256){
+    alloc_locals;
+    let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
+    return(max_borrowed_amount_per_block_,);
 }
 
 @view

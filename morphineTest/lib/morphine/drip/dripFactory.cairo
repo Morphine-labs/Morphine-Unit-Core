@@ -36,15 +36,16 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 
 from starkware.cairo.common.math import assert_not_zero
 
-from openzeppelin.access.ownable.library import Ownable
 
 from openzeppelin.security.pausable.library import Pausable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
+from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.interfaces.IDrip import IDrip
-
 from morphine.interfaces.IRegistery import IRegistery
+
+
 
 @event
 func NewDrip(drip: felt) {
@@ -92,9 +93,6 @@ func id_to_drip(id: felt) -> (drip: felt) {
 func drip_to_id(address: felt) -> (drip_id: felt) {
 }
 
-@storage_var
-func registery() -> (res: felt) {
-}
 
 @storage_var
 func salt() -> (res: felt) {
@@ -104,7 +102,7 @@ func salt() -> (res: felt) {
 // Protector
 
 func only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (caller_: felt) = get_caller_address();
     let (state_: felt) = IRegistery.isDripManager(registery_, caller_);
     with_attr error_message("caller is not a drip manager") {
@@ -122,9 +120,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     with_attr error_message("zero address") {
         assert_not_zero(_registery);
     }
-    registery.write(_registery);
-    let (owner_) = IRegistery.owner(_registery);
-    Ownable.initializer(owner_);
+    RegisteryAccess.initializer(_registery);
     addDrip();
     let (tail_) = tail.read();
     head.write(tail_);
@@ -242,7 +238,7 @@ func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _prev: felt, _drip: felt, _to: felt
 ) {
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     check_stock();
     let (head_: felt) = head.read();
     if (head_ == _drip) {
@@ -311,7 +307,7 @@ func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func deploy_drip_account{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     contract_address: felt
 ) {
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (class_hash_) = IRegistery.dripHash(registery_);
     let (call_data_) = alloc();
     let (salt_) = salt.read();

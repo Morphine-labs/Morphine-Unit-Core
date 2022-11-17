@@ -11,9 +11,9 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
 from openzeppelin.token.erc20.IERC20 import IERC20
-from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.security.safemath.library import SafeUint256
 
+from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_FEE_LIQUIDATION, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED, PRECISION, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
 
@@ -24,7 +24,6 @@ from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToke
 from morphine.interfaces.IAdapter import IAdapter
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IOracleTransit import IOracleTransit
-
 
 
 
@@ -125,9 +124,7 @@ func is_allowed_contract(contract: felt) -> (is_allowed_contract : felt){
 func underlying() -> (underlying : felt){
 }
 
-@storage_var
-func registery() -> (registery : felt){
-}
+
 
 
 //Constructor
@@ -147,9 +144,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     let (underlying_) = IPool.asset(pool_);
     underlying.write(underlying_);
     let (registery_) = IPool.getRegistery(pool_);
-    registery.write(registery_);
-    let (owner_) = IRegistery.owner(registery_);
-    Ownable.initializer(owner_);
+    RegisteryAccess.initializer(registery_);
 
     set_fees(Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0), Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
@@ -168,24 +163,14 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
 @external
 func addTokenToAllowedList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     add_token_to_allowed_list(_token);
     return();
 }
 
 @external
-func updateOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (registery_) = registery.read();
-    let (owner_) = IRegistery.owner(registery_);
-    Ownable.transfer_ownership(owner_);
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.updateOwner(drip_manager_);
-    return ();
-}
-
-@external
 func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     set_liquidation_threshold(_token, _liquidation_threshold);
     return();
 }
@@ -193,7 +178,7 @@ func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
 @external
 func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
     let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
@@ -218,7 +203,7 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,
 @external
 func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
     let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
     let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
@@ -245,7 +230,7 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 @external
 func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt, _adapter: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address"){
         assert_not_zero(_contract * _adapter);
     }
@@ -282,7 +267,7 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 @external
 func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address for contract"){
         assert_not_zero(_contract);
     }
@@ -311,7 +296,7 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 @external
 func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     set_limits(_minimum_borrowed_amount, _maximum_borrowed_amount);
     return();
 }
@@ -319,7 +304,7 @@ func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 @external
 func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256, _fee_liquidation_expired: Uint256, _liquidation_premium_expired: Uint256){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (is_lt1_) = uint256_le(_fee_interest, Uint256(PRECISION,0));
     let (sum1_) = SafeUint256.add(_liquidation_premium, _fee_liquidation);
     let (is_lt2_) = uint256_le(sum1_, Uint256(PRECISION,0));
@@ -335,11 +320,56 @@ func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_f
 }
 
 @external
+func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
+    alloc_locals;
+    RegisteryAccess.assert_only_owner();
+    set_increase_debt_forbidden(_state);
+    return();
+}
+
+@external
+func setLimitPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_limit: Uint256){
+    alloc_locals;
+    RegisteryAccess.assert_only_owner();
+    set_limit_per_block(_new_limit);
+    return();
+}
+
+@external
+func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
+    alloc_locals;
+    RegisteryAccess.assert_only_owner();
+    set_expiration_date(_new_expiration_date);
+    return();
+}
+
+@external
+func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
+    alloc_locals;
+    RegisteryAccess.assert_only_owner();
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.addEmergencyLiquidator(drip_manager_, _liquidator);
+    EmergencyLiquidatorAdded.emit(_liquidator);
+    return();
+}
+
+@external
+func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
+    alloc_locals;
+    RegisteryAccess.assert_only_owner();
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.removeEmergencyLiquidator(drip_manager_, _liquidator);
+    EmergencyLiquidatorRemoved.emit(_liquidator);
+    return();
+}
+
+
+@external
 func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (drip_manager_) = drip_manager.read();
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (oracle_transit_) = IRegistery.oracleTransit(registery_);
     IDripManager.upgradeOracleTransit(drip_manager_, oracle_transit_);
     OracleTransitUpgraded.emit(oracle_transit_);
@@ -349,7 +379,7 @@ func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
 @external
 func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_transit: felt, _migrate_parameters: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address"){
         assert_not_zero(_drip_transit);
     }
@@ -392,7 +422,7 @@ func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 @external
 func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_configurator: felt){
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address"){
         assert_not_zero(_drip_configurator);
     }
@@ -406,55 +436,11 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
-@external
-func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
-    alloc_locals;
-    Ownable.assert_only_owner();
-    set_increase_debt_forbidden(_state);
-    return();
-}
-
-@external
-func setLimitPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_limit: Uint256){
-    alloc_locals;
-    Ownable.assert_only_owner();
-    set_limit_per_block(_new_limit);
-    return();
-}
-
-@external
-func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
-    alloc_locals;
-    Ownable.assert_only_owner();
-    set_expiration_date(_new_expiration_date);
-    return();
-}
-
-@external
-func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
-    alloc_locals;
-    Ownable.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.addEmergencyLiquidator(drip_manager_, _liquidator);
-    EmergencyLiquidatorAdded.emit(_liquidator);
-    return();
-}
-
-@external
-func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
-    alloc_locals;
-    Ownable.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.removeEmergencyLiquidator(drip_manager_, _liquidator);
-    EmergencyLiquidatorRemoved.emit(_liquidator);
-    return();
-}
-
 @view
-func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
+func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
     alloc_locals;
-    let (drip_manager_) = drip_manager.read();
-    return(drip_manager_,);
+    let (allowed_contract_length_) = allowed_contract_length.read();
+    return(allowed_contract_length_,);
 }
 
 @view
@@ -472,19 +458,18 @@ func allowedContractToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 @view
-func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
-    alloc_locals;
-    let (allowed_contract_length_) = allowed_contract_length.read();
-    return(allowed_contract_length_,);
-}
-
-@view
 func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
     alloc_locals;
     let (state_) = is_allowed_contract.read(_contract);
     return(state_,);
 }
 
+@view
+func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
+    alloc_locals;
+    let (drip_manager_) = drip_manager.read();
+    return(drip_manager_,);
+}
 
 // Internals
 func allow_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_allowed_tokens_len: felt, _allowed_tokens: AllowedToken*){

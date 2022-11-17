@@ -7,5 +7,5 @@ libs_path = "lib"
 ["protostar.contracts"]
 
 dripTransit = [
-    "lib/morphine/drip/dripManager.cairo",
+    "lib/morphine/deployment/dripInfraFactory.cairo",
 ]

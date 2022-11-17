@@ -21,8 +21,8 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from openzeppelin.security.safemath.library import SafeUint256
 from openzeppelin.security.pausable.library import Pausable
-from openzeppelin.access.ownable.library import Ownable
 
+from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.fixedpointmathlib import mul_div_down, mul_div_up
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
@@ -88,9 +88,6 @@ func NewInterestRateModel(interest_rate_model: felt) {
 
 // Storage
 
-@storage_var
-func registery() -> (res: felt) {
-}
 
 @storage_var
 func drip_manager() -> (res: felt) {
@@ -178,10 +175,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     let (decimals_) = IERC20.decimals(_asset);
     ERC20.initializer(_name, _symbol, decimals_);
     underlying.write(_asset);
-
-    let (owner_) = IRegistery.owner(_registery);
-    Ownable.initializer(owner_);
-    registery.write(_registery);
+    RegisteryAccess.initializer(_registery);
     expected_liquidity_limit.write(_expected_liquidity_limit);
     cumulative_index.write(Uint256(PRECISION, 0));
     update_interest_rate_model(_interest_rate_model);
@@ -195,7 +189,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // @notice pause pool contract
 @external
 func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     Pausable.assert_not_paused();
     Pausable._pause();
     return ();
@@ -204,7 +198,7 @@ func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 // @notice unpause pool contract
 @external
 func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     Pausable.assert_paused();
     Pausable._unpause();
     return ();
@@ -213,7 +207,7 @@ func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() 
 // @notice freeze borrow from pool
 @external
 func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     assert_borrow_not_frozen();
     borrow_frozen.write(1);
     BorrowFrozen.emit();
@@ -223,7 +217,7 @@ func freezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 // @notice unfreeze borrow from pool
 @external
 func unfreezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     assert_borrow_frozen();
     borrow_frozen.write(0);
     BorrowUnfrozen.emit();
@@ -233,7 +227,7 @@ func unfreezeBorrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 // @notice freeze repay from pool
 @external
 func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     assert_repay_not_frozen();
     repay_frozen.write(1);
     RepayFrozen.emit();
@@ -243,7 +237,7 @@ func freezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // @notice unfreeze repay from pool
 @external
 func unfreezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     assert_repay_frozen();
     repay_frozen.write(0);
     let (caller_) = get_caller_address();
@@ -257,7 +251,7 @@ func unfreezeRepay{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _base_withdraw_fee: Uint256
 ) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (max_fee_,_) = unsigned_div_rem(PRECISION, 100);
     let (is_allowed_amount1_) = uint256_le(_base_withdraw_fee, Uint256(max_fee_, 0));
     let (is_allowed_amount2_) = uint256_le(Uint256(0, 0), _base_withdraw_fee);
@@ -275,7 +269,7 @@ func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _expected_liquidity_limit: Uint256
 ) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     expected_liquidity_limit.write(_expected_liquidity_limit);
     NewExpectedLiquidityLimit.emit(_expected_liquidity_limit);
     return ();
@@ -287,7 +281,7 @@ func setExpectedLiquidityLimit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _interest_rate_model: felt
 ) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     update_interest_rate_model(_interest_rate_model);
     return ();
 }
@@ -299,7 +293,7 @@ func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     _drip_manager: felt
 ) {
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (this_) = get_contract_address();
     let (wanted_pool_) = IDripManager.getPool(_drip_manager);
 
@@ -416,7 +410,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     alloc_locals;
     ReentrancyGuard._start();
     Pausable.assert_not_paused();
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (treasury_) = IRegistery.getTreasury(registery_);
     let (withdraw_fee_) = withdrawFee();
     let (step1_) = SafeUint256.mul(_assets, Uint256(PRECISION,0));
@@ -489,7 +483,7 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (withdraw_fee_) = withdrawFee();
     let (treasury_fee_) = mul_div_up(assets_, withdraw_fee_, Uint256(PRECISION,0));
     let (remaining_assets_) = SafeUint256.sub_le(assets_, treasury_fee_);
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (treasury_) = IRegistery.getTreasury(registery_);
 
     with_attr error_message("cannot redeem for 0 assets") {
@@ -570,7 +564,7 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
     let (is_profit_) = uint256_lt(Uint256(0, 0), _profit);
 
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     let (treasury_) = IRegistery.getTreasury(registery_);
     if (is_profit_ == 1) {
         let (amount_to_mint_) = convertToShares(_profit);
@@ -643,7 +637,7 @@ func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 // @return registery registrey address 
 @view
 func getRegistery{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (registery : felt){
-    let (registery_) = registery.read();
+    let (registery_) = RegisteryAccess.registery();
     return(registery_,);
 }
 

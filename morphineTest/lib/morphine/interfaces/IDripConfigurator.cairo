@@ -10,7 +10,12 @@ struct AllowedToken {
 @contract_interface
 namespace IDripConfigurator {
 
-    // Setters
+    //
+    // externals
+    //
+
+    // Token Management
+
     func addTokenToAllowedList(_token: felt){
     }
 
@@ -23,20 +28,39 @@ namespace IDripConfigurator {
     func forbidToken(_token: felt){
     }
 
+    // Allowed Contracts Management
+
     func allowContract(_contract: felt, _adapter: felt){
     }
 
     func forbidContract(_contract: felt){
     }
 
-    func setLimits(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
-    }
+    // Parameters Management
 
-    func setFastCheckParameters(_chi_threshold: Uint256, _hf_check_interval: Uint256){
+    func setLimits(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     }
 
     func setFees(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
     }
+
+    func setIncreaseDebtForbidden(_state: felt){
+    }
+
+    func setLimitPerBlock(_new_limit: Uint256){
+    }
+
+    func setExpirationDate(_new_expiration_date: felt){
+    }
+
+    func addEmergencyLiquidator(_liquidator: felt){
+    }
+
+    func removeEmergencyLiquidator(_liquidator: felt){
+    }
+
+
+    // Dependencies Management
 
     func upgradeOracleTransit(){
     }
@@ -47,18 +71,17 @@ namespace IDripConfigurator {
     func upgradeConfigurator(_drip_configurator: felt){
     }
 
-    func setIncreaseDebtForbidden(_state: felt){
-    }
 
-    func updateOwner() {
-    }
+    //
+    // View
+    //
 
-    // Getters
-
-    func idToAllowedContract(id: felt) -> (allowedContract: felt){
-    }
+    // Allowed contracts 
 
     func allowedContractsLength(id: felt) -> (allowedContractsLength: felt){
+    }
+
+    func idToAllowedContract(id: felt) -> (allowedContract: felt){
     }
 
     func allowedContractToId(_allowed_contract: felt) -> (id: felt){
@@ -66,4 +89,10 @@ namespace IDripConfigurator {
 
     func isAllowedContract(_contract: felt) -> (state: felt){
     }
+
+    // Dependencies 
+
+    func dripManager() -> (dripManager: felt){
+    }
+
 }

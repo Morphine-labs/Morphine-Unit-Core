@@ -37,7 +37,6 @@ from openzeppelin.security.safemath.library import SafeUint256
 from starkware.cairo.common.math import assert_not_zero
 
 from openzeppelin.security.pausable.library import Pausable
-from openzeppelin.access.ownable.library import Ownable
 
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 
@@ -50,6 +49,7 @@ from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IDripFactory import IDripFactory
 
 from morphine.interfaces.IOracleTransit import IOracleTransit
+from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import PRECISION
 
@@ -69,10 +69,6 @@ func drip_factory() -> (drip_factory: felt) {
 
 @storage_var
 func pool() -> (pool: felt) {
-}
-
-@storage_var
-func registery() -> (pool: felt) {
 }
 
 @storage_var
@@ -214,10 +210,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     }
     pool.write(_pool);
     let (registery_) = IPool.getRegistery(_pool);
-    registery.write(registery_);
-
-    let (owner_) = IRegistery.owner(registery_);
-    Ownable.initializer(owner_);
+    RegisteryAccess.initializer(registery_);
 
     let (underlying_) = IPool.asset(_pool);
     underlying.write(underlying_);
@@ -235,18 +228,10 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
-@external
-func updateOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    assert_only_drip_configurator();
-    let (registery_) = registery.read();
-    let (owner_) = IRegistery.owner(registery_);
-    Ownable.transfer_ownership(owner_);
-    return ();
-}
 
 @external
 func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     Pausable.assert_not_paused();
     Pausable._pause();
     return ();
@@ -254,7 +239,7 @@ func pause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 
 @external
 func unpause{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     Pausable.assert_paused();
     Pausable._unpause();
     return ();
@@ -372,6 +357,20 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
 }
 
 @external
+func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
+    _payer: felt, _drip: felt, _token: felt, _amount: Uint256
+) {
+    alloc_locals;
+    ReentrancyGuard._start();
+    assert_only_drip_transit();
+    Pausable.assert_not_paused();
+    check_and_enable_token(_drip, _token);
+    SafeERC20.transferFrom(_token, _payer, _drip, _amount);
+    ReentrancyGuard._end();
+    return ();
+}
+
+@external
 func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrower: felt, _amount: Uint256, _increase: felt
 ) -> (newBorrowedAmount: Uint256) {
@@ -423,34 +422,6 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             return(borrowed_amount_,);
         }
     }
-}
-
-@external
-func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
-    _payer: felt, _drip: felt, _token: felt, _amount: Uint256
-) {
-    alloc_locals;
-    ReentrancyGuard._start();
-    assert_only_drip_transit();
-    Pausable.assert_not_paused();
-    check_and_enable_token(_drip, _token);
-    SafeERC20.transferFrom(_token, _payer, _drip, _amount);
-    ReentrancyGuard._end();
-    return ();
-}
-
-@external
-func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _from: felt, _to: felt
-) {
-    ReentrancyGuard._start();
-    assert_only_drip_transit();
-    assert_not_paused_or_emergency();
-    let (drip_) = getDripOrRevert(_from);
-    borrower_to_drip.write(_from, 0);
-    safe_drip_set(_to, drip_);
-    ReentrancyGuard._end();
-    return ();
 }
 
 @external
@@ -522,12 +493,43 @@ func checkAndEnableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 @external
+func disableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
+    _drip: felt,
+    _token: felt
+)->(was_changed: felt) {
+    alloc_locals;
+    assert_not_paused_or_emergency();
+    assert_only_drip_transit_or_adapters();
+    ReentrancyGuard._start();
+    let (was_changed_) = disable_token(_drip, _token);
+    ReentrancyGuard._end();
+    return (was_changed_,);
+}
+
+@external
+func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _from: felt, _to: felt
+) {
+    ReentrancyGuard._start();
+    assert_only_drip_transit();
+    assert_not_paused_or_emergency();
+    let (drip_) = getDripOrRevert(_from);
+    borrower_to_drip.write(_from, 0);
+    safe_drip_set(_to, drip_);
+    ReentrancyGuard._end();
+    return ();
+}
+
+
+// Security Check
+
+@external
 func fastCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _drip: felt,
     _token_in: felt,
     _token_out: felt,
     _balance_in_before: Uint256,
-    _balance_out_before: Uint256,
+    _balance_out_before: Uint256
 ) {
     alloc_locals;
     assert_only_drip_transit_or_adapters();
@@ -614,22 +616,9 @@ func checkAndOptimizeEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
     return ();
 }
 
-@external
-func disableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
-    _drip: felt,
-    _token: felt
-)->(was_changed: felt) {
-    alloc_locals;
-    assert_not_paused_or_emergency();
-    assert_only_drip_transit_or_adapters();
-    ReentrancyGuard._start();
-    let (was_changed_) = disable_token(_drip, _token);
-    ReentrancyGuard._end();
-    return (was_changed_,);
-}
 
+// Configurator
 
-// CONFIGURATOR
 
 @external
 func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) {
@@ -688,9 +677,6 @@ func setMaxEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return ();
 }
 
-
-
-
 @external
 func changeContractAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _adapter: felt, _target: felt
@@ -736,6 +722,15 @@ func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 }
 
 @external
+func setConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _drip_configurator: felt
+) {
+    assert_only_drip_configurator();
+    drip_configurator.write(_drip_configurator);
+    return ();
+}
+
+@external
 func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt) {
     assert_only_drip_configurator();
     can_liquidate_while_paused.write(_liquidator, 1);
@@ -749,22 +744,26 @@ func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return ();
 }
 
+//
+// Views
+//
 
-@external
-func setDripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip_configurator: felt
-) {
-    assert_only_drip_configurator();
-    drip_configurator.write(_drip_configurator);
-    return ();
-}
-
-// Getters
+// Pause
 
 @view
 func isPaused{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (state : felt){
     let (is_paused_) = Pausable.is_paused();
     return(is_paused_,);
+}
+
+// Token
+
+@view
+func allowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    tokenLength: felt
+) {
+    let (allowed_token_length_) = allowed_tokens_length.read();
+    return (allowed_token_length_,);
 }
 
 @view
@@ -785,6 +784,18 @@ func forbiddenTokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     return(forbidden_token_mask_,);
 }
 
+@view
+func tokenByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (token: felt) {
+    let (token_) = token_from_mask.read(_token_mask);
+    return(token_,);
+}
+
+@view
+func tokenById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (token: felt) {
+    let (token_mask_) = uint256_pow2(Uint256(_id,0));
+    let (token_) = token_from_mask.read(token_mask_);
+    return(token_,);
+}
 
 @view
 func liquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (liquidation_threshold: Uint256) {
@@ -811,19 +822,7 @@ func liquidationThresholdById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     return(liquidation_threshold_,);
 }
 
-@view
-func tokenByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (token: felt) {
-    let (token_) = token_from_mask.read(_token_mask);
-    return(token_,);
-}
-
-@view
-func tokenById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (token: felt) {
-    let (token_mask_) = uint256_pow2(Uint256(_id,0));
-    let (token_) = token_from_mask.read(token_mask_);
-    return(token_,);
-}
-
+// Contracts
 
 @view
 func adapterToContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_adapter: felt) -> (contract: felt) {
@@ -837,6 +836,8 @@ func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     let (adapter_) = contract_to_adapter.read(_contract);
     return(adapter_,);
 }
+
+// Parameters
 
 @view
 func feeInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeInterest: Uint256) {
@@ -856,10 +857,18 @@ func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return(liquidation_discount_,);
 }
 
+// Dependencies
+
 @view
 func getPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (pool: felt) {
     let (pool_) = pool.read();
     return(pool_,);
+}
+
+@view
+func dripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (drip_configurator: felt) {
+    let (drip_transit_) = drip_transit.read();
+    return(drip_transit_,);
 }
 
 @view
@@ -868,10 +877,54 @@ func dripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return(drip_configurator_,);
 }
 
+// Drip
+
 @view
-func dripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (drip_configurator: felt) {
-    let (drip_transit_) = drip_transit.read();
-    return(drip_transit_,);
+func getDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _borrower: felt
+) -> (drip: felt) {
+    let (drip_) = borrower_to_drip.read(_borrower);
+    return (drip_,);
+}
+
+@view
+func getDripOrRevert{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _borrower: felt
+) -> (drip: felt) {
+    let (drip_) = borrower_to_drip.read(_borrower);
+    with_attr error_message("has not drip") {
+        assert_not_zero(drip_);
+    }
+    return (drip_,);
+}
+
+@view
+func dripParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _drip: felt
+) -> (borrowedAmount: Uint256, cumulativeIndex: Uint256, currentCumulativeIndex: Uint256) {
+    let (borrowed_amount_) = IDrip.borrowedAmount(_drip);
+    let (cumulative_index_) = IDrip.cumulativeIndex(_drip);
+    let (pool_) = pool.read();
+    let (current_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
+    return (borrowed_amount_, cumulative_index_, current_cumulative_index_,);
+}
+
+@view
+func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _drip: felt
+) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
+    alloc_locals;
+    let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
+    let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
+    let (borrowed_amount_with_interests_, _) = SafeUint256.div_rem(
+        step1_, cumulative_index_
+    );
+    let (fee_interest_) = fee_interest.read();
+    let (interest_) = SafeUint256.sub_le(borrowed_amount_with_interests_, borrowed_amount_);
+    let (fees_precision_) = SafeUint256.mul(interest_, fee_interest_);
+    let (fees_,_) = SafeUint256.div_rem(fees_precision_, Uint256(PRECISION,0));
+    let (borrowed_amount_with_interests_and_fees_) = SafeUint256.add(borrowed_amount_with_interests_, fees_);
+    return (borrowed_amount_, borrowed_amount_with_interests_, borrowed_amount_with_interests_and_fees_,);
 }
 
 
@@ -881,7 +934,7 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     _total_value: Uint256,
     _type: felt,
     _borrowed_amount: Uint256,
-    _borrowed_amount_with_interests: Uint256,
+    _borrowed_amount_with_interests: Uint256
 ) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
     alloc_locals;
     let (fee_interest_) = fee_interest.read();
@@ -996,75 +1049,10 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return (temp_amount_to_pool_, temp_remaining_funds_, temp_profit_, temp_loss_);
 }
 
-@view
-func getDripOrRevert{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _borrower: felt
-) -> (drip: felt) {
-    let (drip_) = borrower_to_drip.read(_borrower);
-    with_attr error_message("has not drip") {
-        assert_not_zero(drip_);
-    }
-    return (drip_,);
-}
 
-@view
-func getDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _borrower: felt
-) -> (drip: felt) {
-    let (drip_) = borrower_to_drip.read(_borrower);
-    return (drip_,);
-}
-
-@view
-func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip: felt
-) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
-    alloc_locals;
-    let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
-    let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
-    let (borrowed_amount_with_interests_, _) = SafeUint256.div_rem(
-        step1_, cumulative_index_
-    );
-    let (fee_interest_) = fee_interest.read();
-    let (interest_) = SafeUint256.sub_le(borrowed_amount_with_interests_, borrowed_amount_);
-    let (fees_precision_) = SafeUint256.mul(interest_, fee_interest_);
-    let (fees_,_) = SafeUint256.div_rem(fees_precision_, Uint256(PRECISION,0));
-    let (borrowed_amount_with_interests_and_fees_) = SafeUint256.add(borrowed_amount_with_interests_, fees_);
-    return (borrowed_amount_, borrowed_amount_with_interests_, borrowed_amount_with_interests_and_fees_,);
-}
-
-@view
-func dripParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip: felt
-) -> (borrowedAmount: Uint256, cumulativeIndex: Uint256, currentCumulativeIndex: Uint256) {
-    let (borrowed_amount_) = IDrip.borrowedAmount(_drip);
-    let (cumulative_index_) = IDrip.cumulativeIndex(_drip);
-    let (pool_) = pool.read();
-    let (current_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
-    return (borrowed_amount_, cumulative_index_, current_cumulative_index_,);
-}
-
-@view
-func allowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    tokenLength: felt
-) {
-    let (allowed_token_length_) = allowed_tokens_length.read();
-    return (allowed_token_length_,);
-}
-
-@view
-func oracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    oracleTransit: felt
-) {
-    let (oracle_transit_) = oracle_transit.read();
-    return (oracle_transit_,);
-}
-
-
-
+//
 // Internals
-
-
+//
 
 func full_collateral_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_drip: felt) {
     alloc_locals;
@@ -1141,23 +1129,22 @@ func transfer_assets_to{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
         assert_not_zero(_to);
     }
     let (enabled_tokens_) = enabled_tokens.read(_drip);
-    let (count_) = allowed_tokens_length.read();
     let (oracle_transit_) = oracle_transit.read();
-    recursive_transfer_token(1, count_, _drip, _to, enabled_tokens_);
+    recursive_transfer_token(0, _drip, _to, enabled_tokens_);
     return ();
 }
 
 func recursive_transfer_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
-    _index: felt,
-    _count: felt,
-    _drip: felt,
-    _to: felt,
-    _enabled_tokens: Uint256) {
+        _index: felt,
+        _drip: felt,
+        _to: felt,
+        _enabled_tokens: Uint256) {
     alloc_locals;
-    if (_index == _count) {
+    let (token_mask_) = uint256_pow2(Uint256(_index, 0));
+    let (is_le_) = uint256_le(token_mask_, _enabled_tokens);
+    if (is_le_ == 0) {
         return ();
     }
-    let (token_mask_) = uint256_pow2(Uint256(_index, 0));
     let (low_) = bitwise_and(_enabled_tokens.low, token_mask_.low);
     let (high_) = bitwise_and(_enabled_tokens.high, token_mask_.high);
     let (is_bt_) = uint256_lt(Uint256(0, 0), Uint256(low_, high_));
@@ -1181,7 +1168,7 @@ func recursive_transfer_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         tempvar pedersen_ptr = pedersen_ptr;
     }
     return recursive_transfer_token(
-        _index + 1, _count, _drip, _to, _enabled_tokens
+        _index + 1, _drip, _to, _enabled_tokens
     );
 }
 
