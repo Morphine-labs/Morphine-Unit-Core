@@ -131,14 +131,12 @@ func underlying() -> (underlying : felt){
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    _drip_manager: felt,
-    _drip_transit: felt,
-    _minimum_borrowed_amount: Uint256, // minimal amount for drip 
-    _maximum_borrowed_amount: Uint256, // maximum amount for drip 
-    _allowed_tokens_len: felt,
-    _allowed_tokens: AllowedToken*) {
-
-
+        _drip_manager: felt,
+        _drip_transit: felt,
+        _minimum_borrowed_amount: Uint256, // minimal amount for drip 
+        _maximum_borrowed_amount: Uint256, // maximum amount for drip 
+        _allowed_tokens_len: felt,
+        _allowed_tokens: AllowedToken*) {
     drip_manager.write(_drip_manager);
     let (pool_) = IDripManager.getPool(_drip_manager);
     let (underlying_) = IPool.asset(pool_);
@@ -149,7 +147,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     set_fees(Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0), Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0));
     allow_token_list(_allowed_tokens_len, _allowed_tokens);
     let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
-    IDripManager.upgradeContracts(_drip_manager, _drip_transit, oracle_transit_);
+    IDripManager.upgradeDripTransit(_drip_manager, _drip_transit);
     DripTransitUpgraded.emit(_drip_transit);
     OracleTransitUpgraded.emit(oracle_transit_);
     let (limit_per_block_ ) = SafeUint256.mul(_maximum_borrowed_amount, Uint256(DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER,0));
@@ -431,7 +429,7 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     with_attr error_message("wrong drip manager from drip configurator"){
         assert drip_manager_from_drip_configurator_ = drip_manager_;
     }
-    IDripManager.setDripConfigurator(drip_manager_, _drip_configurator);
+    IDripManager.setConfigurator(drip_manager_, _drip_configurator);
     DripConfiguratorUpgraded.emit(_drip_configurator);
     return();
 }
@@ -616,7 +614,7 @@ func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     if(_len == 0){
         return();
     }
-    let (token_) = IDripManager.allowedToken(_drip_manager, _len - 1);
+    let (token_) = IDripManager.tokenById(_drip_manager, _len - 1);
     let (lt_token_) = IDripManager.liquidationThreshold(_drip_manager, token_);
     let (is_lt_) = uint256_lt(_lt_underlying, lt_token_);
     if(is_lt_ == 1){

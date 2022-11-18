@@ -95,7 +95,7 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert drip_transit_calldata_[2] = _expirable;
     let (drip_transit_) = deploy(drip_transit_hash_, _salt, 3, drip_transit_calldata_, 0);
     let (drip_configurator_hash_) = drip_configurator_hash.read();
-    let (drip_configurator_calldata_) = alloc();
+    let (drip_configurator_calldata_: felt*) = alloc();
     assert drip_configurator_calldata_[0] = drip_manager_;
     assert drip_configurator_calldata_[1] = drip_transit_;
     assert drip_configurator_calldata_[2] = _minimum_borrowed_amount.low;
@@ -103,10 +103,15 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert drip_configurator_calldata_[4] = _maximum_borrowed_amount.low;
     assert drip_configurator_calldata_[5] = _maximum_borrowed_amount.high;
     assert drip_configurator_calldata_[6] = _allowed_tokens_len;
-    memcpy(drip_configurator_calldata_, _allowed_tokens, _allowed_tokens_len*2);
-    let (drip_configurator_address_) = get_contract_address{hash_ptr= pedersen_ptr}(_salt, drip_configurator_hash_, 6 + _allowed_tokens_len*2, drip_configurator_calldata_, _drip_infra_factory);
-    IDripManager.setDripConfigurator(drip_manager_, drip_configurator_address_);
-    let (drip_configurator_) = deploy(drip_configurator_hash_, _salt, 6 + _allowed_tokens_len*2, drip_configurator_calldata_, 0);
+    memcpy(drip_configurator_calldata_ + 7, _allowed_tokens, _allowed_tokens_len);
+    assert drip_configurator_calldata_[8] = 700000;
+    assert drip_configurator_calldata_[9] = 0;
+    let (drip_configurator_address_) = get_contract_address{hash_ptr= pedersen_ptr}(_salt, drip_configurator_hash_, 7 + _allowed_tokens_len * 3, drip_configurator_calldata_, _drip_infra_factory);
+    assert  2 = 9;
+    IDripManager.setConfigurator(drip_manager_, drip_configurator_address_);
+    assert  2 = 9;
+    assert drip_configurator_calldata_[11] = 9;
+    let (drip_configurator_) = deploy(drip_configurator_hash_, _salt, 7 + _allowed_tokens_len*3, drip_configurator_calldata_, 0);
     drip_configurator.write(drip_configurator_);
     return ();
 }

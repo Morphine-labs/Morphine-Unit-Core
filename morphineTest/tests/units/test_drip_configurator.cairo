@@ -203,7 +203,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.pool = deploy_contract("./lib/morphine/pool/pool.cairo", [context.registery, context.dai, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
         context.pool = ids.pool    
 
-        ids.nft = deploy_contract("./lib/morphine/token/morphinePass.cairo", [PASS_TOKEN_NAME,PASS_TOKEN_SYMBOL, context.registery]).contract_address 
+        ids.nft = deploy_contract("./lib/morphine/token/morphinePass.cairo", [ids.PASS_TOKEN_NAME, ids.PASS_TOKEN_SYMBOL, context.registery]).contract_address 
         context.nft = ids.nft  
     %}
 
@@ -243,7 +243,6 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         context.drip_transit = ids.a2_
         context.drip_configurator = ids.a3_
     %}
-
     return();
 }
 

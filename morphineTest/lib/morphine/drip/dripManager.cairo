@@ -84,7 +84,7 @@ func drip_configurator() -> (drip_configurator: felt) {
 }
 
 @storage_var
-func underlying() -> (underlying: felt) {
+func underlying_contract() -> (underlying_contract: felt) {
 }
 
 // Interest fee protocol charges: fee = interest accrues * feeInterest
@@ -213,7 +213,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     RegisteryAccess.initializer(registery_);
 
     let (underlying_) = IPool.asset(_pool);
-    underlying.write(underlying_);
+    underlying_contract.write(underlying_);
 
     add_token(underlying_);
 
@@ -316,7 +316,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     borrower_to_drip.write(drip_, 0);
     let (borrowed_amount_, borrowed_amount_with_interests_,_) = calcDripAccruedInterest(drip_);
     let (amount_to_pool_, remaining_funds_, profit_, loss_) = calcClosePayments(_total_value, type_, borrowed_amount_, borrowed_amount_with_interests_);
-    let (underlying_) = underlying.read();
+    let (underlying_) = underlying_contract.read();
     let (underlying_balance_) = IERC20.balanceOf(underlying_, drip_);
     let (stack_) = SafeUint256.add(amount_to_pool_, remaining_funds_);
     let (is_surplus_) = uint256_lt(stack_, underlying_balance_);
@@ -381,7 +381,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     let (drip_) = getDripOrRevert(_borrower);
     let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(drip_);
     let (pool_) = pool.read();
-    let (underlying_) = underlying.read();
+    let (underlying_) = underlying_contract.read();
     if (_increase == 1) {
     
         let (new_borrowed_amount_) = SafeUint256.add(borrowed_amount_, _amount);
@@ -759,12 +759,21 @@ func isPaused{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 // Token
 
 @view
+func underlying{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    underlying: felt
+) {
+    let (underlying_) = underlying_contract.read();
+    return (underlying_,);
+}
+
+@view
 func allowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     tokenLength: felt
 ) {
     let (allowed_token_length_) = allowed_tokens_length.read();
     return (allowed_token_length_,);
 }
+
 
 @view
 func tokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (token_mask: Uint256) {
@@ -1058,7 +1067,7 @@ func full_collateral_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     alloc_locals;
     let (oracle_transit_) = oracle_transit.read();
     let (enabled_tokens_) = enabled_tokens.read(_drip);
-    let (underlying_) = underlying.read();
+    let (underlying_) = underlying_contract.read();
     let (_,_, borrowed_amount_with_interests_and_fees_) = calcDripAccruedInterest(_drip);
     let (borrowed_amount_with_interests_and_fees_precision_) = SafeUint256.mul(borrowed_amount_with_interests_and_fees_, Uint256(PRECISION,0));
     let (borrowed_amount_with_interests_and_fees_usd_) = IOracleTransit.convertToUSD(oracle_transit_, borrowed_amount_with_interests_and_fees_precision_, underlying_);

@@ -991,7 +991,7 @@ func update_borrow_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     let (new_expected_liqudity_) = SafeUint256.sub_le(expected_liquidity_, loss);
     expected_liquidity.write(new_expected_liqudity_);
 
-    let (new_cumulative_index_) = calculLinearCumulativeIndex();
+    let (new_cumulative_index_) = calcLinearCumulativeIndex();
     cumulative_index.write(new_cumulative_index_);
 
     let (interest_rate_model_) = interest_rate_model.read();
@@ -1066,12 +1066,11 @@ func update_interest_rate_model{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     with_attr error_message("repay not frozen") {
         assert_not_zero(_interest_rate_model);
     }
-    interest_rate_model.write(_new_interest_rate_model);
+    interest_rate_model.write(_interest_rate_model);
     update_borrow_rate(Uint256(0,0));
     NewInterestRateModel.emit(_interest_rate_model);
     return ();
 }
-
 
 
 // ERC 20 STUFF

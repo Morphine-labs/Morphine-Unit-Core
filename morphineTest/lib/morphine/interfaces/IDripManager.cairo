@@ -116,6 +116,9 @@ namespace IDripManager {
 
     // Token
 
+    func underlying() -> (underlying: felt) {
+    }
+
     func allowedTokensLength() -> (tokenLength: felt) {
     }
 

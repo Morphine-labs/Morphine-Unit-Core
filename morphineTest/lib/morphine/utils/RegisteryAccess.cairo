@@ -23,8 +23,8 @@ namespace RegisteryAccess {
     // Initializer
     //
 
-    func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(owner: felt) {
-        registery_contract.write();
+    func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) {
+        registery_contract.write(_registery);
         return ();
     }
 
@@ -50,7 +50,7 @@ namespace RegisteryAccess {
     //
 
     func registery{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (owner: felt) {
-        return registery_contract.read();
+        let (registery_) = registery_contract.read();
+        return (registery_,);
     }
-
 }
