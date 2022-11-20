@@ -861,9 +861,21 @@ func feeLiquidation{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
+func feeLiquidationExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeLiquidation: Uint256) {
+    let (fee_liqudidation_expired_) = fee_liqudidation_expired.read();
+    return(fee_liqudidation_expired_,);
+}
+
+@view
 func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: Uint256) {
     let (liquidation_discount_) = liquidation_discount.read();
     return(liquidation_discount_,);
+}
+
+@view
+func liquidationDiscountExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: Uint256) {
+    let (liquidation_discount_expired_) = liquidation_discount_expired.read();
+    return(liquidation_discount_expired_,);
 }
 
 // Dependencies

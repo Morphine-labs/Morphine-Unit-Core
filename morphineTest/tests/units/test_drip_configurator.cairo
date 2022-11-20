@@ -25,7 +25,8 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripTransit import IDripTransit, AccountCallArray
 from morphine.interfaces.IERC4626 import IERC4626
 from morphine.utils.utils import pow
-from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION
+
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
 
 
 
@@ -251,8 +252,60 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 @view
 func test_drip_configurator_deployement{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (drip_configurator_) = drip_configurator_instance.deployed();
-    return ();
+    let (dai_) = dai_instance.deployed();
+    let (eth_) = eth_instance.deployed();
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (oracle_transit_) = oracle_transit_instance.deployed();
+    let (fee_interest_) = drip_manager_instance.feeInterest();
+    let (fee_liqudidation_) = drip_manager_instance.feeLiquidation();    
+    let (fee_liqudidation_expired_) = drip_manager_instance.feeLiquidationExpired();
+    let (liquidation_discount_) = drip_manager_instance.liquidationDiscount();
+    let (liquidation_discount_expired_) = drip_manager_instance.liquidationDiscountExpired();
+    assert fee_interest_ = Uint256(DEFAULT_FEE_INTEREST,0);
+    assert fee_liqudidation_ = Uint256(DEFAULT_FEE_LIQUIDATION,0);
+    assert fee_liqudidation_expired_ = Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0);
+    assert liquidation_discount_ = Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0);
+    assert liquidation_discount_expired_ = Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0);
+    let (underlying_) = drip_manager_instance.underlying();
+    assert underlying_ = dai_;
+    let (token_mask1_) = drip_manager_instance.tokenMask(dai_);
+    assert token_mask1_ = Uint256(1,0);
+    let (token_mask2_) = drip_manager_instance.tokenMask(eth_);
+    assert token_mask2_ = Uint256(2,0);
+    let (allowed_token_length_) = drip_manager_instance.allowedTokensLength();
+    assert allowed_token_length_ = 2;
+    let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
+    assert (forbidden_token_mask_) = Uint256(0,0);
+    let (token_from_mask1_) = drip_manager_instance.tokenByMask(Uint256(1,0));
+    assert token_from_mask1_ = dai_;
+    let (token_from_mask2_) = drip_manager_instance.tokenByMask(Uint256(2,0));
+    assert token_from_mask2_ = eth_;
+    let (token_from_id1_) = drip_manager_instance.tokenById(0);
+    assert token_from_id1_ = dai_;
+    let (token_from_id2_) = drip_manager_instance.tokenById(1);
+    assert token_from_id2_ = eth_;
+    let (liquidation_threshold1_) = drip_manager_instance.liquidationThreshold(dai_);
+    assert liquidation_threshold1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold2_) = drip_manager_instance.liquidationThreshold(eth_);
+    assert liquidation_threshold2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (liquidation_threshold_from_mask1_) = drip_manager_instance.liquidationThresholdByMask(Uint256(1,0));
+    assert liquidation_threshold_from_mask1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold_from_mask2_) = drip_manager_instance.liquidationThresholdByMask(Uint256(2,0));
+    assert liquidation_threshold_from_mask2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (liquidation_threshold_from_id1_) = drip_manager_instance.liquidationThresholdById(0);
+    assert liquidation_threshold_from_id1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold_from_id2_) = drip_manager_instance.liquidationThresholdById(1);
+    assert liquidation_threshold_from_id2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (drip_transit_from_drip_manager_) = drip_manager_instance.dripTransit();
+    assert drip_transit_from_drip_manager_ = drip_transit_;
+    let (oracle_transit_from_drip_manager_) = drip_manager_instance.oracleTransit();
+    assert oracle_transit_from_drip_manager_ = oracle_transit_;
+    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = drip_transit_instance.limits();
+    assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
+    assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI);
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+    return();
 }
 
 
@@ -264,10 +317,10 @@ namespace drip_configurator_instance{
         return (drip_configurator,);
     }
 
-    func addTokenToAllowedList{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt){
+    func addToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
     tempvar drip_configurator;
     %{ ids.drip_configurator = context.drip_configurator %}
-    IDripConfigurator.addTokenToAllowedList(drip_configurator, _token);
+    IDripConfigurator.addToken(drip_configurator, _token, _liquidation_threshold);
     return();
     }
 
@@ -461,6 +514,12 @@ namespace drip_manager_instance{
         return(remaining_funds_,);
     }
 
+    func underlying{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (underlying: felt) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (underlying_) = IDripManager.underlying(drip_manager);
+        return(underlying_,);
+    }
 
     func allowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (allowed_tokens_length: felt) {
         tempvar drip_manager;
@@ -511,28 +570,28 @@ namespace drip_manager_instance{
         return(liquidation_threshold_,);
     }
 
-    func liquidationThresholdByMask(_token_mask: Uint256) -> (liquidationThresold: Uint256) {
+    func liquidationThresholdByMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_mask: Uint256) -> (liquidationThresold: Uint256) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
         let (liquidation_threshold_) = IDripManager.liquidationThresholdByMask(drip_manager, _token_mask);
         return(liquidation_threshold_,);
     }
 
-    func liquidationThresholdById(_id: felt) -> (liquidationThresold: Uint256) {
+    func liquidationThresholdById{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (liquidationThresold: Uint256) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
         let (liquidation_threshold_) = IDripManager.liquidationThresholdById(drip_manager, _id);
         return(liquidation_threshold_,);
     }
 
-    func adapterToContract(_adapter: felt) -> (contract: felt) {
+    func adapterToContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_adapter: felt) -> (contract: felt) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
         let (contract_) = IDripManager.adapterToContract(drip_manager, _adapter);
         return(contract_,);
     }
 
-    func contractToAdapter(_contract: felt) -> (adapter: felt) {
+    func contractToAdapter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (adapter: felt) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
         let (adapter_) = IDripManager.contractToAdapter(drip_manager, _contract);
@@ -553,11 +612,25 @@ namespace drip_manager_instance{
         return(fee_liqudidation_,);
     }
 
+    func feeLiquidationExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (feeLiquidationExpired: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (fee_liqudidation_expired_) = IDripManager.feeLiquidationExpired(drip_manager);
+        return(fee_liqudidation_expired_,);
+    }
+
     func liquidationDiscount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscount: Uint256) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
         let (liquidation_discount_) = IDripManager.liquidationDiscount(drip_manager);
         return(liquidation_discount_,);
+    }
+
+    func liquidationDiscountExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (liquidationDiscountExpired: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (liquidation_discount_expired_) = IDripManager.liquidationDiscountExpired(drip_manager);
+        return(liquidation_discount_expired_,);
     }
 
     func getPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (pool: felt) {
@@ -682,6 +755,44 @@ namespace drip_transit_instance{
         IDripTransit.approveDripTransfers(_from, _state);
         return();
     }
+
+    // Parameters 
+
+    func isIncreaseDebtForbidden{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(is_increase_debt_forbidden: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (is_increase_debt_forbidden_) = IDripTransit.isIncreaseDebtForbidden(drip_transit);
+        return(is_increase_debt_forbidden_,);
+    }
+
+    func maxBorrowedAmountPerBlock{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(max_borrowed_amount_per_block: Uint256){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (max_borrowed_amount_per_block_) = IDripTransit.maxBorrowedAmountPerBlock(drip_transit);
+        return(max_borrowed_amount_per_block_,);
+    }
+
+    func expirationDate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(expiration_date: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (expiration_date_) = IDripTransit.expirationDate(drip_transit);
+        return(expiration_date_,);
+    }
+
+    func isExpirable{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(is_expirable: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (is_expirable_) = IDripTransit.isExpirable(drip_transit);
+        return(is_expirable_,);
+    }
+
+    func limits{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(minimum_borrowed_amount: Uint256, max_borrowed_amount: Uint256){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (minimum_borrowed_amount_, maximum_borrowed_amount_) = IDripTransit.limits(drip_transit);
+        return(minimum_borrowed_amount_, maximum_borrowed_amount_,);
+    }
+     
 }
 
 

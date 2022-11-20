@@ -162,7 +162,13 @@ namespace IDripManager {
     func feeLiquidation() -> (fee_liquidation: Uint256) {
     }
 
+    func feeLiquidationExpired() -> (fee_liqudidation_expired: Uint256) {
+    }
+
     func liquidationDiscount() -> (liquidation_discount: Uint256) {
+    }
+
+    func liquidationDiscountExpired() -> (liquidation_discount_expired: Uint256) {
     }
 
     // Dependencies

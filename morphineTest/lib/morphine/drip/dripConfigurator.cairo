@@ -160,9 +160,10 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 // TOKEN MANAGEMENT
 
 @external
-func addTokenToAllowedList{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
+func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
     RegisteryAccess.assert_only_owner();
-    add_token_to_allowed_list(_token);
+    add_token(_token);
+    set_liquidation_threshold(_token, _liquidation_threshold);
     return();
 }
 
@@ -475,12 +476,12 @@ func allow_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     if(_allowed_tokens_len == 0){
         return();
     }
-    add_token_to_allowed_list(_allowed_tokens[0].address);
+    add_token(_allowed_tokens[0].address);
     set_liquidation_threshold(_allowed_tokens[0].address, _allowed_tokens[0].liquidation_threshold);
     return allow_token_list(_allowed_tokens_len - 1, _allowed_tokens + AllowedToken.SIZE);
 }
 
-func add_token_to_allowed_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
+func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
     
     with_attr error_message("zero address for token"){
         assert_not_zero(_token);
