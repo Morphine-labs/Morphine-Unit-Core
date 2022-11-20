@@ -886,6 +886,12 @@ func dripConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return(drip_configurator_,);
 }
 
+@view
+func oracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (oracleTransit: felt) {
+    let (oracle_transit_) = oracle_transit.read();
+    return(oracle_transit_,);
+}
+
 // Drip
 
 @view
