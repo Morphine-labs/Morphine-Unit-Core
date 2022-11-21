@@ -878,6 +878,12 @@ func liquidationDiscountExpired{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     return(liquidation_discount_expired_,);
 }
 
+@view
+func canLiquidateWhilePaused{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt) -> (state: felt) {
+    let (can_liquidate_while_paused_) = can_liquidate_while_paused.read(_liquidator);
+    return(can_liquidate_while_paused_,);
+}
+
 // Dependencies
 
 @view

@@ -131,28 +131,13 @@ func underlying() -> (underlying : felt){
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _drip_manager: felt,
-        _drip_transit: felt,
-        _minimum_borrowed_amount: Uint256, // minimal amount for drip 
-        _maximum_borrowed_amount: Uint256, // maximum amount for drip 
-        _allowed_tokens_len: felt,
-        _allowed_tokens: AllowedToken*) {
+        _drip_manager: felt) {
     drip_manager.write(_drip_manager);
     let (pool_) = IDripManager.getPool(_drip_manager);
     let (underlying_) = IPool.asset(pool_);
     underlying.write(underlying_);
     let (registery_) = IPool.getRegistery(pool_);
     RegisteryAccess.initializer(registery_);
-
-    set_fees(Uint256(DEFAULT_FEE_INTEREST,0),Uint256(DEFAULT_FEE_LIQUIDATION,0), Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0), Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0), Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0));
-    allow_token_list(_allowed_tokens_len, _allowed_tokens);
-    let (oracle_transit_) = IDripManager.oracleTransit(_drip_manager);
-    IDripManager.upgradeDripTransit(_drip_manager, _drip_transit);
-    DripTransitUpgraded.emit(_drip_transit);
-    OracleTransitUpgraded.emit(oracle_transit_);
-    let (limit_per_block_ ) = SafeUint256.mul(_maximum_borrowed_amount, Uint256(DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER,0));
-    set_limit_per_block(limit_per_block_);
-    set_limits(_minimum_borrowed_amount, _maximum_borrowed_amount);
     return();
 }
 

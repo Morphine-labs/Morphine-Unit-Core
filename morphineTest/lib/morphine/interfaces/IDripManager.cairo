@@ -171,6 +171,9 @@ namespace IDripManager {
     func liquidationDiscountExpired() -> (liquidation_discount_expired: Uint256) {
     }
 
+    func canLiquidateWhilePaused(liquidator: felt) -> (state: felt) {
+    }
+
     // Dependencies
 
     func getPool() -> (pool: felt) {

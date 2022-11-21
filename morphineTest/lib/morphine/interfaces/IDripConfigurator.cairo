@@ -16,7 +16,7 @@ namespace IDripConfigurator {
 
     // Token Management
 
-    func addTokenToAllowedList(_token: felt){
+    func addToken(_token: felt, _liquidation_threshold: Uint256){
     }
 
     func setLiquidationThreshold(_token: felt, _liquidation_threshold: Uint256){
@@ -41,7 +41,7 @@ namespace IDripConfigurator {
     func setLimits(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     }
 
-    func setFees(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256){
+    func setFees(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256, fee_liquidation_expired: Uint256, liquidation_premium_expired: Uint256){
     }
 
     func setIncreaseDebtForbidden(_state: felt){
@@ -65,7 +65,7 @@ namespace IDripConfigurator {
     func upgradeOracleTransit(){
     }
 
-    func upgradeDripTransit(_drip_transit: felt){
+    func upgradeDripTransit(_drip_transit: felt, _migrate_parameters: felt){
     }
 
     func upgradeConfigurator(_drip_configurator: felt){
