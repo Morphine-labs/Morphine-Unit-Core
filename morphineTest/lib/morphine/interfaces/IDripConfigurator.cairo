@@ -78,7 +78,7 @@ namespace IDripConfigurator {
 
     // Allowed contracts 
 
-    func allowedContractsLength(id: felt) -> (allowedContractsLength: felt){
+    func allowedContractsLength() -> (allowedContractsLength: felt){
     }
 
     func idToAllowedContract(id: felt) -> (allowedContract: felt){

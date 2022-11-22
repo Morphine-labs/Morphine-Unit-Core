@@ -59,9 +59,6 @@ namespace IDripManager {
 
     // Security Check
 
-    func fastCollateralCheck(_drip: felt, _token_in: felt, _token_out: felt, _balance_in_before: Uint256, _balance_out_before: Uint256) {
-    }
-
     func fullCollateralCheck(drip: felt) {
     }
 

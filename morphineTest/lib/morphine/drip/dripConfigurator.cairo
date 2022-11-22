@@ -260,12 +260,22 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     
     IDripManager.changeContractAllowance(drip_manager_, _adapter, _contract);
 
-
-    let (allowed_contract_length_) = allowed_contract_length.read();
-    id_to_allowed_contract.write(allowed_contract_length_, _contract);
-    allowed_contract_to_id.write(_contract, allowed_contract_length_);
-    allowed_contract_length.write(allowed_contract_length_ + 1);
-    is_allowed_contract.write(_contract, 1);
+    let (is_allowed_contract_) = is_allowed_contract.read(_contract);
+    
+    if(is_allowed_contract_ == 0) {
+        let (allowed_contract_length_) = allowed_contract_length.read();
+        id_to_allowed_contract.write(allowed_contract_length_, _contract);
+        allowed_contract_to_id.write(_contract, allowed_contract_length_);
+        allowed_contract_length.write(allowed_contract_length_ + 1);
+        is_allowed_contract.write(_contract, 1);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }
     ContractAllowed.emit(_contract, _adapter);
     return();
 }
@@ -443,7 +453,7 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 @view
-func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
+func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (allowedContractsLength: felt){
     alloc_locals;
     let (allowed_contract_length_) = allowed_contract_length.read();
     return(allowed_contract_length_,);

@@ -27,6 +27,7 @@ func target() -> (drip_manager: felt) {
 }
 
 namespace BaseAdapter {
+
     //
     // Initializer
     //
@@ -46,34 +47,35 @@ namespace BaseAdapter {
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (target_) = target.read();
-        IDripManager.approveDrip(drip_manager_, caller_, target_, _amount);
+        IDripManager.approveDrip(drip_manager_, caller_, target_, _token ,_amount);
         return ();
     }
 
-    func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_selector: felt, _amount: Uint256, _calldata_len: felt, _calldata: felt*) {
+    func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_selector: felt, _calldata_len: felt, _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
+        alloc_locals;
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (target_) = target.read();
         let (retdata_len: felt, retdata: felt*) = IDripManager.executeOrder(drip_manager_, caller_, target_, _selector, _calldata_len, _calldata);
-        return ();
+        return (retdata_len, retdata,);
     }
 
-    func execute_max_allowance_fast_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func execute_max_allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _token_in: felt,
             _token_out: felt, 
             _allow_token_in: felt,
             _disable_token_in: felt,
             _selector: felt,
             _calldata_len: felt, 
-            _calldata: felt*) {
+            _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-        let (retdata_len: felt, retdata: felt*) = execute_max_allowance_fast_check_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
-        return ();
+        let (retdata_len: felt, retdata: felt*) = execute_max_allowance_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
+        return (retdata_len, retdata,);
     }
 
-    func execute_max_allowance_fast_check_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    func execute_max_allowance_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt,
             _token_in: felt,
             _token_out: felt, 
@@ -81,7 +83,57 @@ namespace BaseAdapter {
             _disable_token_in: felt,
             _selector: felt,
             _calldata_len: felt, 
-            _calldata: felt*) {
+            _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
+        alloc_locals;
+        if(_allow_token_in == 1){
+            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        } else {
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        }
+        let (retdata_len: felt, retdata: felt*) = execute(_selector, _calldata_len, _calldata);
+        if(_allow_token_in == 1){
+            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        } else {
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        }
+        full_check(_drip, _token_in, _token_out, _disable_token_in);
+        return (retdata_len, retdata,);
+    }
+
+    func safe_execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            _token_in: felt,
+            _token_out: felt, 
+            _allow_token_in: felt,
+            _disable_token_in: felt,
+            _selector: felt,
+            _calldata_len: felt, 
+            _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
+        let (drip_manager_) = drip_manager.read();
+        let (caller_) = get_caller_address();
+        let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
+        let (retdata_len: felt, retdata: felt*) = safe_execute_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
+        return (retdata_len, retdata,);
+    }
+
+    func safe_execute_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            _drip: felt,
+            _token_in: felt,
+            _token_out: felt, 
+            _allow_token_in: felt,
+            _disable_token_in: felt,
+            _selector: felt,
+            _calldata_len: felt, 
+            _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         alloc_locals;
 
         if(_allow_token_in == 1){
@@ -94,67 +146,9 @@ namespace BaseAdapter {
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
         }
-        let (drip_manager_) = drip_manager.read();
-        let (caller_) = get_caller_address();
-        let (target_) = target.read();
-        let (retdata_len: felt, retdata: felt*) = IDripManager.executeOrder(drip_manager_, caller_, target_, _selector, _calldata_len, _calldata);
-        if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        } else {
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        }
 
-        let (balance_in_before_) = IERC20.balanceOf(_token_in, _drip);
-        let (balance_out_before_) = IERC20.balanceOf(_token_out, _drip);
-        fast_check(_drip, _token_in, _token_out, balance_in_before_, balance_out_before_, _disable_token_in);
-        return ();
-    }
+        let (retdata_len: felt, retdata: felt*) = execute(_selector, _calldata_len, _calldata);
 
-    func safe_execute_fast_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _token_in: felt,
-            _token_out: felt, 
-            _allow_token_in: felt,
-            _disable_token_in: felt,
-            _selector: felt,
-            _calldata_len: felt, 
-            _calldata: felt*) {
-        let (drip_manager_) = drip_manager.read();
-        let (caller_) = get_caller_address();
-        let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-        let (retdata_len: felt, retdata: felt*) = safe_execute_fast_check_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
-        return ();
-    }
-
-    func safe_execute_fast_check_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _drip: felt,
-            _token_in: felt,
-            _token_out: felt, 
-            _allow_token_in: felt,
-            _disable_token_in: felt,
-            _selector: felt,
-            _calldata_len: felt, 
-            _calldata: felt*) {
-        alloc_locals;
-
-        if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        } else {
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        }
-        let (drip_manager_) = drip_manager.read();
-        let (caller_) = get_caller_address();
-        let (target_) = target.read();
-        let (retdata_len: felt, retdata: felt*) = IDripManager.executeOrder(drip_manager_, caller_, target_, _selector, _calldata_len, _calldata);
         if(_allow_token_in == 1){
             approve_token(_token_in, Uint256(0, 0));
             tempvar syscall_ptr = syscall_ptr;
@@ -166,42 +160,31 @@ namespace BaseAdapter {
             tempvar range_check_ptr = range_check_ptr;
         }
 
-        let (balance_in_before_) = IERC20.balanceOf(_token_in, _drip);
-        let (balance_out_before_) = IERC20.balanceOf(_token_out, _drip);
-        fast_check(_drip, _token_in, _token_out, balance_in_before_, balance_out_before_, _disable_token_in);
-        return ();
+        full_check(_drip, _token_in, _token_out, _disable_token_in);
+        return (retdata_len, retdata,);
     }
 
-    func fast_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _drip: felt,
+    func full_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            _drip: felt, 
             _token_in: felt,
-            _token_out: felt, 
-            _balance_in_before: Uint256,
-            _balance_out_before: Uint256,
+            _token_out: felt,
             _disable_token_in: felt) {
         alloc_locals;
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (drip_transit_) = drip_transit.read();
-        if(caller_ == drip_transit_){
-            if(_disable_token_in == 1){
-                IDripManager.disableToken(drip_manager_, _token_in);
-                return();
-            } else {
-                return();
-            }
+        IDripManager.checkAndEnableToken(drip_manager_, _drip, _token_out);
+        if(_disable_token_in == 1){
+            IDripManager.disableToken(drip_manager_, _drip, _token_in);
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         } else {
-            IDripManager.fastCollateralCheck(drip_manager_, _drip, _token_in, _token_out, _balance_in_before, _balance_out_before, _disable_token_in);
-            return();
+            tempvar syscall_ptr = syscall_ptr;
+            tempvar pedersen_ptr = pedersen_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         }
-    }
-
-    func full_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _drip: felt) {
-        alloc_locals;
-        let (drip_manager_) = drip_manager.read();
-        let (caller_) = get_caller_address();
-        let (drip_transit_) = drip_transit.read();
+        // If caller is drip transit, it is a multicall 
         if(caller_ == drip_transit_){
            return();
         } else {

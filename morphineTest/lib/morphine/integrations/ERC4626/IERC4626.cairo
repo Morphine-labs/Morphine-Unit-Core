@@ -5,7 +5,7 @@
 from starkware.cairo.common.uint256 import Uint256
 
 @contract_interface
-namespace IYearnV2Like {
+namespace IERC4626 {
 
     //
     // HOLDINGS

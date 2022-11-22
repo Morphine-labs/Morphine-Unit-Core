@@ -1,3 +1,4 @@
+
 %lang starknet
 
 // Starkware dependencies
@@ -248,10 +249,12 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
     let (allowed_assets: AllowedToken*) = alloc();
     let (eth_) = eth_instance.deployed();
+    let (veth_) = veth_instance.deployed();
     assert allowed_assets[0] = AllowedToken(eth_, Uint256(ETH_LT_LOW, ETH_LT_HIGH));
+    assert allowed_assets[1] = AllowedToken(veth_, Uint256(VETH_LT_LOW, VETH_LT_HIGH));
     let (pool_) = pool_instance.deployed();
     let (nft_) = nft_instance.deployed();
-    drip_infra_factory_instance.deployDripInfra(pool_, nft_, 1, Uint256(MINIMUM_BORROWED_AMOUNT_LO,MINIMUM_BORROWED_AMOUNT_HI), Uint256(MAXIMUM_BORROWED_AMOUNT_LO,MAXIMUM_BORROWED_AMOUNT_HI), 1, allowed_assets, 0);
+    drip_infra_factory_instance.deployDripInfra(pool_, nft_, 1, Uint256(MINIMUM_BORROWED_AMOUNT_LO,MINIMUM_BORROWED_AMOUNT_HI), Uint256(MAXIMUM_BORROWED_AMOUNT_LO,MAXIMUM_BORROWED_AMOUNT_HI), 2, allowed_assets, 0);
     let (a1_, a2_, a3_) = drip_infra_factory_instance.getDripInfraAddresses();
     %{
         context.drip_manager = ids.a1_
@@ -259,11 +262,24 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         context.drip_configurator = ids.a3_
     %}
 
+    tempvar erc4626_adapter;
+    tempvar erc4626_adapter_second;
+
+    %{
+        ids.erc4626_adapter = deploy_contract("./lib/morphine/adapters/ERC4626/ERC4626.cairo", [context.drip_manager, context.veth]).contract_address
+        context.erc4626_adapter = ids.erc4626_adapter
+
+        ids.erc4626_adapter_second = deploy_contract("./lib/morphine/adapters/ERC4626/ERC4626.cairo", [context.drip_manager, context.veth]).contract_address
+        context.erc4626_adapter_second = ids.erc4626_adapter_second
+    %}
+
+
     tempvar new_drip_transit;
     tempvar new_drip_transit_false;
     tempvar new_drip_configurator;
     tempvar new_drip_configurator_false;
     tempvar dummy_drip_manager;
+
     %{
         ids.dummy_drip_manager = deploy_contract("./lib/morphine/drip/dripManager.cairo", [context.pool]).contract_address
         context.dummy_drip_manager = ids.dummy_drip_manager
@@ -280,725 +296,86 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.new_drip_configurator_false = deploy_contract("./lib/morphine/drip/dripConfiguratorSideline.cairo", [context.dummy_drip_manager]).contract_address
         context.new_drip_configurator_false = ids.new_drip_configurator_false
 
+
     %}
     return();
 }
 
 
 
-// @view
-// func test_drip_configurator_deployement{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     let (eth_) = eth_instance.deployed();
-//     let (drip_transit_) = drip_transit_instance.deployed();
-//     let (oracle_transit_) = oracle_transit_instance.deployed();
-//     let (fee_interest_) = drip_manager_instance.feeInterest();
-//     let (fee_liqudidation_) = drip_manager_instance.feeLiquidation();    
-//     let (fee_liqudidation_expired_) = drip_manager_instance.feeLiquidationExpired();
-//     let (liquidation_discount_) = drip_manager_instance.liquidationDiscount();
-//     let (liquidation_discount_expired_) = drip_manager_instance.liquidationDiscountExpired();
-//     assert fee_interest_ = Uint256(DEFAULT_FEE_INTEREST,0);
-//     assert fee_liqudidation_ = Uint256(DEFAULT_FEE_LIQUIDATION,0);
-//     assert fee_liqudidation_expired_ = Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0);
-//     assert liquidation_discount_ = Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0);
-//     assert liquidation_discount_expired_ = Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0);
-//     let (underlying_) = drip_manager_instance.underlying();
-//     assert underlying_ = dai_;
-//     let (token_mask1_) = drip_manager_instance.tokenMask(dai_);
-//     assert token_mask1_ = Uint256(1,0);
-//     let (token_mask2_) = drip_manager_instance.tokenMask(eth_);
-//     assert token_mask2_ = Uint256(2,0);
-//     let (allowed_token_length_) = drip_manager_instance.allowedTokensLength();
-//     assert allowed_token_length_ = 2;
-//     let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
-//     assert (forbidden_token_mask_) = Uint256(0,0);
-//     let (token_from_mask1_) = drip_manager_instance.tokenByMask(Uint256(1,0));
-//     assert token_from_mask1_ = dai_;
-//     let (token_from_mask2_) = drip_manager_instance.tokenByMask(Uint256(2,0));
-//     assert token_from_mask2_ = eth_;
-//     let (token_from_id1_) = drip_manager_instance.tokenById(0);
-//     assert token_from_id1_ = dai_;
-//     let (token_from_id2_) = drip_manager_instance.tokenById(1);
-//     assert token_from_id2_ = eth_;
-//     let (liquidation_threshold1_) = drip_manager_instance.liquidationThreshold(dai_);
-//     assert liquidation_threshold1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-//     let (liquidation_threshold2_) = drip_manager_instance.liquidationThreshold(eth_);
-//     assert liquidation_threshold2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-//     let (liquidation_threshold_from_mask1_) = drip_manager_instance.liquidationThresholdByMask(Uint256(1,0));
-//     assert liquidation_threshold_from_mask1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-//     let (liquidation_threshold_from_mask2_) = drip_manager_instance.liquidationThresholdByMask(Uint256(2,0));
-//     assert liquidation_threshold_from_mask2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-//     let (liquidation_threshold_from_id1_) = drip_manager_instance.liquidationThresholdById(0);
-//     assert liquidation_threshold_from_id1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-//     let (liquidation_threshold_from_id2_) = drip_manager_instance.liquidationThresholdById(1);
-//     assert liquidation_threshold_from_id2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-//     let (drip_transit_from_drip_manager_) = drip_manager_instance.dripTransit();
-//     assert drip_transit_from_drip_manager_ = drip_transit_;
-//     let (oracle_transit_from_drip_manager_) = drip_manager_instance.oracleTransit();
-//     assert oracle_transit_from_drip_manager_ = oracle_transit_;
-//     let (minimum_borrowed_amount_, maximum_borrowed_amount_) = drip_transit_instance.limits();
-//     assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
-//     assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI);
-//     let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
-//     assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
-//     let (is_increase_debt_forbidden_) = drip_transit_instance.isIncreaseDebtForbidden();
-//     assert is_increase_debt_forbidden_ = 0;
-//     let (expiration_date_) = drip_transit_instance.expirationDate();
-//     assert expiration_date_ = 0;
-//     return();
-// }
-
-// @view
-// func test_add_token_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (btc_) = btc_instance.deployed();
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.addToken(btc_, Uint256(800000,0));
-//     return();
-// }
-
-// @view
-// func test_add_token_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (btc_) = btc_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="zero address for token") %}
-//     drip_configurator_instance.addToken(0, Uint256(800000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert() %}
-//     drip_configurator_instance.addToken(RANDOM_ADDRESS, Uint256(800000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (rd_) = rd_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="no price feed for token") %}
-//     drip_configurator_instance.addToken(rd_, Uint256(800000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token already added") %}
-//     drip_configurator_instance.addToken(dai_, Uint256(800000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (btc_) = btc_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect liquidation threshold") %}
-//     drip_configurator_instance.addToken(btc_, Uint256(950000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (btc_) = btc_instance.deployed();
-//     %{
-//         store(context.drip_manager, "allowed_tokens_length", [256])
-//     %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="too much tokens") %}
-//     drip_configurator_instance.addToken(btc_, Uint256(BTC_LT_LOW,BTC_LT_HIGH));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_add_token_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (btc_) = btc_instance.deployed();
-//     %{ expect_events({"name": "TokenAllowed", "data": [ids.btc_],"from_address": context.drip_configurator}) %}
-//     %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [ids.btc_, ids.BTC_LT_LOW, ids.BTC_LT_HIGH],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.addToken(btc_, Uint256(BTC_LT_LOW,BTC_LT_HIGH));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-    
-//     let (token_mask_) = drip_manager_instance.tokenMask(btc_);
-//     assert token_mask_ = Uint256(4,0);
-//     let (allowed_token_length_) = drip_manager_instance.allowedTokensLength();
-//     assert allowed_token_length_ = 3;
-//     let (token_from_mask_) = drip_manager_instance.tokenByMask(Uint256(4,0));
-//     assert token_from_mask_ = btc_;
-//     let (token_from_id_) = drip_manager_instance.tokenById(2);
-//     assert token_from_id_ = btc_;
-
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(btc_);
-//     assert liquidation_threshold_ = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-//     let (liquidation_threshold_from_mask_) = drip_manager_instance.liquidationThresholdByMask(Uint256(4,0));
-//     assert liquidation_threshold_from_mask_ = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-//     let (liquidation_threshold_from_id_) = drip_manager_instance.liquidationThresholdById(2);
-//     assert liquidation_threshold_from_id_ = Uint256(BTC_LT_LOW, BTC_LT_HIGH);
-//     return();
-// }
-
-
-// @view
-// func test_set_lt_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (eth_) = eth_instance.deployed();
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.setLiquidationThreshold(eth_, Uint256(850000,0));
-//     return();
-// }
-
-// @view
-// func test_set_lt_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="underlying is token") %}
-//     drip_configurator_instance.setLiquidationThreshold(dai_, Uint256(850000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_lt_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (rd_) = rd_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect liquidation threshold") %}
-//     drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(950000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_lt_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (rd_) = rd_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token not allowed") %}
-//     drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(800000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_lt_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (eth_) = eth_instance.deployed();
-//     %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [ids.eth_, 930000, 0],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setLiquidationThreshold(eth_, Uint256(930000,0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
-//     assert liquidation_threshold_ = Uint256(930000, 0);
-//     return();
-// }
-
-// @view
-// func test_forbid_token_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.forbidToken(dai_);
-//     return();
-// }
-
-// @view
-// func test_forbid_token_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token is underlying") %}
-//     drip_configurator_instance.forbidToken(dai_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_forbid_token_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (rd_) = rd_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token not allowed") %}
-//     drip_configurator_instance.forbidToken(rd_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_forbid_token_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (eth_) = eth_instance.deployed();
-//     %{ expect_events({"name": "TokenForbidden", "data": [ids.eth_],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.forbidToken(eth_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
-//     assert (forbidden_token_mask_) = Uint256(2,0);
-//     return();
-// }
-
-// @view
-// func test_allow_token_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (eth_) = eth_instance.deployed();
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.allowToken(eth_);
-//     return();
-// }
-
-// @view
-// func test_allow_token_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token is underlying") %}
-//     drip_configurator_instance.allowToken(dai_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_allow_token_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (rd_) = rd_instance.deployed();
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="token not allowed") %}
-//     drip_configurator_instance.allowToken(rd_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_allow_token_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-
-//     let (eth_) = eth_instance.deployed();
-//     %{ expect_events({"name": "TokenForbidden", "data": [ids.eth_],"from_address": context.drip_configurator}) %}
-//     %{ expect_events({"name": "TokenAllowed", "data": [ids.eth_],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.forbidToken(eth_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
-//     assert (forbidden_token_mask_) = Uint256(2,0);
-    
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.allowToken(eth_);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
-//     assert (forbidden_token_mask_) = Uint256(0,0);
-//     return();
-// }
-
-// @view
-// func test_set_limits_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.setLimits(Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI),Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI));
-//     return();
-// }
-
-// @view
-// func test_set_limits_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect limit") %}
-//     drip_configurator_instance.setLimits(Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI),Uint256(MINIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI));
-//      %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_limits_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect limit") %}
-//     drip_configurator_instance.setLimits(Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI),Uint256(MAXIMUM_BORROWED_AMOUNT_LO * 8, MAXIMUM_BORROWED_AMOUNT_HI));
-//      %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_limits_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_events({"name": "LimitsUpdated", "data": [ids.MINIMUM_BORROWED_AMOUNT_LO, ids.MINIMUM_BORROWED_AMOUNT_HI, ids.MAXIMUM_BORROWED_AMOUNT_LO * 2, ids.MAXIMUM_BORROWED_AMOUNT_HI],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setLimits(Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI),Uint256(MAXIMUM_BORROWED_AMOUNT_LO * 2, MAXIMUM_BORROWED_AMOUNT_HI));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (minimum_borrowed_amount_, maximum_borrowed_amount_) = drip_transit_instance.limits();
-//     assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
-//     assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * 2, MAXIMUM_BORROWED_AMOUNT_HI);
-//     return();
-// }
-
-// @view
-// func test_set_fees_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     return();
-// }
-
-// @view
-// func test_set_fees_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect fees") %}
-//     drip_configurator_instance.setFees(Uint256(1000001, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_fees_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect fees") %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(930000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_fees_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect fees") %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(980000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_fees_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect fees") %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(950000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_fees_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect fees") %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(970000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     return();
-// }
-
-// @view
-// func test_set_fees_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 20000, 0, 960000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(20000, 0), Uint256(40000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-//     assert liquidation_threshold_ = Uint256(940000, 0);
-//     return();
-// }
-
-// @view
-// func test_set_fees_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     let (eth_) =  eth_instance.deployed();
-//     %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 40000, 0, 920000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
-//     %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 880000, 0],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-//     assert liquidation_threshold_ = Uint256(880000, 0);
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
-//     assert liquidation_threshold_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-//     return();
-// }
-
-// @view
-// func test_set_fees_9{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     let (dai_) = dai_instance.deployed();
-//     let (eth_) =  eth_instance.deployed();
-//     %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 200000, 0, 800000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
-//     %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 600000, 0],"from_address": context.drip_configurator}) %}
-//     %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.eth, 600000, 0],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(200000, 0), Uint256(200000, 0), Uint256(40000, 0), Uint256(60000, 0));
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-//     assert liquidation_threshold_ = Uint256(600000, 0);
-//     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
-//     assert liquidation_threshold_ = Uint256(600000, 0);
-//     return();
-// }
-
-// @view
-// func test_increase_debt_forbidden_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.setIncreaseDebtForbidden(0);
-//     return();
-// }
-
-// @view
-// func test_increase_debt_forbidden_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_events({"name": "IncreaseDebtForbiddenStateChanged", "data": [1],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setIncreaseDebtForbidden(1);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (is_increase_debt_forbidden_) = drip_transit_instance.isIncreaseDebtForbidden();
-//     assert is_increase_debt_forbidden_ = 1;
-//     return();  
-// }
-
-// @view
-// func test_set_expiration_date_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.setExpirationDate(0);
-//     return();
-// }
-
-// @view
-// func test_set_expiration_date_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_warp = warp(90000, context.drip_configurator) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     %{ expect_revert(error_message="incorrect expiration date") %}
-//     drip_configurator_instance.setExpirationDate(80000);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     %{ stop_warp() %}
-//     return();  
-// }
-
-// @view
-// func test_set_expiration_date_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_events({"name": "ExpirationDateUpdated", "data": [80000],"from_address": context.drip_configurator}) %}
-    // %{ stop_warp = warp(0, context.drip_configurator) %}
-    // %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    // drip_configurator_instance.setExpirationDate(80000);
-    // %{ [stop_prank() for stop_prank in stop_pranks] %}
-    // %{ stop_warp() %}
-//     return();  
-// }
-
-// @view
-// func test_set_expiration_date_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ stop_warp = warp(0, context.drip_configurator) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.setExpirationDate(80000);
-//     %{ expect_revert(error_message="incorrect expiration date") %}
-//     drip_configurator_instance.setExpirationDate(70000);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     %{ stop_warp() %}
-//     return();  
-// }
-
-// @view
-// func test_add_emergency_liquidator_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.addEmergencyLiquidator(RANDOM_ADDRESS);
-//     return();
-// }
-
-// @view
-// func test_add_emergency_liquidator_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_events({"name": "EmergencyLiquidatorAdded", "data": [ids.RANDOM_ADDRESS],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.addEmergencyLiquidator(RANDOM_ADDRESS);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (can_liquidate_while_paused_) = drip_manager_instance.canLiquidateWhilePaused(RANDOM_ADDRESS);
-//     assert can_liquidate_while_paused_ = 1;
-//     return();  
-// }
-
-// @view
-// func test_remove_emergency_liquidator_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.removeEmergencyLiquidator(RANDOM_ADDRESS);
-//     return();
-// }
-
-// @view
-// func test_remove_emergency_liquidator_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_events({"name": "EmergencyLiquidatorRemoved", "data": [ids.RANDOM_ADDRESS],"from_address": context.drip_configurator}) %}
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.addEmergencyLiquidator(RANDOM_ADDRESS);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (can_liquidate_while_paused_) = drip_manager_instance.canLiquidateWhilePaused(RANDOM_ADDRESS);
-//     assert can_liquidate_while_paused_ = 1;
-
-//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-//     drip_configurator_instance.removeEmergencyLiquidator(RANDOM_ADDRESS);
-//     %{ [stop_prank() for stop_prank in stop_pranks] %}
-//     let (can_liquidate_while_paused_) = drip_manager_instance.canLiquidateWhilePaused(RANDOM_ADDRESS);
-//     assert can_liquidate_while_paused_ = 0;
-//     return();  
-// }
-
-// @view
-// func test_upgrade_oracle_transit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-//     alloc_locals;
-//     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-//     drip_configurator_instance.upgradeOracleTransit();
-//     return();
-// }
-
 @view
-func test_upgrade_oracle_transit_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_setup{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    %{ expect_events({"name": "OracleTransitUpgraded", "data": [89],"from_address": context.drip_configurator}) %}
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator, context.registery] ] %}
-    registery_instance.setOracleTransit(89);
-    drip_configurator_instance.upgradeOracleTransit();
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    let (oracle_transit_) = drip_manager_instance.oracleTransit();
-    assert oracle_transit_ = 89;
-    return();
-}
-
-@view
-func test_upgrade_drip_transit_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-    drip_configurator_instance.upgradeDripTransit(78, 0);
-    return();
-}
-
-@view
-func test_upgrade_drip_transit_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    %{ expect_revert(error_message="zero address") %}
-    drip_configurator_instance.upgradeDripTransit(0, 0);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    return();
-}
-
-@view
-func test_upgrade_drip_transit_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    let (new_drip_transit_false) = new_drip_transit_instance.deployedFalse();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    %{ expect_revert(error_message="wrong drip manager from drip transit") %}
-    drip_configurator_instance.upgradeDripTransit(new_drip_transit_false, 0);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    return();
-}
-
-@view
-func test_upgrade_drip_transit_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ expect_events({"name": "DripTransitUpgraded", "data": [context.new_drip_transit],"from_address": context.drip_configurator}) %}
-    let (new_drip_transit_true) = new_drip_transit_instance.deployedTrue();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.upgradeDripTransit(new_drip_transit_true, 0);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    let (new_drip_transit_) = drip_manager_instance.dripTransit();
-    assert new_drip_transit_ = new_drip_transit_true;
-    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = new_drip_transit_instance.limits();
-    assert minimum_borrowed_amount_ = Uint256(0, 0);
-    assert maximum_borrowed_amount_ = Uint256(0, 0);
-    let (limit_per_block_) = new_drip_transit_instance.maxBorrowedAmountPerBlock();
-    assert limit_per_block_ = Uint256(0, 0);
-    let (is_increase_debt_forbidden_) = new_drip_transit_instance.isIncreaseDebtForbidden();
-    assert is_increase_debt_forbidden_ = 0;
-    let (expiration_date_) = new_drip_transit_instance.expirationDate();
-    assert expiration_date_ = 0;
-    return();
-}
-
-@view
-func test_upgrade_drip_transit_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ expect_events({"name": "DripTransitUpgraded", "data": [context.new_drip_transit],"from_address": context.drip_configurator}) %}
-    let (new_drip_transit_true) = new_drip_transit_instance.deployedTrue();
-    %{ stop_warp = warp(0, context.drip_configurator) %}
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setExpirationDate(80000);
-    drip_configurator_instance.setIncreaseDebtForbidden(1);
-    drip_configurator_instance.upgradeDripTransit(new_drip_transit_true, 1);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    %{ stop_warp() %}
-    let (new_drip_transit_) = drip_manager_instance.dripTransit();
-    assert new_drip_transit_ = new_drip_transit_true;
-    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = new_drip_transit_instance.limits();
+    let (dai_) = dai_instance.deployed();
+    let (eth_) = eth_instance.deployed();
+    let (veth_) = veth_instance.deployed();
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (oracle_transit_) = oracle_transit_instance.deployed();
+    let (fee_interest_) = drip_manager_instance.feeInterest();
+    let (fee_liqudidation_) = drip_manager_instance.feeLiquidation();    
+    let (fee_liqudidation_expired_) = drip_manager_instance.feeLiquidationExpired();
+    let (liquidation_discount_) = drip_manager_instance.liquidationDiscount();
+    let (liquidation_discount_expired_) = drip_manager_instance.liquidationDiscountExpired();
+    assert fee_interest_ = Uint256(DEFAULT_FEE_INTEREST,0);
+    assert fee_liqudidation_ = Uint256(DEFAULT_FEE_LIQUIDATION,0);
+    assert fee_liqudidation_expired_ = Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0);
+    assert liquidation_discount_ = Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0);
+    assert liquidation_discount_expired_ = Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0);
+    let (underlying_) = drip_manager_instance.underlying();
+    assert underlying_ = dai_;
+    let (token_mask1_) = drip_manager_instance.tokenMask(dai_);
+    assert token_mask1_ = Uint256(1,0);
+    let (token_mask2_) = drip_manager_instance.tokenMask(eth_);
+    assert token_mask2_ = Uint256(2,0);
+    let (token_mask3_) = drip_manager_instance.tokenMask(veth_);
+    assert token_mask3_ = Uint256(4,0);
+    let (allowed_token_length_) = drip_manager_instance.allowedTokensLength();
+    assert allowed_token_length_ = 3;
+    let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
+    assert (forbidden_token_mask_) = Uint256(0,0);
+    let (token_from_mask1_) = drip_manager_instance.tokenByMask(Uint256(1,0));
+    assert token_from_mask1_ = dai_;
+    let (token_from_mask2_) = drip_manager_instance.tokenByMask(Uint256(2,0));
+    assert token_from_mask2_ = eth_;
+    let (token_from_mask3_) = drip_manager_instance.tokenByMask(Uint256(4,0));
+    assert token_from_mask3_ = veth_;
+    let (token_from_id1_) = drip_manager_instance.tokenById(0);
+    assert token_from_id1_ = dai_;
+    let (token_from_id2_) = drip_manager_instance.tokenById(1);
+    assert token_from_id2_ = eth_;
+    let (token_from_id3_) = drip_manager_instance.tokenById(2);
+    assert token_from_id3_ = veth_;
+    let (liquidation_threshold1_) = drip_manager_instance.liquidationThreshold(dai_);
+    assert liquidation_threshold1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold2_) = drip_manager_instance.liquidationThreshold(eth_);
+    assert liquidation_threshold2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (liquidation_threshold3_) = drip_manager_instance.liquidationThreshold(veth_);
+    assert liquidation_threshold3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
+    let (liquidation_threshold_from_mask1_) = drip_manager_instance.liquidationThresholdByMask(Uint256(1,0));
+    assert liquidation_threshold_from_mask1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold_from_mask2_) = drip_manager_instance.liquidationThresholdByMask(Uint256(2,0));
+    assert liquidation_threshold_from_mask2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (liquidation_threshold_from_mask3_) = drip_manager_instance.liquidationThresholdByMask(Uint256(4,0));
+    assert liquidation_threshold_from_mask3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
+    let (liquidation_threshold_from_id1_) = drip_manager_instance.liquidationThresholdById(0);
+    assert liquidation_threshold_from_id1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
+    let (liquidation_threshold_from_id2_) = drip_manager_instance.liquidationThresholdById(1);
+    assert liquidation_threshold_from_id2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
+    let (liquidation_threshold_from_id3_) = drip_manager_instance.liquidationThresholdById(2);
+    assert liquidation_threshold_from_id3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
+    let (drip_transit_from_drip_manager_) = drip_manager_instance.dripTransit();
+    assert drip_transit_from_drip_manager_ = drip_transit_;
+    let (oracle_transit_from_drip_manager_) = drip_manager_instance.oracleTransit();
+    assert oracle_transit_from_drip_manager_ = oracle_transit_;
+    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = drip_transit_instance.limits();
     assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
     assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI);
-    let (limit_per_block_) = new_drip_transit_instance.maxBorrowedAmountPerBlock();
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
     assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
-    let (is_increase_debt_forbidden_) = new_drip_transit_instance.isIncreaseDebtForbidden();
-    assert is_increase_debt_forbidden_ = 1;
-    let (expiration_date_) = new_drip_transit_instance.expirationDate();
-    assert expiration_date_ = 80000;
-    return();
-}
-
-@view
-func test_upgrade_drip_configurator_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-    drip_configurator_instance.upgradeConfigurator(78);
-    return();
-}
-
-@view
-func test_upgrade_drip_configurator_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    %{ expect_revert(error_message="zero address") %}
-    drip_configurator_instance.upgradeConfigurator(0);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    return();
-}
-
-@view
-func test_upgrade_drip_configurator_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    let (new_drip_configurator_false_) = new_drip_configurator_instance.deployedFalse();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    %{ expect_revert(error_message="wrong drip manager from drip configurator") %}
-    drip_configurator_instance.upgradeConfigurator(new_drip_configurator_false_);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-    return();
-}
-
-@view
-func test_upgrade_drip_configurator_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
-    alloc_locals;
-    %{ expect_events({"name": "DripConfiguratorUpgraded", "data": [context.new_drip_configurator],"from_address": context.drip_configurator}) %}
-    let (new_drip_configurator_true_) = new_drip_configurator_instance.deployedTrue();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.upgradeConfigurator(new_drip_configurator_true_);
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    let (is_increase_debt_forbidden_) = drip_transit_instance.isIncreaseDebtForbidden();
+    assert is_increase_debt_forbidden_ = 0;
+    let (expiration_date_) = drip_transit_instance.expirationDate();
+    assert expiration_date_ = 0;
     return();
 }
 
@@ -1125,10 +502,10 @@ namespace drip_configurator_instance{
 
     // Getters
 
-    func allowedContractsLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
+    func allowedContractsLength{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (allowedContractsLength: felt){
     tempvar drip_configurator;
     %{ ids.drip_configurator = context.drip_configurator %}
-    let (allowed_contract_length_) =  IDripConfigurator.allowedContractsLength(drip_configurator, id);
+    let (allowed_contract_length_) =  IDripConfigurator.allowedContractsLength(drip_configurator);
     return(allowed_contract_length_,);
     }
 
@@ -1552,6 +929,58 @@ namespace pool_instance{
     }
 }
 
+namespace nft_instance{
+    func deployed() -> (nft : felt){
+        tempvar nft;
+        %{ ids.nft = context.nft %}
+        return (nft,);
+    }
+}
+
+namespace drip_infra_factory_instance{
+    func deployed() -> (drip_configurator : felt){
+        tempvar drip_infra_factory;
+        %{ ids.drip_infra_factory = context.drip_infra_factory %}
+        return (drip_infra_factory,);
+    }
+
+    func deployDripInfra{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        _pool: felt, 
+        _nft: felt,
+        _expirable: felt,
+        _minimum_borrowed_amount: Uint256,
+        _maximum_borrowed_amount: Uint256,
+        _allowed_tokens_len: felt,
+        _allowed_tokens: AllowedToken*,
+        _salt: felt) {
+    tempvar drip_infra_factory;
+    %{ ids.drip_infra_factory = context.drip_infra_factory %}
+    IDripInfraFactory.deployDripInfra(drip_infra_factory, drip_infra_factory, _pool, _nft, _expirable, _minimum_borrowed_amount, _maximum_borrowed_amount, _allowed_tokens_len, _allowed_tokens, _salt);
+    return();
+    }
+
+    func getDripInfraAddresses{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (contract_address1: felt, contract_address2: felt, contract_address3: felt) {
+    tempvar drip_infra_factory;
+    %{ ids.drip_infra_factory = context.drip_infra_factory %}
+    let (ad1_, ad2_, ad3_) = IDripInfraFactory.getDripInfraAddresses(drip_infra_factory);
+    return(ad1_, ad2_, ad3_,);
+    }
+}
+
+namespace erc4626_adapter_instance{
+    func deployed() -> (erc4626_adapter : felt){
+        tempvar erc4626_adapter;
+        %{ ids.erc4626_adapter = context.erc4626_adapter %}
+        return (erc4626_adapter,);
+    }
+
+    func deployedSecond() -> (erc4626_adapter_second : felt){
+        tempvar erc4626_adapter_second;
+        %{ ids.erc4626_adapter_second = context.erc4626_adapter_second %}
+        return (erc4626_adapter_second,);
+    }
+}
+
 namespace new_drip_transit_instance{
     func deployedTrue() -> (new_drip_transit : felt){
         tempvar new_drip_transit;
@@ -1615,47 +1044,6 @@ namespace new_drip_configurator_instance{
     }
 }
 
-namespace nft_instance{
-    func deployed() -> (nft : felt){
-        tempvar nft;
-        %{ ids.nft = context.nft %}
-        return (nft,);
-    }
-}
-
-
-
-namespace drip_infra_factory_instance{
-    func deployed() -> (drip_configurator : felt){
-        tempvar drip_infra_factory;
-        %{ ids.drip_infra_factory = context.drip_infra_factory %}
-        return (drip_infra_factory,);
-    }
-
-    func deployDripInfra{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _pool: felt, 
-        _nft: felt,
-        _expirable: felt,
-        _minimum_borrowed_amount: Uint256,
-        _maximum_borrowed_amount: Uint256,
-        _allowed_tokens_len: felt,
-        _allowed_tokens: AllowedToken*,
-        _salt: felt) {
-    tempvar drip_infra_factory;
-    %{ ids.drip_infra_factory = context.drip_infra_factory %}
-    IDripInfraFactory.deployDripInfra(drip_infra_factory, drip_infra_factory, _pool, _nft, _expirable, _minimum_borrowed_amount, _maximum_borrowed_amount, _allowed_tokens_len, _allowed_tokens, _salt);
-    return();
-    }
-
-    func getDripInfraAddresses{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (contract_address1: felt, contract_address2: felt, contract_address3: felt) {
-    tempvar drip_infra_factory;
-    %{ ids.drip_infra_factory = context.drip_infra_factory %}
-    let (ad1_, ad2_, ad3_) = IDripInfraFactory.getDripInfraAddresses(drip_infra_factory);
-    return(ad1_, ad2_, ad3_,);
-    }
-}
-
-
 namespace btc_instance{
     func deployed() -> (btc : felt){
         tempvar btc;
@@ -1671,11 +1059,20 @@ namespace dai_instance{
         return (dai,);
     }
 }
+
 namespace eth_instance{
     func deployed() -> (eth : felt){
         tempvar eth;
         %{ ids.eth = context.eth %}
         return (eth,);
+    }
+}
+
+namespace veth_instance{
+    func deployed() -> (veth : felt){
+        tempvar veth;
+        %{ ids.veth = context.veth %}
+        return (veth,);
     }
 }
 
