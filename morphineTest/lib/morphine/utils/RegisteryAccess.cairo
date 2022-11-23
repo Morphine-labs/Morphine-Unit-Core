@@ -49,8 +49,14 @@ namespace RegisteryAccess {
     // Public
     //
 
-    func registery{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (owner: felt) {
+    func registery{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (registery: felt) {
         let (registery_) = registery_contract.read();
         return (registery_,);
+    }
+
+    func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (owner: felt) {
+        let (registery_) = registery_contract.read();
+        let (owner_) = IRegistery.owner(registery_);
+        return (owner_,);
     }
 }

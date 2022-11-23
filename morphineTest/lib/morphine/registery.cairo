@@ -201,12 +201,15 @@ func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 func addDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_manager : felt) -> () {
     Ownable.assert_only_owner();
     let (drip_manager_exists_) = is_drip_manager.read(_drip_manager);
-    with_attr error_message("Drip manager: already exist"){
+    
+    with_attr error_message("already exist"){
         assert drip_manager_exists_ = 0;
     }
-    with_attr error_message("Drip manager: address is zero"){
+
+    with_attr error_message("address is zero"){
         assert_not_zero(_drip_manager);
     }
+
     is_drip_manager.write(_drip_manager, 1);
     let (drip_managers_length_) = drip_managers_length.read();
     id_to_drip_manager.write(drip_managers_length_, _drip_manager);

@@ -22,6 +22,15 @@ namespace IMorphinePass {
     func tokenOfOwnerByIndex(owner: felt, index: Uint256) -> (tokenId: Uint256) {
     }
 
+    func setMinter(_minter: felt) {
+    }
+
+    func addDripTransit(_drip_transit: felt) {
+    }
+
+    func removeDripTransit(_drip_transit: felt) {
+    }
+
     func mint(to: felt, amount: Uint256) {
     }
 

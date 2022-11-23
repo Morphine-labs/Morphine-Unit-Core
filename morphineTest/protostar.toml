@@ -3,5 +3,5 @@ protostar-version = "0.7.0"
 lib-path = "lib"
 
 [contracts]
-adapter = ["lib/morphine/adapters/ERC4626/ERC4626.cairo"]
+adapter = ["lib/morphine/token/minter.cairo"]
 

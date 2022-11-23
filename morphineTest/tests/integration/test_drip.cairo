@@ -25,6 +25,11 @@ from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToke
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripTransit import IDripTransit, AccountCallArray
 from morphine.interfaces.IERC4626 import IERC4626
+from morphine.interfaces.IMorphinePass import IMorphinePass
+from morphine.interfaces.IMinter import IMinter
+
+
+
 from morphine.utils.utils import pow
 
 from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
@@ -33,6 +38,7 @@ from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PRE
 
 const ADMIN = 'morphine-admin';
 const USER_1 = 'user-1';
+const USER_2 = 'user_2';
 
 // NFT
 const PASS_TOKEN_NAME = 'morphine_pool_access';
@@ -210,8 +216,9 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     
     tempvar interest_rate_model_contract;
     tempvar pool;
-    tempvar nft;
-  
+    tempvar morphine_pass;
+    tempvar minter;
+
     %{
         ids.interest_rate_model_contract = deploy_contract("./lib/morphine/pool/linearInterestRateModel.cairo", [ids.OPTIMAL_RATE_LO, ids.OPTIMAL_RATE_HI, ids.SLOPE1_LO, ids.SLOPE1_HI, ids.SLOPE2_LO, ids.SLOPE2_HI, ids.BASE_RATE_LO, ids.BASE_RATE_HI]).contract_address 
         context.interest_rate_model_contract = ids.interest_rate_model_contract
@@ -219,10 +226,21 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.pool = deploy_contract("./lib/morphine/pool/pool.cairo", [context.registery, context.dai, ids.ERC4626_NAME, ids.ERC4626_SYMBOL, ids.EXPECTED_LIQUIDITY_LIMIT_LO, ids.EXPECTED_LIQUIDITY_LIMIT_HI, ids.interest_rate_model_contract]).contract_address 
         context.pool = ids.pool    
 
-        ids.nft = deploy_contract("./lib/morphine/token/morphinePass.cairo", [ids.PASS_TOKEN_NAME, ids.PASS_TOKEN_SYMBOL, context.registery]).contract_address 
-        context.nft = ids.nft  
+        ids.morphine_pass = deploy_contract("./lib/morphine/token/morphinePass.cairo", [ids.PASS_TOKEN_NAME, ids.PASS_TOKEN_SYMBOL, context.registery]).contract_address 
+        context.morphine_pass = ids.morphine_pass  
+
+        ids.minter = deploy_contract("./lib/morphine/token/minter.cairo", [context.morphine_pass]).contract_address 
+        context.minter = ids.minter  
     %}
 
+    let (whitelisted_addresses: felt*) = alloc();
+    assert whitelisted_addresses[0] = USER_1;
+    minter_instance.setWhitelist(1, whitelisted_addresses);
+    let (minter_) = minter_instance.deployed();
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.morphine_pass] ] %}
+    morphine_pass_instance.setMinter(minter_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     tempvar drip_infra_factory;
     tempvar drip_manager_hash;
@@ -253,14 +271,23 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     assert allowed_assets[0] = AllowedToken(eth_, Uint256(ETH_LT_LOW, ETH_LT_HIGH));
     assert allowed_assets[1] = AllowedToken(veth_, Uint256(VETH_LT_LOW, VETH_LT_HIGH));
     let (pool_) = pool_instance.deployed();
-    let (nft_) = nft_instance.deployed();
-    drip_infra_factory_instance.deployDripInfra(pool_, nft_, 1, Uint256(MINIMUM_BORROWED_AMOUNT_LO,MINIMUM_BORROWED_AMOUNT_HI), Uint256(MAXIMUM_BORROWED_AMOUNT_LO,MAXIMUM_BORROWED_AMOUNT_HI), 2, allowed_assets, 0);
+    let (morphine_pass_) = morphine_pass_instance.deployed();
+    drip_infra_factory_instance.deployDripInfra(pool_, morphine_pass_, 1, Uint256(MINIMUM_BORROWED_AMOUNT_LO,MINIMUM_BORROWED_AMOUNT_HI), Uint256(MAXIMUM_BORROWED_AMOUNT_LO,MAXIMUM_BORROWED_AMOUNT_HI), 2, allowed_assets, 0);
     let (a1_, a2_, a3_) = drip_infra_factory_instance.getDripInfraAddresses();
     %{
         context.drip_manager = ids.a1_
         context.drip_transit = ids.a2_
         context.drip_configurator = ids.a3_
     %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.morphine_pass] ] %}
+    let (drip_transit_) = drip_transit_instance.deployed();
+    morphine_pass_instance.addDripTransit(drip_transit_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.minter] ] %}
+    minter_instance.mint();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     tempvar erc4626_adapter;
     tempvar erc4626_adapter_second;
@@ -284,10 +311,10 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         ids.dummy_drip_manager = deploy_contract("./lib/morphine/drip/dripManager.cairo", [context.pool]).contract_address
         context.dummy_drip_manager = ids.dummy_drip_manager
 
-        ids.new_drip_transit = deploy_contract("./lib/morphine/drip/dripTransit.cairo", [context.drip_manager, context.nft, 1]).contract_address
+        ids.new_drip_transit = deploy_contract("./lib/morphine/drip/dripTransit.cairo", [context.drip_manager, context.morphine_pass, 1]).contract_address
         context.new_drip_transit = ids.new_drip_transit
 
-        ids.new_drip_transit_false = deploy_contract("./lib/morphine/drip/dripTransit.cairo", [context.dummy_drip_manager, context.nft, 1]).contract_address
+        ids.new_drip_transit_false = deploy_contract("./lib/morphine/drip/dripTransit.cairo", [context.dummy_drip_manager, context.morphine_pass, 1]).contract_address
         context.new_drip_transit_false = ids.new_drip_transit_false
 
         ids.new_drip_configurator = deploy_contract("./lib/morphine/drip/dripConfiguratorSideline.cairo", [context.drip_manager]).contract_address
@@ -304,78 +331,10 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
 
 @view
-func test_setup{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_drip_deployment{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    let (dai_) = dai_instance.deployed();
-    let (eth_) = eth_instance.deployed();
-    let (veth_) = veth_instance.deployed();
-    let (drip_transit_) = drip_transit_instance.deployed();
-    let (oracle_transit_) = oracle_transit_instance.deployed();
-    let (fee_interest_) = drip_manager_instance.feeInterest();
-    let (fee_liqudidation_) = drip_manager_instance.feeLiquidation();    
-    let (fee_liqudidation_expired_) = drip_manager_instance.feeLiquidationExpired();
-    let (liquidation_discount_) = drip_manager_instance.liquidationDiscount();
-    let (liquidation_discount_expired_) = drip_manager_instance.liquidationDiscountExpired();
-    assert fee_interest_ = Uint256(DEFAULT_FEE_INTEREST,0);
-    assert fee_liqudidation_ = Uint256(DEFAULT_FEE_LIQUIDATION,0);
-    assert fee_liqudidation_expired_ = Uint256(DEFAULT_FEE_LIQUIDATION_EXPIRED,0);
-    assert liquidation_discount_ = Uint256(PRECISION - DEFAULT_LIQUIDATION_PREMIUM,0);
-    assert liquidation_discount_expired_ = Uint256(PRECISION - DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM,0);
-    let (underlying_) = drip_manager_instance.underlying();
-    assert underlying_ = dai_;
-    let (token_mask1_) = drip_manager_instance.tokenMask(dai_);
-    assert token_mask1_ = Uint256(1,0);
-    let (token_mask2_) = drip_manager_instance.tokenMask(eth_);
-    assert token_mask2_ = Uint256(2,0);
-    let (token_mask3_) = drip_manager_instance.tokenMask(veth_);
-    assert token_mask3_ = Uint256(4,0);
-    let (allowed_token_length_) = drip_manager_instance.allowedTokensLength();
-    assert allowed_token_length_ = 3;
-    let (forbidden_token_mask_) = drip_manager_instance.forbiddenTokenMask();
-    assert (forbidden_token_mask_) = Uint256(0,0);
-    let (token_from_mask1_) = drip_manager_instance.tokenByMask(Uint256(1,0));
-    assert token_from_mask1_ = dai_;
-    let (token_from_mask2_) = drip_manager_instance.tokenByMask(Uint256(2,0));
-    assert token_from_mask2_ = eth_;
-    let (token_from_mask3_) = drip_manager_instance.tokenByMask(Uint256(4,0));
-    assert token_from_mask3_ = veth_;
-    let (token_from_id1_) = drip_manager_instance.tokenById(0);
-    assert token_from_id1_ = dai_;
-    let (token_from_id2_) = drip_manager_instance.tokenById(1);
-    assert token_from_id2_ = eth_;
-    let (token_from_id3_) = drip_manager_instance.tokenById(2);
-    assert token_from_id3_ = veth_;
-    let (liquidation_threshold1_) = drip_manager_instance.liquidationThreshold(dai_);
-    assert liquidation_threshold1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-    let (liquidation_threshold2_) = drip_manager_instance.liquidationThreshold(eth_);
-    assert liquidation_threshold2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-    let (liquidation_threshold3_) = drip_manager_instance.liquidationThreshold(veth_);
-    assert liquidation_threshold3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
-    let (liquidation_threshold_from_mask1_) = drip_manager_instance.liquidationThresholdByMask(Uint256(1,0));
-    assert liquidation_threshold_from_mask1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-    let (liquidation_threshold_from_mask2_) = drip_manager_instance.liquidationThresholdByMask(Uint256(2,0));
-    assert liquidation_threshold_from_mask2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-    let (liquidation_threshold_from_mask3_) = drip_manager_instance.liquidationThresholdByMask(Uint256(4,0));
-    assert liquidation_threshold_from_mask3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
-    let (liquidation_threshold_from_id1_) = drip_manager_instance.liquidationThresholdById(0);
-    assert liquidation_threshold_from_id1_ = Uint256(liquidation_discount_.low - DEFAULT_FEE_LIQUIDATION, 0);
-    let (liquidation_threshold_from_id2_) = drip_manager_instance.liquidationThresholdById(1);
-    assert liquidation_threshold_from_id2_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
-    let (liquidation_threshold_from_id3_) = drip_manager_instance.liquidationThresholdById(2);
-    assert liquidation_threshold_from_id3_ = Uint256(VETH_LT_LOW, VETH_LT_HIGH);
-    let (drip_transit_from_drip_manager_) = drip_manager_instance.dripTransit();
-    assert drip_transit_from_drip_manager_ = drip_transit_;
-    let (oracle_transit_from_drip_manager_) = drip_manager_instance.oracleTransit();
-    assert oracle_transit_from_drip_manager_ = oracle_transit_;
-    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = drip_transit_instance.limits();
-    assert minimum_borrowed_amount_ = Uint256(MINIMUM_BORROWED_AMOUNT_LO, MINIMUM_BORROWED_AMOUNT_HI);
-    assert maximum_borrowed_amount_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO, MAXIMUM_BORROWED_AMOUNT_HI);
-    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
-    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
-    let (is_increase_debt_forbidden_) = drip_transit_instance.isIncreaseDebtForbidden();
-    assert is_increase_debt_forbidden_ = 0;
-    let (expiration_date_) = drip_transit_instance.expirationDate();
-    assert expiration_date_ = 0;
+
+    
     return();
 }
 
@@ -929,12 +888,29 @@ namespace pool_instance{
     }
 }
 
-namespace nft_instance{
-    func deployed() -> (nft : felt){
-        tempvar nft;
-        %{ ids.nft = context.nft %}
-        return (nft,);
+namespace morphine_pass_instance{
+    func deployed() -> (morphine_pass : felt){
+        tempvar morphine_pass;
+        %{ ids.morphine_pass = context.morphine_pass %}
+        return (morphine_pass,);
     }
+
+    func setMinter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_minter: felt) {
+        tempvar morphine_pass;
+        %{ ids.morphine_pass = context.morphine_pass %}
+        IMorphinePass.setMinter(morphine_pass, _minter);
+        return ();
+    }
+
+    func addDripTransit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_drip_transit: felt) {
+        tempvar morphine_pass;
+        %{ ids.morphine_pass = context.morphine_pass %}
+        IMorphinePass.addDripTransit(morphine_pass, _drip_transit);
+        return ();
+    }
+
+
+
 }
 
 namespace drip_infra_factory_instance{
@@ -978,6 +954,43 @@ namespace erc4626_adapter_instance{
         tempvar erc4626_adapter_second;
         %{ ids.erc4626_adapter_second = context.erc4626_adapter_second %}
         return (erc4626_adapter_second,);
+    }
+}
+
+
+namespace minter_instance{
+    func deployed() -> (erc4626_adapter : felt){
+        tempvar minter;
+        %{ ids.minter = context.minter %}
+        return (minter,);
+    }
+
+    func isWhitelisted{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_user: felt) -> (state: felt) {
+        tempvar minter;
+        %{ ids.minter = context.minter %}
+        let (state_) = IMinter.isWhitelisted(minter, _user);
+        return(state_,);
+    }
+
+    func hasMinted{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_user: felt) -> (state: felt) {
+        tempvar minter;
+        %{ ids.minter = context.minter %}
+        let (state_) = IMinter.hasMinted(minter, _user);
+        return(state_,);
+    }
+
+    func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() {
+        tempvar minter;
+        %{ ids.minter = context.minter %}
+        IMinter.mint(minter);
+        return();
+    }
+
+    func setWhitelist{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(address_len: felt, address: felt*) {
+        tempvar minter;
+        %{ ids.minter = context.minter %}
+        IMinter.setWhitelist(minter, address_len, address);
+        return();
     }
 }
 

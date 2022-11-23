@@ -11,11 +11,11 @@ from starkware.starknet.common.syscalls import (
     get_caller_address
 )
 
-from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.introspection.erc165.library import ERC165
 from openzeppelin.token.erc721.library import ERC721
 from openzeppelin.token.erc721.enumerable.library import ERC721Enumerable
 from openzeppelin.security.safemath.library import SafeUint256
+from morphine.utils.RegisteryAccess import RegisteryAccess
 
 from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IDripTransit import IDripTransit
@@ -61,7 +61,7 @@ func base_URI() -> (minter: felt) {
 
 func assert_only_owner_or_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
-    let (owner_) = Ownable.owner();
+    let (owner_) = RegisteryAccess.owner();
     let (is_supported_drip_transit_) = supported_drip_transit.read(caller_);
     with_attr error_message("only callable by drip transit or owner") {
         assert ((caller_ - owner_) * (is_supported_drip_transit_ - 1)) = 0;
@@ -71,7 +71,7 @@ func assert_only_owner_or_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBui
 
 func assert_only_minter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
-    let (minter_) = Ownable.owner();
+    let (minter_) = minter.read();
     with_attr error_message("only callable by minter") {
         assert caller_ = minter_;
     }
@@ -89,8 +89,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     ERC721.initializer(_name, _symbol);
     ERC721Enumerable.initializer();
     registery.write(_registery);
-    let (owner_) = IRegistery.owner(_registery);
-    Ownable.initializer(owner_);
+    RegisteryAccess.initializer(_registery);
     return ();
 }
 
@@ -184,7 +183,7 @@ func baseURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() 
 
 @view
 func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (owner: felt) {
-    return Ownable.owner();
+    return RegisteryAccess.owner();
 }
 
 
@@ -196,7 +195,7 @@ func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() ->
 func setMinter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _minter: felt
 ) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     minter.write(_minter);
     NewMinterSet.emit(_minter);
     return ();
@@ -207,7 +206,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     _drip_transit: felt
 ) {
     alloc_locals;
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (is_supported_drip_transit_) = supported_drip_transit.read(_drip_transit);
     with_attr error_message("drip transit already registered") {
         assert is_supported_drip_transit_ = 0;
@@ -235,7 +234,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func removeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_transit: felt
 ) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     let (is_supported_drip_transit_) = supported_drip_transit.read(_drip_transit);
     with_attr error_message("drip transit not registered") {
         assert is_supported_drip_transit_ = 1;
@@ -347,18 +346,11 @@ func recursive_burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_
 
 @external
 func setBaseURI{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_baseURI: felt) {
-    Ownable.assert_only_owner();
+    RegisteryAccess.assert_only_owner();
     base_URI.write(_baseURI);
     return ();
 }
 
-@external
-func updateOwner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-    let (registery_) = registery.read();
-    let (owner_) = IRegistery.owner(registery_);
-    Ownable.transfer_ownership(owner_);
-    return ();
-}
 
 func is_equal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(a: felt, b: felt) -> (state: felt) {
     if (a == b){
