@@ -180,6 +180,7 @@ func setDripHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     return();
 }
 
+
 @external
 func addPool{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_pool : felt) -> () {
     Ownable.assert_only_owner();

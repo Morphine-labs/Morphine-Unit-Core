@@ -137,4 +137,10 @@ namespace IDripTransit {
     func limits() -> (minimum_borrowed_amount: Uint256, max_borrowed_amount: Uint256) {
     }         
 
+    func lastLimitSaved() -> (last_limit_saved: Uint256){
+    }
+    
+    func lastBlockSaved() -> (last_block_saved: felt){
+    }
+
 }

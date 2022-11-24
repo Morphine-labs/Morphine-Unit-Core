@@ -198,6 +198,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, b
     let (less_ltu_) = SafeUint256.sub_lt(Uint256(PRECISION,0), liquidation_threshold_);
     let (borrow_less_ltu_) = SafeUint256.mul(borrowed_amount_, less_ltu_);
     let (is_lt_) = uint256_lt(borrow_less_ltu_, amount_ltu_);
+    // check leverage <= LT / (1 - LT)
     with_attr error_message("not enough collateral"){
         assert is_lt_ = 1;
     }
@@ -689,6 +690,20 @@ func limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bit
     return(minimum_borrowed_amount_, maximum_borrowed_amount_,);
 }
 
+@view
+func lastLimitSaved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (last_limit_saved: Uint256){
+    alloc_locals;
+    let (last_limit_saved_) = last_limit_saved.read();
+    return(last_limit_saved_,);
+}
+
+@view
+func lastBlockSaved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}() -> (last_block_saved: felt){
+    alloc_locals;
+    let (last_block_saved_) = last_block_saved.read();
+    return(last_block_saved_,);
+}
+
 
 // Internals
 
@@ -990,23 +1005,15 @@ func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: Has
         let (max_borrowed_amount_per_block_) = max_borrowed_amount_per_block.read();
         let (last_block_) = last_block_saved.read();
         let (last_limit_) = last_limit_saved.read();
+        let (new_limit_) = SafeUint256.add(_amount, last_limit_);
         let (block_number_) = get_block_number();
         tempvar temp_new_limit_: Uint256;
         if(block_number_ == last_block_){
-            let (new_limit_) = SafeUint256.add(_amount, last_limit_);
             temp_new_limit_.low = new_limit_.low;
             temp_new_limit_.high = new_limit_.high;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-            tempvar bitwise_ptr = bitwise_ptr;
         } else {
             temp_new_limit_.low = _amount.low;
             temp_new_limit_.high = _amount.high;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-            tempvar bitwise_ptr = bitwise_ptr;
         }
         let (is_lt_) = uint256_lt(max_borrowed_amount_per_block_, temp_new_limit_);
         with_attr error_message("borrowed per block limit"){
@@ -1014,7 +1021,7 @@ func check_and_update_borrowed_block_limit{syscall_ptr: felt*, pedersen_ptr: Has
         }
         last_block_saved.write(block_number_);
         last_limit_saved.write(temp_new_limit_);
-        return();
+        return(); 
     } 
     return();
 }
@@ -1043,11 +1050,11 @@ func revert_if_open_drip_not_allowed{syscall_ptr: felt*, pedersen_ptr: HashBuilt
     alloc_locals;
     let (is_increase_debt_forbidden_) = is_increase_debt_forbidden.read();
     with_attr error_message("increase debt forbidden") {
-        assert_not_zero(is_increase_debt_forbidden_);
+        assert is_increase_debt_forbidden_ = 0;
     }
     let (is_expired_) = isExpired();
-    with_attr error_message("Drip Transit Expired") {
-        assert_not_zero(is_expired_);
+    with_attr error_message("drip transit expired") {
+        assert is_expired_ = 0;
     }
 
     let (nft_) = nft.read();
@@ -1055,7 +1062,7 @@ func revert_if_open_drip_not_allowed{syscall_ptr: felt*, pedersen_ptr: HashBuilt
 
     if(is_zero_ == 0){
         let (caller_) = get_caller_address();
-        with_attr error_message("Opening drip for other foribdden"){
+        with_attr error_message("opening drip for other foribdden"){
             assert caller_ = _on_belhalf_of;
         }
         IMorphinePass.burn(nft_, _on_belhalf_of, Uint256(1,0));
@@ -1104,7 +1111,7 @@ func revert_if_action_on_drip_not_allowed{syscall_ptr: felt*, pedersen_ptr: Hash
         return();
     } else {
         let (is_tranfer_allowed_) = transfers_allowed.read(caller_, _on_belhalf_of);
-        with_attr error_message("drip transfer not allowed"){
+        with_attr error_message("drip transfer not allowed"){ 
             assert_not_zero(is_tranfer_allowed_);
         }
         return();

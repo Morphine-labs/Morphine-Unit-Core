@@ -123,9 +123,14 @@ const DRIP_FACTORY= 'drip_factory';
 const DRIP_TRANSIT= 'drip_transit';
 const MINIMUM_BORROWED_AMOUNT_LO = 10000*10**6;
 const MINIMUM_BORROWED_AMOUNT_HI = 0;
-const MAXIMUM_BORROWED_AMOUNT_LO = 1000000*10**6;
+const MAXIMUM_BORROWED_AMOUNT_LO = 100000*10**6;
 const MAXIMUM_BORROWED_AMOUNT_HI = 0;
 
+
+const BORROW_AMOUNT_LOW = 20000*10**6;
+const BORROW_AMOUNT_HIGH = 0;
+const LEVERAGE_FACTOR_LOW = 3*10**6;
+const LEVERAGE_FACTOR_HIGH = 0;
 
 const RANDOM_ADDRESS = 'random_address';
 
@@ -189,6 +194,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     %}
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.oracle_transit, ids.eth, ids.registery] ] %}
+
     IRegistery.setOracleTransit(registery, oracle_transit);
     IOracleTransit.addPrimitive(oracle_transit, eth, ETH_USD);
     IOracleTransit.addPrimitive(oracle_transit, btc, BTC_USD);
@@ -280,7 +286,9 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         context.drip_configurator = ids.a3_
     %}
 
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.morphine_pass] ] %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery, context.morphine_pass] ] %}
+    let (drip_manager_) = drip_manager_instance.deployed();
+    registery_instance.addDripManager(drip_manager_);
     let (drip_transit_) = drip_transit_instance.deployed();
     morphine_pass_instance.addDripTransit(drip_transit_);
     %{ [stop_prank() for stop_prank in stop_pranks] %}
@@ -288,6 +296,8 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.minter] ] %}
     minter_instance.mint();
     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
 
     tempvar erc4626_adapter;
     tempvar erc4626_adapter_second;
@@ -322,21 +332,261 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 
         ids.new_drip_configurator_false = deploy_contract("./lib/morphine/drip/dripConfiguratorSideline.cairo", [context.dummy_drip_manager]).contract_address
         context.new_drip_configurator_false = ids.new_drip_configurator_false
-
-
     %}
+
     return();
 }
 
 
+
+// @view
+// func test_open_drip_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     let (is_increase_debt_forbidden_) = drip_transit_instance.isIncreaseDebtForbidden();
+//     assert is_increase_debt_forbidden_ = 0;
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.setIncreaseDebtForbidden(1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="increase debt forbidden") %}
+//     drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_open_drip_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     let (is_expired_) = drip_transit_instance.isExpired();
+//     assert is_expired_ = 1;
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="drip transit expired") %}
+//     drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_open_drip_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;    
+//     %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.setExpirationDate(5000);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="opening drip for other foribdden") %}
+//     drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_2, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
+// @view
+// func test_open_drip_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    
+//     let (drip_transit_) = drip_transit_instance.deployed();
+//     %{
+//         store(ids.drip_transit_, "nft", [0])
+//     %}
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.setExpirationDate(5000);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="drip transfer not allowed") %}
+//     drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_2, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
 
 @view
-func test_drip_deployment{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_open_drip_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
 
-    
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(1,0);
+
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+
+    %{
+        store(ids.drip_transit_, "nft", [0])
+        store(ids.drip_transit_, "max_borrowed_amount_per_block", [0,0])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    %{ expect_revert(error_message="borrowed per block limit") %}
+    drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ [stop_warp() for stop_warp in stop_warps] %}
     return();
 }
+
+@view
+func test_open_drip_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    %{ stop_rolls = [roll(1, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(1,0);
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    %{
+        store(ids.drip_transit_, "nft", [0])
+        store(ids.drip_transit_, "last_block_saved", [1])
+        store(ids.drip_transit_, "last_limit_saved", [ids.MAXIMUM_BORROWED_AMOUNT_LO * ids.DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER - 50000*10**6,0])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    %{ expect_revert(error_message="borrowed per block limit") %}
+    drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ [stop_roll() for stop_roll in stop_rolls] %}
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view
+func test_open_drip_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    %{ stop_rolls = [roll(1, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(1,0);
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    %{
+        store(ids.drip_transit_, "nft", [0])
+        store(ids.drip_transit_, "last_block_saved", [1])
+        store(ids.drip_transit_, "last_limit_saved", [ids.MAXIMUM_BORROWED_AMOUNT_LO * ids.DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER - ids.MAXIMUM_BORROWED_AMOUNT_LO,0])
+        store(ids.drip_transit_, "minimum_borrowed_amount", [ids.MAXIMUM_BORROWED_AMOUNT_LO,0])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    %{ expect_revert(error_message="borrow amount out of limit") %}
+    drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ [stop_roll() for stop_roll in stop_rolls] %}
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view
+func test_open_drip_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    %{ stop_rolls = [roll(1, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(1,0);
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    %{
+        store(ids.drip_transit_, "nft", [0])
+        store(ids.drip_transit_, "last_block_saved", [1])
+        store(ids.drip_transit_, "last_limit_saved", [ids.MAXIMUM_BORROWED_AMOUNT_LO * ids.DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER - ids.MAXIMUM_BORROWED_AMOUNT_LO,0])
+        store(ids.drip_transit_, "maximum_borrowed_amount", [ids.MINIMUM_BORROWED_AMOUNT_LO,0])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    %{ expect_revert(error_message="borrow amount out of limit") %}
+    drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ [stop_roll() for stop_roll in stop_rolls] %}
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view
+func test_open_drip_9{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    %{ stop_rolls = [roll(1, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(1,0);
+    let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
+    assert limit_per_block_ = Uint256(MAXIMUM_BORROWED_AMOUNT_LO * DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, 0);
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    %{
+        store(ids.drip_transit_, "nft", [0])
+        store(ids.drip_transit_, "last_block_saved", [1])
+        store(ids.drip_transit_, "last_limit_saved", [ids.MAXIMUM_BORROWED_AMOUNT_LO * ids.DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER - ids.MAXIMUM_BORROWED_AMOUNT_LO,0])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    %{ expect_revert(error_message="borrow amount out of limit") %}
+    drip_transit_instance.openDrip(Uint256(BORROW_AMOUNT_LOW, BORROW_AMOUNT_HIGH), USER_1, Uint256(LEVERAGE_FACTOR_LOW, LEVERAGE_FACTOR_HIGH));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    // let (last_block_saved_) = drip_transit_instance.lastBlockSaved();
+    // let (last_limit_saved_) = drip_transit_instance.lastLimitSaved();
+    // assert last_block_saved_ = 1;
+    // assert last_limit_saved_ = Uint256(460000*10**6,0);
+
+    // let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    // assert morphine_pass_balance_ = Uint256(0,0);
+
+    %{ [stop_roll() for stop_roll in stop_rolls] %}
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+
+
 
 namespace drip_configurator_instance{
     func deployed() -> (drip_configurator : felt){
@@ -822,11 +1072,32 @@ namespace drip_transit_instance{
         return(is_expirable_,);
     }
 
+    func isExpired{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(is_expired: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (is_expired_) = IDripTransit.isExpired(drip_transit);
+        return(is_expired_,);
+    }
+
     func limits{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() ->(minimum_borrowed_amount: Uint256, max_borrowed_amount: Uint256){
         tempvar drip_transit;
         %{ ids.drip_transit = context.drip_transit %}
         let (minimum_borrowed_amount_, maximum_borrowed_amount_) = IDripTransit.limits(drip_transit);
         return(minimum_borrowed_amount_, maximum_borrowed_amount_,);
+    }
+
+    func lastLimitSaved{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (last_limit_saved: Uint256){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (last_limit_saved_) = IDripTransit.lastLimitSaved(drip_transit);
+        return(last_limit_saved_,);
+    }
+    
+    func lastBlockSaved{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (last_block_saved: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (last_block_saved_) = IDripTransit.lastBlockSaved(drip_transit);
+        return(last_block_saved_,);
     }
      
 }
@@ -850,6 +1121,13 @@ namespace registery_instance{
         tempvar registery;
         %{ ids.registery = context.registery %}
         IRegistery.setOracleTransit(registery, new_oracle_transit);
+        return ();
+    }
+
+    func addDripManager{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(drip_manager: felt) -> () {
+        tempvar registery;
+        %{ ids.registery = context.registery %}
+        IRegistery.addDripManager(registery, drip_manager);
         return ();
     }
 
@@ -908,6 +1186,19 @@ namespace morphine_pass_instance{
         IMorphinePass.addDripTransit(morphine_pass, _drip_transit);
         return ();
     }
+
+    func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(owner: felt) -> (balance: Uint256) {
+    tempvar morphine_pass;
+    %{ ids.morphine_pass = context.morphine_pass %}
+    let (balance_) =  IMorphinePass.balanceOf(morphine_pass, owner);
+    return (balance_,);
+    }
+
+    // func ownerOf(tokenId: Uint256) -> (owner: felt) {
+    // }
+
+    // func totalSupply() -> (totalSupply: Uint256) {
+    // }
 
 
 

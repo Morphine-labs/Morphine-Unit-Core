@@ -222,7 +222,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (drip_transit_from_drip_manager_) = IDripManager.dripTransit(drip_manager_);
     let (is_right_drip_transit_) = is_equal(drip_transit_from_drip_manager_, _drip_transit);
 
-    with_attr error_message("invalid drip transit") {
+    with_attr error_message("invalid dependencies") {
         assert_not_zero(is_drip_manager_*  is_right_nft_*is_right_drip_transit_ );
     }
     supported_drip_transit.write(_drip_transit, 1);
