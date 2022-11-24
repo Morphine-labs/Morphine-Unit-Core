@@ -286,7 +286,7 @@ namespace drip_instance{
         return (borrowed_amount_,);
     }
 
-        func lastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since: felt) {
+    func lastUpdate{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (since: felt) {
         tempvar drip;
         %{ ids.drip = context.drip %}
         let (since_) = IDrip.lastUpdate(drip);

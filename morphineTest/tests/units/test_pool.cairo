@@ -1060,7 +1060,6 @@ func test_borrow_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     %}
 
     let (dai_) = dai_instance.deployed();
-
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.dai_] ] %}
     IERC20.approve(dai_, pool_, Uint256(10000000000,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
@@ -1281,7 +1280,7 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
     assert last_cumu_ = Uint256(1000000,0);
     let (last_updated_timestamp_) = pool_instance.lastUpdatedTimestamp();
     assert last_updated_timestamp_ = 0;
-    let (cumu_) = pool_instance.calculLinearCumulativeIndex();
+    let (cumu_) = pool_instance.calcLinearCumulativeIndex();
     assert cumu_ = Uint256(1009375,0);
     let (total_assets_) = pool_instance.totalAssets();
     assert total_assets_ = Uint256(100468750000, 0);
@@ -1376,7 +1375,7 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
 //     assert cumulative_index_ = Uint256(1000000,0);
 
 //     %{ stop_warp = warp(31536000, ids.pool_) %}
-//     let (cumu_) = pool_instance.calculLinearCumulativeIndex();
+//     let (cumu_) = pool_instance.calcLinearCumulativeIndex();
 //     assert cumu_ = Uint256(1009375,0);
 //     let (total_assets_) = pool_instance.totalAssets();
 //     assert total_assets_ = Uint256(100468750000, 0);
@@ -1636,10 +1635,10 @@ namespace pool_instance{
     return(borrow_rate_,);
     }
 
-    func calculLinearCumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulativeIndex: Uint256) {
+    func calcLinearCumulativeIndex{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cumulativeIndex: Uint256) {
     tempvar pool;
     %{ ids.pool = context.pool %}
-    let (cumulative_index_) = IPool.calculLinearCumulativeIndex(pool); 
+    let (cumulative_index_) = IPool.calcLinearCumulativeIndex(pool); 
     return(cumulative_index_,);
     }
 

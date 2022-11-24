@@ -199,7 +199,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, b
     let (borrow_less_ltu_) = SafeUint256.mul(borrowed_amount_, less_ltu_);
     let (is_lt_) = uint256_lt(borrow_less_ltu_, amount_ltu_);
     // check leverage <= LT / (1 - LT)
-    with_attr error_message("not enough collateral"){
+    with_attr error_message("wrong leverage factor"){
         assert is_lt_ = 1;
     }
 

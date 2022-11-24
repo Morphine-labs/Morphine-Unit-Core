@@ -160,7 +160,7 @@ func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
     alloc_locals;
     let (caller_) = get_caller_address();
     let (drip_configurator_) = drip_configurator.read();
-    with_attr error_message("Only the configurator can call this function") {
+    with_attr error_message("only the configurator can call this function") {
         assert caller_ = drip_configurator_;
     }
     return();
@@ -169,7 +169,7 @@ func assert_only_drip_configurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
 func assert_only_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (caller_) = get_caller_address();
     let (drip_transit_) = drip_transit.read();
-    with_attr error_message("Only callable by drip transit") {
+    with_attr error_message("only callable by drip transit") {
         assert caller_ = drip_transit_;
     }
     return ();
