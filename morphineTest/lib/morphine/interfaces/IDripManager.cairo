@@ -201,7 +201,7 @@ namespace IDripManager {
     func calcDripAccruedInterest(_drip: felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
     }
 
-    func calcClosePayments(_total_value: felt, _type: felt, _borrowed_amount: Uint256, _borrowed_amount_with_interests: Uint256) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
+    func calcClosePayments(_total_value: Uint256, _type: felt, _borrowed_amount: Uint256, _borrowed_amount_with_interests: Uint256) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
     }
 
 }

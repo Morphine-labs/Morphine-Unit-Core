@@ -904,111 +904,68 @@ func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     let (step2_) = SafeUint256.mul(step1_, fee_interest_);
     let (step3_, _) = SafeUint256.div_rem(step2_, Uint256(PRECISION, 0));
     let (amount_to_pool_) = SafeUint256.add(step3_, _borrowed_amount_with_interests);
+    
     let (is_drip_liquidated_) = is_equal(_type, 1);
     let (is_drip_expired_liquidated_) = is_equal(_type, 2);
     let (is_pause_liquidation_) = is_equal(_type, 3);
-    tempvar temp_amount_to_pool_: Uint256;
-    tempvar temp_remaining_funds_: Uint256;
-    tempvar temp_profit_: Uint256;
-    tempvar temp_loss_: Uint256;
+
     if (is_drip_liquidated_ + is_drip_expired_liquidated_ + is_pause_liquidation_ == 1) {
 
+        // liquidation
+        let (liquidation_discount_) = liquidation_discount.read();
+        let (fee_liqudidation_) = fee_liqudidation.read();
+        let (step1_) = SafeUint256.mul(_total_value, liquidation_discount_);
+        let (total_funds_liquidation_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+        let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
+        let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+        let (new_amount_to_pool_liquidation_) = SafeUint256.add(step2_, amount_to_pool_);
 
-        tempvar temp_total_funds_: Uint256;
-        if (is_drip_liquidated_ == 1){
-            let (liquidation_discount_) = liquidation_discount.read();
-            let (fee_liqudidation_) = fee_liqudidation.read();
-            let (step1_) = SafeUint256.mul(_total_value, liquidation_discount_);
-            let (total_funds_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-            let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
-            let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-            let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
-            temp_total_funds_.low = total_funds_.low;
-            temp_total_funds_.high = total_funds_.high;
-            temp_amount_to_pool_.low = new_amount_to_pool_.low;
-            temp_amount_to_pool_.high = new_amount_to_pool_.high;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        } else {
-            if(is_drip_expired_liquidated_ == 1){
-                let (liquidation_discount_expired_) = liquidation_discount_expired.read();
-                let (fee_liqudidation_expired_) = fee_liqudidation_expired.read();
-                let (step1_) = SafeUint256.mul(_total_value, liquidation_discount_expired_);
-                let (total_funds_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-                let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_expired_);
-                let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-                let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
-                temp_total_funds_.low = total_funds_.low;
-                temp_total_funds_.high = total_funds_.high;
-                temp_amount_to_pool_.low = new_amount_to_pool_.low;
-                temp_amount_to_pool_.high = new_amount_to_pool_.high;
-                tempvar syscall_ptr = syscall_ptr;
-                tempvar pedersen_ptr = pedersen_ptr;
-                tempvar range_check_ptr = range_check_ptr;
-            } else {
-                let (fee_liqudidation_) = fee_liqudidation.read();
-                let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
-                let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
-                let (new_amount_to_pool_) = SafeUint256.add(step2_, amount_to_pool_);
-                temp_total_funds_.low = _total_value.low;
-                temp_total_funds_.high = _total_value.high;
-                temp_amount_to_pool_.low = new_amount_to_pool_.low;
-                temp_amount_to_pool_.high = new_amount_to_pool_.high;
-                tempvar syscall_ptr = syscall_ptr;
-                tempvar pedersen_ptr = pedersen_ptr;
-                tempvar range_check_ptr = range_check_ptr;
-            }
-        }
+        // liquidation expired
+        let (liquidation_discount_expired_) = liquidation_discount_expired.read();
+        let (fee_liqudidation_expired_) = fee_liqudidation_expired.read();
+        let (step1_) = SafeUint256.mul(_total_value, liquidation_discount_expired_);
+        let (total_funds_liquidation_expired_, _) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+        let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_expired_);
+        let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+        let (new_amount_to_pool_liquidation_expired_) = SafeUint256.add(step2_, amount_to_pool_);
 
-        let (is_lt_) = uint256_le(temp_amount_to_pool_, temp_total_funds_);
+        // liquidation paused
+        let (step1_) = SafeUint256.mul(_total_value, fee_liqudidation_);
+        let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+        let (new_amount_to_pool_liquidation_paused_) = SafeUint256.add(step2_, amount_to_pool_);
+    
+
+        let (new_amount_to_pool1_) = SafeUint256.mul(new_amount_to_pool_liquidation_, Uint256(is_drip_liquidated_,0));
+        let (new_amount_to_pool2_) = SafeUint256.mul(new_amount_to_pool_liquidation_expired_, Uint256(is_drip_expired_liquidated_,0));
+        let (new_amount_to_pool3_) = SafeUint256.mul(new_amount_to_pool_liquidation_paused_, Uint256(is_pause_liquidation_,0));
+        let (step1_) = SafeUint256.add(new_amount_to_pool1_, new_amount_to_pool2_);
+        let (new_amount_to_pool_) = SafeUint256.add(step1_, new_amount_to_pool3_);
+
+        let (new_total_funds1_) = SafeUint256.mul(total_funds_liquidation_, Uint256(is_drip_liquidated_,0));
+        let (new_total_funds2_) = SafeUint256.mul(total_funds_liquidation_expired_, Uint256(is_drip_expired_liquidated_,0));
+        let (new_total_funds3_) = SafeUint256.mul(_total_value, Uint256(is_pause_liquidation_,0));
+        let (step1_) = SafeUint256.add(new_total_funds1_, new_total_funds2_);
+        let (new_total_funds_) = SafeUint256.add(step1_, new_total_funds3_);
+        
+        let (is_lt_) = uint256_le(new_amount_to_pool_, new_total_funds_);
         if (is_lt_ == 1) {
-            let (remaining_funds_) = SafeUint256.sub_le(temp_total_funds_, temp_amount_to_pool_);
-            temp_remaining_funds_.low = remaining_funds_.low;
-            temp_remaining_funds_.high = remaining_funds_.high;
-            temp_amount_to_pool_.low = temp_amount_to_pool_.low;
-            temp_amount_to_pool_.high = temp_amount_to_pool_.high;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
+            let (remaining_funds_) = SafeUint256.sub_le(new_total_funds_, new_amount_to_pool_);
+            let (profit_) = SafeUint256.sub_le(new_amount_to_pool_, _borrowed_amount_with_interests);
+            return (new_amount_to_pool_, remaining_funds_, profit_, Uint256(0,0));
         } else {
-            temp_remaining_funds_.low = 0;
-            temp_remaining_funds_.high = 0;
-            temp_amount_to_pool_.low = temp_total_funds_.low;
-            temp_amount_to_pool_.high = temp_total_funds_.high;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        }
-
-        let (is_le_) = uint256_le(_borrowed_amount_with_interests, temp_total_funds_);
-        if (is_le_ == 1) {
-            let (profit_) = SafeUint256.sub_le(
-                temp_amount_to_pool_, _borrowed_amount_with_interests
-            );
-            temp_profit_.low = profit_.low;
-            temp_profit_.high = profit_.high;
-            temp_loss_.low = 0;
-            temp_loss_.high = 0;
-        } else {
-            let (loss_) = SafeUint256.sub_lt(_borrowed_amount_with_interests, temp_amount_to_pool_);
-            temp_loss_.low = loss_.low;
-            temp_loss_.high = loss_.high;
-            temp_profit_.low = 0;
-            temp_profit_.high = 0;
+            let (is_le_) = uint256_le(_borrowed_amount_with_interests, new_total_funds_);
+            if (is_le_ == 1) {
+                let (profit_) = SafeUint256.sub_le(new_total_funds_, _borrowed_amount_with_interests);
+                return (new_total_funds_, Uint256(0,0), profit_, Uint256(0,0));
+            } else {
+                let (loss_) = SafeUint256.sub_lt(_borrowed_amount_with_interests, new_total_funds_);
+                return (new_total_funds_, Uint256(0,0), Uint256(0,0), loss_);
+            }
         }
     } else {
         let (profit_) = SafeUint256.sub_lt(amount_to_pool_, _borrowed_amount_with_interests);
-        temp_profit_.low = profit_.low;
-        temp_profit_.high = profit_.high;
-        temp_loss_.low = 0;
-        temp_loss_.high = 0;
-        temp_remaining_funds_.low = 0;
-        temp_remaining_funds_.high = 0;
-        temp_amount_to_pool_.low = amount_to_pool_.low;
-        temp_amount_to_pool_.high = amount_to_pool_.high;
+        return (amount_to_pool_, Uint256(0,0), profit_, Uint256(0,0));
     }
-    return (temp_amount_to_pool_, temp_remaining_funds_, temp_profit_, temp_loss_);
 }
 
 
@@ -1238,13 +1195,10 @@ func calc_new_cumulative_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     } else {
         let (step1_) = SafeUint256.mul(_current_cumulative_index, _drip_cumulative_index);
         let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION,0));
-
         let (step3_) = SafeUint256.mul(_current_cumulative_index, Uint256(PRECISION,0));
-
         let (step4_) = SafeUint256.mul(_drip_cumulative_index, Uint256(PRECISION,0));
         let (step5_) = SafeUint256.mul(step4_, _delta);
         let (step6_,_) = SafeUint256.div_rem(step5_, _borrowed_amount);
-
         let (step7_) = SafeUint256.sub_le(step3_, step6_);
         let (new_cumulative_index_,_) = SafeUint256.div_rem(step2_, step7_);
         return(new_cumulative_index_,);
