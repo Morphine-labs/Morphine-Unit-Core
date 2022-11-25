@@ -16,6 +16,9 @@ namespace IDripConfigurator {
 
     // Token Management
 
+    func setMaxEnabledTokens(new_max_enabled_tokens: Uint256) {
+    }
+
     func addToken(_token: felt, _liquidation_threshold: Uint256){
     }
 

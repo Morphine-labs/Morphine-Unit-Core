@@ -196,7 +196,7 @@ func assert_only_drip_transit_or_adapters{syscall_ptr: felt*, pedersen_ptr: Hash
     let (is_not_adapter_) = is_equal(adapter_to_contract_, 0);
     let (drip_transit_) = drip_transit.read();
 
-    with_attr error_message("Only the configurator can call this function") {
+    with_attr error_message("only drip transit or adapter") {
         assert (is_not_adapter_ * (drip_transit_ - caller_)) = 0;
     }
     return();
@@ -293,33 +293,35 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     ReentrancyGuard._start();
     assert_only_drip_transit();
     let (is_paused_) = Pausable.is_paused();
-    tempvar type_;
+    let (can_liquidate_while_paused_) = can_liquidate_while_paused.read(_payer);
+    let (is_drip_liquidation_) = is_equal(_type, 1);
+    let (is_drip_expired_liquidation) = is_equal(_type, 2);
+
     if(is_paused_ == 1){
-        let (can_liquidate_while_paused_) = can_liquidate_while_paused.read(_payer);
-        let (is_drip_liquidation_) = is_equal(_type, 1);
-        let (is_drip_expired_liquidation) = is_equal(_type, 2);
         with_attr error_message("Pausable: paused") {
             assert_not_zero(can_liquidate_while_paused_ * (is_drip_liquidation_ + is_drip_expired_liquidation)); 
         }
-        type_ = 3;
         tempvar syscall_ptr = syscall_ptr;
-        tempvar range_check_ptr = range_check_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     } else {
-        type_ = _type;
         tempvar syscall_ptr = syscall_ptr;
-        tempvar range_check_ptr = range_check_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
     }
+
+    let type_ = _type*(1 - is_paused_) + 3 * is_paused_;
 
     let (drip_) = getDripOrRevert(_borrower);
     borrower_to_drip.write(drip_, 0);
+
     let (borrowed_amount_, borrowed_amount_with_interests_,_) = calcDripAccruedInterest(drip_);
     let (amount_to_pool_, remaining_funds_, profit_, loss_) = calcClosePayments(_total_value, type_, borrowed_amount_, borrowed_amount_with_interests_);
     let (underlying_) = underlying_contract.read();
     let (underlying_balance_) = IERC20.balanceOf(underlying_, drip_);
     let (stack_) = SafeUint256.add(amount_to_pool_, remaining_funds_);
     let (is_surplus_) = uint256_lt(stack_, underlying_balance_);
+    
     if (is_surplus_ == 1) {
         let (surplus_) = SafeUint256.sub_lt(underlying_balance_, stack_);
         IDrip.safeTransfer(drip_, underlying_, _to, surplus_);
@@ -333,6 +335,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
     }
+
     let (pool_) = pool.read();
     IDrip.safeTransfer(drip_, underlying_, pool_, amount_to_pool_);
     IPool.repayDripDebt(pool_, borrowed_amount_, profit_, loss_);
@@ -383,7 +386,6 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     let (pool_) = pool.read();
     let (underlying_) = underlying_contract.read();
     if (_increase == 1) {
-    
         let (new_borrowed_amount_) = SafeUint256.add(borrowed_amount_, _amount);
         let (cumulative_index_at_borrow_more_) = calc_new_cumulative_index(borrowed_amount_, _amount, current_cumulative_index_, cumulative_index_, 1);
         IPool.borrow(pool_, _amount, drip_);
@@ -486,6 +488,7 @@ func checkAndEnableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     _drip: felt, _token: felt
 ) {
     ReentrancyGuard._start();
+    assert_not_paused_or_emergency();
     assert_only_drip_transit_or_adapters();
     check_and_enable_token(_drip, _token);
     ReentrancyGuard._end();
@@ -702,6 +705,16 @@ func allowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let (allowed_token_length_) = allowed_tokens_length.read();
     return (allowed_token_length_,);
 }
+
+@view
+func maxAllowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    maxAllowedTokenLength: Uint256
+) {
+    let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
+    return (max_allowed_enabled_tokens_length_,);
+}
+
+
 
 
 @view
@@ -1100,11 +1113,11 @@ func check_and_enable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     with_attr error_message("not allowed token") {
         assert is_nul1_ = 0;
     }
-    let (forbiden_token_mask_) = forbidden_token_mask.read();
-    let (low_) = bitwise_and(forbiden_token_mask_.low, token_mask_.low);
-    let (high_) = bitwise_and(forbiden_token_mask_.high, token_mask_.high);
+    let (forbidden_token_mask_) = forbidden_token_mask.read();
+    let (low_) = bitwise_and(forbidden_token_mask_.low, token_mask_.low);
+    let (high_) = bitwise_and(forbidden_token_mask_.high, token_mask_.high);
     let (is_nul2_) = uint256_eq(Uint256(0, 0), Uint256(low_, high_));
-    with_attr error_message("not allowed token") {
+    with_attr error_message("token forbidden") {
         assert_not_zero(is_nul2_);
     }
 
@@ -1112,7 +1125,7 @@ func check_and_enable_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     let (low_) = bitwise_and(enabled_tokens_.low, token_mask_.low);
     let (high_) = bitwise_and(enabled_tokens_.high, token_mask_.high);
     let (is_eq_) = uint256_eq(Uint256(0, 0), Uint256(low_, high_));
-    if (is_eq_ == 0) {
+    if (is_eq_ == 1) {
         let (low_) = bitwise_or(enabled_tokens_.low, token_mask_.low);
         let (high_) = bitwise_or(enabled_tokens_.high, token_mask_.high);
         enabled_tokens.write(_drip, Uint256(low_, high_));
@@ -1215,7 +1228,7 @@ func check_and_optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBui
 
     if(is_lt_ == 1){
         let (max_index_) = get_max_index(enabled_tokens_);
-        optimize_enabled_tokens(_drip, enabled_tokens_, total_tokens_enabled_, Uint256(0,0),max_index_);
+        optimize_enabled_tokens(_drip, enabled_tokens_, total_tokens_enabled_, Uint256(0,0), max_index_);
         return ();
     }
     return ();
@@ -1244,10 +1257,9 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         let (token_) = tokenByMask(token_mask_);
         let (balance_) = IERC20.balanceOf(token_, _drip);
         let (is_le_) = uint256_le(Uint256(1,0), balance_);
-        if(is_le_ == 1){
+        if(is_le_ == 0){
             let (low_) = bitwise_xor(_enabled_tokens.low, token_mask_.low);
             let (high_) = bitwise_xor(_enabled_tokens.high, token_mask_.high);
-            enabled_tokens.write(_drip, Uint256(low_, high_));
             let (new_total_tokens_enabled_) = SafeUint256.sub_le(_total_tokens_enabled, Uint256(1,0));
             let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
             let (is_le_) = uint256_le(new_total_tokens_enabled_, max_allowed_enabled_tokens_length_);
@@ -1269,7 +1281,7 @@ func optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     }
 }
 
-
+@view
 func get_max_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_mask: Uint256) -> (max_index: Uint256) {
     alloc_locals;
     let (is_one_) = uint256_eq(_mask, Uint256(1,0));
@@ -1294,7 +1306,7 @@ func recursive_search_max_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     }
 }
 
-
+@view
 func calc_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _enabled_tokens: Uint256, _cum_total_tokens_enabled: Uint256) -> (total_tokens_enabled: Uint256){
     alloc_locals;
@@ -1303,7 +1315,7 @@ func calc_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         let (is_enabled_) = bitwise_and(1, _enabled_tokens.low);
         let (cum_total_tokens_enabled_) = SafeUint256.add(_cum_total_tokens_enabled, Uint256(is_enabled_, 0));
         let (enabled_tokens_,_) = SafeUint256.div_rem(_enabled_tokens,Uint256(2,0));
-        return calc_enabled_tokens(enabled_tokens_, _cum_total_tokens_enabled);
+        return calc_enabled_tokens(enabled_tokens_, cum_total_tokens_enabled_);
     } else {
         return(_cum_total_tokens_enabled,);
     }

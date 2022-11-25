@@ -30,6 +30,10 @@ from morphine.interfaces.IOracleTransit import IOracleTransit
 // Events
 
 @event 
+func maxEnabledTokensSet(max_enabled_tokens: Uint256){
+}
+
+@event 
 func TokenAllowed(token: felt){
 }
 
@@ -158,6 +162,19 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
 
 // TOKEN MANAGEMENT
+
+@external
+func setMaxEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_max_enabled_tokens: Uint256){
+    RegisteryAccess.assert_only_owner();
+    let (is_allowed_) = uint256_le(_new_max_enabled_tokens, Uint256(256,0));
+    with_attr error_message("max limit reached"){
+        assert is_allowed_ = 1;
+    }
+    let (drip_manager_) = drip_manager.read();
+    IDripManager.setMaxEnabledTokens(drip_manager_, _new_max_enabled_tokens);
+    maxEnabledTokensSet.emit(_new_max_enabled_tokens);
+    return();
+}
 
 @external
 func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){

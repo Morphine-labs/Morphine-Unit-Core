@@ -1191,16 +1191,6 @@ namespace drip_manager_instance{
         return(drip_,);
     }
 
-    // Calcul
-
-    func calcClosePayments(_total_value: felt, _type: felt, _borrowed_amount: Uint256, _borrowed_amount_with_interests: Uint256) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
-        tempvar drip_manager;
-        
-        %{ ids.drip_manager = context.drip_manager %}
-        let (amount_to_pool, remaining_funds, profit, loss) = IDripManager.calcClosePayments(_total_value, _type, _borrowed_amount, _borrowed_amount_with_interests);
-        return(amount_to_pool, remaining_funds, profit:, loss,);
-    }
-
 }
 
 namespace drip_transit_instance{

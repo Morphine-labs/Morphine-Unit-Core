@@ -472,6 +472,19 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
 }
 
 @external
+func enableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_token: felt){
+    alloc_locals;
+    ReentrancyGuard._start();
+    let (drip_manager_) = drip_manager.read();
+    let (caller_) = get_caller_address();
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
+    enable_token(caller_, drip_, _token);
+    IDripManager.checkAndOptimizeEnabledTokens(drip_manager_, drip_);
+    ReentrancyGuard._end();
+    return();
+}
+
+@external
 func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_target: felt, _token: felt, _amount: Uint256){
     alloc_locals;
     ReentrancyGuard._start();
@@ -968,7 +981,7 @@ func increase_debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     check_and_update_borrowed_block_limit(_amount);
     check_forbidden_tokens(_drip);
     let (drip_manager_) = drip_manager.read();
-    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, _drip, _amount, 1);
+    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, _borrower, _amount, 1);
     revert_if_out_borrowed_limits(new_borrowed_amount_);
     IncreaseBorrowedAmount.emit(_borrower, _amount);
     return();

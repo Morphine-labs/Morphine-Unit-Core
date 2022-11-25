@@ -298,6 +298,10 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         context.drip_configurator = ids.a3_
     %}
 
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setMaxEnabledTokens(Uint256(2,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.registery, context.morphine_pass, context.pool] ] %}
     let (drip_manager_) = drip_manager_instance.deployed();
@@ -384,49 +388,416 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     return();
 }
 
+// @view
+// func test_calc_close_payments_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(0,0), 0, Uint256(100000,0), Uint256(110000,0));
+//     assert amount_to_pool_ = Uint256(111000, 0);
+//     assert remaining_funds_ = Uint256(0,0);
+//     assert profit_ = Uint256(1000,0);
+//     assert loss_ = Uint256(0,0);
+    
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(120000,0), 1, Uint256(100000,0), Uint256(110000,0)); 
+//     assert amount_to_pool_ = Uint256(113400, 0);
+//     assert remaining_funds_ = Uint256(1800,0);
+//     assert profit_ = Uint256(3400,0);
+//     assert loss_ = Uint256(0,0);
+
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(120000,0), 2, Uint256(100000,0), Uint256(110000,0)); 
+//     assert amount_to_pool_ = Uint256(113400, 0);  
+//     assert remaining_funds_ = Uint256(3000,0);
+//     assert profit_ = Uint256(3400,0);
+//     assert loss_ = Uint256(0,0);
+
+
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(116000,0), 1, Uint256(100000,0), Uint256(110000,0));
+//     assert amount_to_pool_ = Uint256(111360, 0);
+//     assert remaining_funds_ = Uint256(0,0);
+//     assert profit_ = Uint256(1360,0);
+//     assert loss_ = Uint256(0,0);
+
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(112000,0), 1, Uint256(100000,0), Uint256(110000,0));
+//     assert amount_to_pool_ = Uint256(107520, 0);
+//     assert remaining_funds_ = Uint256(0,0);
+//     assert profit_ = Uint256(0,0);
+//     assert loss_ = Uint256(2480,0);
+
+//     let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(112000,0), 3, Uint256(100000,0), Uint256(110000,0));
+//     assert amount_to_pool_ = Uint256(112000, 0);
+//     assert remaining_funds_ = Uint256(0,0);
+//     assert profit_ = Uint256(2000,0);
+//     assert loss_ = Uint256(0,0);
+    
+//     return();
+// }
+
+// @view
+// func test_calc_accrued_interests_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(60000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60000000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60000000000, 0);
+
+//     let (borrow_rate_) = pool_instance.borrowRate();
+//     %{
+//         print(ids.borrow_rate_.low)
+//         print(ids.borrow_rate_.high)
+//     %}
+   
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(60000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60135000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60148500000, 0);
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
+// @view
+// func test_enable_token_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+//     %{ expect_revert(error_message="has not drip") %}
+//     drip_transit_instance.enableToken(veth_);
+//     return();
+// }
+
+// @view
+// func test_enable_token_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_manager] ] %}
+//     drip_manager_instance.pause();
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="Pausable: paused") %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_enable_token_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit, context.drip_manager] ] %}
+//     %{ expect_revert(error_message="only drip transit or adapter") %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_enable_token_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (btc_) = btc_instance.deployed();
+
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="not allowed token") %}
+//     drip_transit_instance.enableToken(btc_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_enable_token_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.forbidToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+    
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="token forbidden") %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_enable_token_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+
+//     %{
+//          store(context.drip_manager, "max_allowed_enabled_tokens_length", [0,0])
+//     %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="Too many enabled tokens") %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_enable_token_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (veth_) = veth_instance.deployed();
+//     %{ expect_events({"name": "TokenEnabled", "data": [ids.USER_1, context.veth],"from_address": context.drip_transit}) %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+//     assert enabled_tokens_ = Uint256(5,0);
+//     return();
+// }
+
+
+// @view
+// func test_increase_debt_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ expect_revert(error_message="has not drip") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     return();
+// }
+
+// @view
+// func test_increase_debt_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+    
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.setIncreaseDebtForbidden(1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="increase debt forbidden") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+// @view
+// func test_increase_debt_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+    
+//     %{
+//         store(context.drip_transit, "nft", [0])
+//         store(context.drip_transit, "max_borrowed_amount_per_block", [0,0])
+//     %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="borrowed per block limit") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+
+// @view
+// func test_increase_debt_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     let (veth_) = veth_instance.deployed();
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.forbidToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="action prohibited with forbidden tokens") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+// @view
+// func test_increase_debt_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     let (veth_) = veth_instance.deployed();
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.enableToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+//     drip_configurator_instance.forbidToken(veth_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="action prohibited with forbidden tokens") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+// @view
+// func test_increase_debt_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit, context.drip_manager] ] %}
+//     %{ expect_revert(error_message="only callable by drip transit") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+// @view
+// func test_increase_debt_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_manager] ] %}
+//     drip_manager_instance.pause();
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="Pausable: paused") %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+
 @view
-func test_calc_close_payments_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_increase_debt_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
+    %{ expect_events({"name": "IncreaseBorrowedAmount", "data": [ids.USER_1, 70000*10**6,0],"from_address": context.drip_transit}) %}
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
 
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(0,0), 0, Uint256(100000,0), Uint256(110000,0));
-    assert amount_to_pool_ = Uint256(111000, 0);
-    assert remaining_funds_ = Uint256(0,0);
-    assert profit_ = Uint256(1000,0);
-    assert loss_ = Uint256(0,0);
-    
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(120000,0), 1, Uint256(100000,0), Uint256(110000,0)); 
-    assert amount_to_pool_ = Uint256(113400, 0);
-    assert remaining_funds_ = Uint256(1800,0);
-    assert profit_ = Uint256(3400,0);
-    assert loss_ = Uint256(0,0);
-
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(120000,0), 2, Uint256(100000,0), Uint256(110000,0)); 
-    assert amount_to_pool_ = Uint256(113400, 0);  
-    assert remaining_funds_ = Uint256(3000,0);
-    assert profit_ = Uint256(3400,0);
-    assert loss_ = Uint256(0,0);
-
-
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(116000,0), 1, Uint256(100000,0), Uint256(110000,0));
-    assert amount_to_pool_ = Uint256(111360, 0);
-    assert remaining_funds_ = Uint256(0,0);
-    assert profit_ = Uint256(1360,0);
-    assert loss_ = Uint256(0,0);
-
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(112000,0), 1, Uint256(100000,0), Uint256(110000,0));
-    assert amount_to_pool_ = Uint256(107520, 0);
-    assert remaining_funds_ = Uint256(0,0);
-    assert profit_ = Uint256(0,0);
-    assert loss_ = Uint256(2480,0);
-
-    let (amount_to_pool_, remaining_funds_, profit_, loss_) = drip_manager_instance.calcClosePayments(Uint256(112000,0), 3, Uint256(100000,0), Uint256(110000,0));
-    assert amount_to_pool_ = Uint256(112000, 0);
-    assert remaining_funds_ = Uint256(0,0);
-    assert profit_ = Uint256(2000,0);
-    assert loss_ = Uint256(0,0);
-    
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (borrowed_amount_) = IDrip.borrowedAmount(drip_);
+    assert borrowed_amount_ = Uint256(70000*10**6,0);
+    let (cumulative_index_) = IDrip.cumulativeIndex(drip_);
+    assert cumulative_index_ = Uint256(1*10**6,0);
     return();
 }
+
+// @view
+// func test_increase_debt_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ expect_events({"name": "IncreaseBorrowedAmount", "data": [ids.USER_1, 70000*10**6,0],"from_address": context.drip_transit}) %}
+
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+    
+//     let (cumulative_index_) = IDrip.cumulativeIndex(drip_);
+//     assert cumulative_index_ = Uint256(1*10**6,0);
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(60000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60135000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60148500000, 0);
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.increaseDebt(Uint256(10000*10**6,0));
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+    
+//     let (cumulative_index_) = IDrip.cumulativeIndex(drip_);
+//     assert cumulative_index_ = Uint256(1*10**6,0);
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(70000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60135000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60148500000, 0);
+
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
+
+
+
+
+// @view
+// func test_increase_debt_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(60000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60000000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60000000000, 0);
+
+//     let (borrow_rate_) = pool_instance.borrowRate();
+//     %{
+//         print(ids.borrow_rate_.low)
+//         print(ids.borrow_rate_.high)
+//     %}
+   
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+//     let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+//     assert borrowedAmount_ = Uint256(60000000000,0);
+//     assert borrowedAmountWithInterest_ = Uint256(60135000000, 0);
+//     assert borrowedAmountWithInterestAndFees_ = Uint256(60148500000, 0);
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+
+
+//     return();
+// }
+
+
+
+
+
+// @view
+// func test_close_drip_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (call_array_: AccountCallArray*) = alloc();
+//     let (calldata_: felt*) = alloc();
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+//     %{ expect_revert(error_message="has not drip") %}
+//     drip_transit_instance.closeDrip(USER_2, 0, call_array_, 0, calldata_);
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
+// @view
+// func test_close_drip_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (call_array_: AccountCallArray*) = alloc();
+//     let (calldata_: felt*) = alloc();
+
+//     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_manager] ] %}
+//     drip_manager_instance.pause();
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool] ] %}
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="Pausable: paused") %}
+//     drip_transit_instance.closeDrip(USER_2, 0, call_array_, 0, calldata_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
+// @view
+// func test_close_drip_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (call_array_: AccountCallArray*) = alloc();
+//     let (calldata_: felt*) = alloc();
+
+//     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool] ] %}
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     // %{ expect_revert(error_message="Pausable: paused") %}
+//     drip_transit_instance.closeDrip(USER_2, 0, call_array_, 0, calldata_);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     %{ [stop_warp() for stop_warp in stop_warps] %}
+//     return();
+// }
+
 
 
 
@@ -435,6 +806,13 @@ namespace drip_configurator_instance{
         tempvar drip_configurator;
         %{ ids.drip_configurator = context.drip_configurator %}
         return (drip_configurator,);
+    }
+
+    func setMaxEnabledTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_max_enabled_tokens: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setMaxEnabledTokens(drip_configurator, _new_max_enabled_tokens);
+    return();
     }
 
     func addToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
@@ -648,6 +1026,13 @@ namespace drip_manager_instance{
         return(allowed_contract_length_,);
     }
 
+    func maxAllowedTokensLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (max_allowed_contract_length_: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (max_allowed_contract_length_) = IDripManager.maxAllowedTokensLength(drip_manager);
+        return(max_allowed_contract_length_,);
+    }
+
     func tokenMask{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt) -> (token_mask: Uint256) {
         tempvar drip_manager;
         %{ ids.drip_manager = context.drip_manager %}
@@ -802,10 +1187,16 @@ namespace drip_manager_instance{
 
     func calcClosePayments{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_total_value: Uint256, _type: felt, _borrowed_amount: Uint256, _borrowed_amount_with_interests: Uint256) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
         tempvar drip_manager;
-        
         %{ ids.drip_manager = context.drip_manager %}
         let (amount_to_pool, remaining_funds, profit, loss) = IDripManager.calcClosePayments(drip_manager, _total_value, _type, _borrowed_amount, _borrowed_amount_with_interests);
         return(amount_to_pool, remaining_funds, profit, loss,);
+    }
+
+    func calcDripAccruedInterest{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (borrowedAmount: Uint256, borrowedAmountWithInterest: Uint256, borrowedAmountWithInterestAndFees: Uint256) {
+        tempvar drip_manager;
+        %{ ids.drip_manager = context.drip_manager %}
+        let (borrowed_amount_, borrowed_amount_with_interests_, borrowed_amount_with_interests_and_fees_) = IDripManager.calcDripAccruedInterest(drip_manager, _drip);
+        return (borrowed_amount_, borrowed_amount_with_interests_, borrowed_amount_with_interests_and_fees_,);
     }
 
 }
@@ -880,6 +1271,13 @@ namespace drip_transit_instance{
         tempvar drip_transit;
         %{ ids.drip_transit = context.drip_transit %}
         IDripTransit.multicall(drip_transit, _call_array_len, _call_array, _calldata_len, _calldata);
+        return();
+    }
+
+    func enableToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        IDripTransit.enableToken(drip_transit, _token);
         return();
     }
 

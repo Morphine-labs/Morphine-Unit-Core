@@ -119,6 +119,10 @@ namespace IDripManager {
     func allowedTokensLength() -> (tokenLength: felt) {
     }
 
+    func maxAllowedTokensLength() -> (maxAllowedTokenLength: Uint256) {
+    }
+
+
     func tokenMask(token: felt) -> (token_mask: Uint256) {
     }
 
@@ -203,5 +207,13 @@ namespace IDripManager {
 
     func calcClosePayments(_total_value: Uint256, _type: felt, _borrowed_amount: Uint256, _borrowed_amount_with_interests: Uint256) -> (amount_to_pool: Uint256, remaining_funds: Uint256, profit: Uint256, loss: Uint256) {
     }
+
+
+func calc_enabled_tokens(_enabled_tokens: Uint256, _cum_total_tokens_enabled: Uint256) -> (total_tokens_enabled: Uint256){
+}
+
+func get_max_index(_mask: Uint256) -> (max_index: Uint256){
+}
+
 
 }

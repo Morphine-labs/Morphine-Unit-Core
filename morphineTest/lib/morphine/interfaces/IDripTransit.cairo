@@ -63,6 +63,9 @@ namespace IDripTransit {
     func multicall(_call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
     }
 
+    func enableToken(_token: felt){
+    }
+
     func approve(_target: felt, _token: felt, _amount: Uint256){
     }
 
