@@ -39,7 +39,7 @@ namespace IDripManager {
     func addCollateral(payer: felt, drip: felt, token: felt, amount: Uint256) {
     }
 
-    func manageDebt(_borrower: felt, amount: Uint256, increase: felt) -> (newBorrowedAmount: Uint256){
+    func manageDebt(drip: felt, amount: Uint256, increase: felt) -> (newBorrowedAmount: Uint256){
     }
 
     func approveDrip(borrower: felt, target: felt, token: felt,amount: Uint256) {

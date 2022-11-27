@@ -11,7 +11,7 @@ namespace IDrip {
     func updateParameters(_borrowed_amount: Uint256, _cumulative_index: Uint256) {
     }
 
-    func approveToken(_token: felt, _contract: felt) {
+    func approveToken(_token: felt, _contract: felt, _amount: Uint256) {
     }
 
     func cancelAllowance(_token: felt, _contract: felt) {

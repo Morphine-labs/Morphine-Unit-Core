@@ -108,10 +108,10 @@ func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 
 @external
 func approveToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _token: felt, _contract: felt
+    _token: felt, _contract: felt, _amount: Uint256
 ) {
     assert_only_drip_manager();
-    IERC20.approve(_token, _contract, Uint256(ALL_ONES, ALL_ONES));
+    IERC20.approve(_token, _contract, _amount);
     return ();
 }
 

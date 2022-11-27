@@ -375,21 +375,20 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
 @external
 func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _borrower: felt, _amount: Uint256, _increase: felt
+    _drip: felt, _amount: Uint256, _increase: felt
 ) -> (newBorrowedAmount: Uint256) {
     alloc_locals;
     ReentrancyGuard._start();
     assert_only_drip_transit();
     Pausable.assert_not_paused();
-    let (drip_) = getDripOrRevert(_borrower);
-    let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(drip_);
+    let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
     let (pool_) = pool.read();
     let (underlying_) = underlying_contract.read();
     if (_increase == 1) {
         let (new_borrowed_amount_) = SafeUint256.add(borrowed_amount_, _amount);
         let (cumulative_index_at_borrow_more_) = calc_new_cumulative_index(borrowed_amount_, _amount, current_cumulative_index_, cumulative_index_, 1);
-        IPool.borrow(pool_, _amount, drip_);
-        IDrip.updateParameters(drip_, new_borrowed_amount_, cumulative_index_at_borrow_more_);
+        IPool.borrow(pool_, _amount, _drip);
+        IDrip.updateParameters(_drip, new_borrowed_amount_, cumulative_index_at_borrow_more_);
         ReentrancyGuard._end();
         return (new_borrowed_amount_,);
     } else {
@@ -404,22 +403,22 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         if (is_le_ == 1){
             let (step1_) = SafeUint256.add(borrowed_amount_, interest_and_fees_);
             let (new_borrowed_amount_) = SafeUint256.sub_le(step1_, _amount);
-            IDrip.safeTransfer(drip_, underlying_, pool_, _amount);
+            IDrip.safeTransfer(_drip, underlying_, pool_, _amount);
             let (to_repay_) = SafeUint256.sub_le(_amount, interest_and_fees_);
             IPool.repayDripDebt(pool_, to_repay_, profit_, Uint256(0, 0));
             let (new_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
-            IDrip.updateParameters(drip_, new_borrowed_amount_, new_cumulative_index_);
+            IDrip.updateParameters(_drip, new_borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard._end();
             return(new_borrowed_amount_,);
         } else {
             let (step1_) = SafeUint256.mul(_amount, Uint256(PRECISION,0));
-            let (step2_) = SafeUint256.mul(Uint256(PRECISION,0), fee_interest_);
+            let (step2_) = SafeUint256.add(Uint256(PRECISION,0), fee_interest_);
             let (amount_to_interest_,_) = SafeUint256.div_rem(step1_, step2_);
             let (amount_to_fees_) = SafeUint256.sub_le(_amount, amount_to_interest_);
-            IDrip.safeTransfer(drip_, underlying_, pool_, _amount);
+            IDrip.safeTransfer(_drip, underlying_, pool_, _amount);
             IPool.repayDripDebt(pool_, Uint256(0,0), amount_to_fees_, Uint256(0, 0));
             let (new_cumulative_index_) = calc_new_cumulative_index(borrowed_amount_, amount_to_interest_, current_cumulative_index_, cumulative_index_, 0);
-            IDrip.updateParameters(drip_, borrowed_amount_, new_cumulative_index_);
+            IDrip.updateParameters(_drip, borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard._end();
             return(borrowed_amount_,);
         }
@@ -456,8 +455,8 @@ func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     with_attr error_message("not allowed token") {
         assert is_nul_ = 0;
     }
-    let (drip_) = getDripOrRevert(drip_transit_);
-    IDrip.approveToken(drip_, _token, _target);
+    let (drip_) = getDripOrRevert(_borrower);
+    IDrip.approveToken(drip_, _token, _target, _amount);
     ReentrancyGuard._end();
     return ();
 }
@@ -1030,6 +1029,7 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
             let (is_le_) = uint256_le(_borrowed_amount_with_interests, new_cumulative_twv_usd_);
             if(is_le_ == 1){
                 let (total_tokens_enabled_) = calc_enabled_tokens(_enabled_tokens,  Uint256(0,0));
+                assert total_tokens_enabled_= Uint256(1,0);
                 let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
                 let (is_lt_) = uint256_lt(max_allowed_enabled_tokens_length_, total_tokens_enabled_);
                 if(is_lt_ == 1){
@@ -1195,23 +1195,40 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func calc_new_cumulative_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _delta: Uint256, _current_cumulative_index: Uint256, _drip_cumulative_index: Uint256, is_increase: felt) -> (new_cumulative_index: Uint256) {
     alloc_locals;
     if(is_increase == 1){
+
+        // 1 index * new borrow
         let (new_borrowed_amount_) = SafeUint256.add(_borrowed_amount, _delta);
         let (step1_) = SafeUint256.mul(_current_cumulative_index, new_borrowed_amount_);
         let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION,0));
+
+        // 2 (index * borrow) / drip index
         let (step3_) = SafeUint256.mul(_current_cumulative_index, _borrowed_amount);
         let (step4_) = SafeUint256.mul(step3_, Uint256(PRECISION,0));
-        let (step5_) = SafeUint256.mul(Uint256(PRECISION,0), _delta);
-        let (step6_) = SafeUint256.add(step5_, _drip_cumulative_index);
-        let (step7_,_) = SafeUint256.div_rem(step4_, step6_);
+        let (step5_,_) = SafeUint256.div_rem(step4_, _drip_cumulative_index);
+
+
+        // 3 delta
+        let (step6_) = SafeUint256.mul(Uint256(PRECISION,0), _delta);
+
+        // 1 / (2 + 3)
+        let (step7_) = SafeUint256.add(step5_, step6_);
         let (cumulative_index_at_borrow_more_, _) = SafeUint256.div_rem(step2_, step7_);
         return(cumulative_index_at_borrow_more_,);
     } else {
+
+        // 1 index * drip index
         let (step1_) = SafeUint256.mul(_current_cumulative_index, _drip_cumulative_index);
         let (step2_) = SafeUint256.mul(step1_, Uint256(PRECISION,0));
+
+        // 2 index
         let (step3_) = SafeUint256.mul(_current_cumulative_index, Uint256(PRECISION,0));
+
+        // 3 delta*drip index / borrwed amount
         let (step4_) = SafeUint256.mul(_drip_cumulative_index, Uint256(PRECISION,0));
         let (step5_) = SafeUint256.mul(step4_, _delta);
         let (step6_,_) = SafeUint256.div_rem(step5_, _borrowed_amount);
+
+        // 1 / (2 - 3)
         let (step7_) = SafeUint256.sub_le(step3_, step6_);
         let (new_cumulative_index_,_) = SafeUint256.div_rem(step2_, step7_);
         return(new_cumulative_index_,);

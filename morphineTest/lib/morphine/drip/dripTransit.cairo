@@ -491,7 +491,7 @@ func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bi
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (adapter_) = IDripManager.contractToAdapter(drip_manager_, _target);
-    with_attr error_message("Target is not adapter"){
+    with_attr error_message("target is not adapter"){
         assert_not_zero(adapter_);
     }
     IDripManager.approveDrip(drip_manager_, caller_, _target, _token, _amount);
@@ -981,7 +981,7 @@ func increase_debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     check_and_update_borrowed_block_limit(_amount);
     check_forbidden_tokens(_drip);
     let (drip_manager_) = drip_manager.read();
-    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, _borrower, _amount, 1);
+    let (new_borrowed_amount_) = IDripManager.manageDebt(drip_manager_, _drip, _amount, 1);
     revert_if_out_borrowed_limits(new_borrowed_amount_);
     IncreaseBorrowedAmount.emit(_borrower, _amount);
     return();
