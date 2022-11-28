@@ -146,4 +146,7 @@ namespace IDripTransit {
     func lastBlockSaved() -> (last_block_saved: felt){
     }
 
+    func isTransferAllowed(_from: felt, to: felt) -> (is_allowed : felt){
+    }
+
 }

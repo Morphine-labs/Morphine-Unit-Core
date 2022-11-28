@@ -1027,6 +1027,101 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 //     return();
 // }
 
+// @view
+// func test_approve_drip_transfer_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ expect_events({"name": "TransferDripAllowed", "data": [ids.USER_2, ids.USER_1, 1],"from_address": context.drip_transit}) %}
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.approveDripTransfers(USER_2, 1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     let (is_tranfer_allowed_) = drip_transit_instance.isTransferAllowed(USER_2, USER_1);
+//     return();
+// }
+
+// @view
+// func test_transfer_drip_ownership_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{ expect_revert(error_message="not permisonless error") %}
+//     drip_transit_instance.transferDripOwnership(USER_2);
+//     return();
+// }
+
+// @view
+// func test_transfer_drip_ownership_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     %{
+//          store(context.drip_transit, "nft", [0])
+//     %}
+//     %{ expect_revert(error_message="transfer not allowed") %}
+//     drip_transit_instance.transferDripOwnership(USER_2);
+//     return();
+// }
+
+// @view
+// func test_transfer_drip_ownership_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     %{
+//         store(context.drip_transit, "nft", [0])
+//         store(context.dai, "ERC20_balances", [1000*10**6,0], key=[ids.drip_])
+//     %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.approveDripTransfers(USER_1, 1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="transfer not allowed for liquiditable drip") %}
+//     drip_transit_instance.transferDripOwnership(USER_2);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     return();
+// }
+
+// @view
+// func test_transfer_drip_ownership_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     %{
+//         store(context.drip_transit, "nft", [0])
+//         store(context.drip_manager, "borrower_to_drip", [898], key=[ids.USER_2])
+//     %}
+//     %{ expect_events({"name": "TransferDrip", "data": [ids.USER_1, ids.USER_2],"from_address": context.drip_transit}) %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.approveDripTransfers(USER_1, 1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     %{ expect_revert(error_message="zero address or user already has a drip") %}
+//     drip_transit_instance.transferDripOwnership(USER_2);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+//     return();
+// }
+
+// @view
+// func test_transfer_drip_ownership_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+//     alloc_locals;
+//     let (drip_) = drip_manager_instance.getDrip(USER_1);
+//     %{
+//         store(context.drip_transit, "nft", [0])
+//     %}
+//     %{ expect_events({"name": "TransferDrip", "data": [ids.USER_1, ids.USER_2],"from_address": context.drip_transit}) %}
+
+//     %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.approveDripTransfers(USER_1, 1);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+//     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+//     drip_transit_instance.transferDripOwnership(USER_2);
+//     %{ [stop_prank() for stop_prank in stop_pranks] %}
+//     let (drip_new_owner_) = drip_manager_instance.getDrip(USER_2);
+//     assert drip_new_owner_ = drip_;
+//     return();
+// }
+
 
 @view
 func test_multicall_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
@@ -1062,6 +1157,39 @@ func test_multicall_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     %{ expect_revert(error_message="unknown selector") %}
     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
     drip_transit_instance.multicall(1, call_array, 2, call_data);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    return();
+}
+
+@view
+func test_multicall_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ expect_events({"name": "AddCollateral", "data": [ids.USER_1, context.dai, 10000*10**6,0],"from_address": context.drip_transit}) %}
+    let (dai_) = dai_instance.deployed();
+    let (drip_manager_) = drip_manager_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.dai] ] %}
+    IERC20.transfer(dai_, USER_1, Uint256(10000*10**6,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.dai] ] %}
+    IERC20.approve(dai_, drip_manager_, Uint256(10000*10**6,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (call_array: AccountCallArray*) = alloc();
+    assert call_array[0].to = drip_transit_;
+    assert call_array[0].selector = ADD_COLLATERAL_SELECTOR;
+    assert call_array[0].data_offset = 0;
+    assert call_array[0].data_len = 4;
+    let (call_data: felt*) = alloc();
+    assert call_data[0] = USER_1;
+    assert call_data[1] = dai_;
+    assert call_data[2] = 10000*10**6;
+    assert call_data[3] = 0;
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.multicall(1, call_array, 4, call_data);
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -1622,7 +1750,7 @@ namespace drip_transit_instance{
     func approveDripTransfers{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_from: felt, _state: felt){
         tempvar drip_transit;
         %{ ids.drip_transit = context.drip_transit %}
-        IDripTransit.approveDripTransfers(_from, _state);
+        IDripTransit.approveDripTransfers(drip_transit, _from, _state);
         return();
     }
 
@@ -1682,6 +1810,13 @@ namespace drip_transit_instance{
         %{ ids.drip_transit = context.drip_transit %}
         let (last_block_saved_) = IDripTransit.lastBlockSaved(drip_transit);
         return(last_block_saved_,);
+    }
+
+    func isTransferAllowed{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_from: felt, _to: felt) -> (is_allowed : felt){
+        tempvar drip_transit;
+        %{ ids.drip_transit = context.drip_transit %}
+        let (is_tranfer_allowed_) = IDripTransit.isTransferAllowed(drip_transit, _from, _to);
+        return(is_tranfer_allowed_,);
     }
 
     // Calul

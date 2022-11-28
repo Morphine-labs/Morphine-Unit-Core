@@ -451,9 +451,6 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     let is_le_ = is_le(_call_array_len , 0);
     if(is_le_ == 0){
-        let (caller_) = get_caller_address();
-        let (drip_manager_) = drip_manager.read();
-        let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
         let (this_) = get_contract_address();
         _multicall(_call_array_len, _call_array, _calldata, caller_, drip_, 0, 0);
         IDripManager.fullCollateralCheck(drip_manager_, drip_);
@@ -515,7 +512,7 @@ func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     let (drip_manager_) = drip_manager.read();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     let (is_liquidatable_,_) = is_drip_liquidatable(drip_);
-    with_attr error_message("Transfer not allowed for liquiditable drip"){
+    with_attr error_message("transfer not allowed for liquiditable drip"){
         assert is_liquidatable_ = 0;
     }
     IDripManager.transferDripOwnership(drip_manager_, caller_, _to);
@@ -717,6 +714,14 @@ func lastBlockSaved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return(last_block_saved_,);
 }
 
+@view
+func isTransferAllowed{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_from: felt, to: felt) -> (is_allowed : felt){
+    alloc_locals;
+    let (is_tranfer_allowed_) = transfers_allowed.read(_from, to);
+    return(is_tranfer_allowed_,);
+}
+
+
 
 // Internals
 
@@ -802,20 +807,15 @@ func call_drip_facade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         with_attr error_message("incorrect datalen"){
             assert _call.calldata_len = 4;
         }
+        assert _call.calldata[0] = 88;
+        assert _call.calldata[0] = 67;
+        let (drip_from_on_belhalf_of_) = IDripManager.getDripOrRevert(_drip_manager, _call.calldata[0]);
+        
         tempvar temp_drip: felt;
         if(_call.calldata[0] == _borrower){
             temp_drip = _drip;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-            tempvar bitwise_ptr = bitwise_ptr;
         } else{
-            let (drip_from_on_belhalf_of_) = IDripManager.getDripOrRevert(_drip_manager, _call.calldata[0]);
             temp_drip = drip_from_on_belhalf_of_;
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-            tempvar bitwise_ptr = bitwise_ptr;
         }
         add_collateral(_call.calldata[0], temp_drip,_call.calldata[1], Uint256(_call.calldata[2],_call.calldata[3]));
         return(_is_increase_debt_was_called, _expected_balances_len, _expected_balances,);
