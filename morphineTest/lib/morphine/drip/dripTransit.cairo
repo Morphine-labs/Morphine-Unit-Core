@@ -784,7 +784,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         let (is_increase_debt_was_called_, expected_balances_len, expected_balances) = call_drip_facade(_call[0], _drip_manager, _borrower, _drip, _is_increase_debt_was_called, _expected_balances_len, _expected_balances);
         return recursive_multicall(_call_len - 1, _call + Call.SIZE, _borrower, _drip, _is_closure, is_increase_debt_was_called_, _this, _drip_manager, expected_balances_len, expected_balances);
     } else {
-        let (contract_) = IDripManager.adapterToContract(_drip_manager, _call[0].selector);
+        let (contract_) = IDripManager.adapterToContract(_drip_manager, _call[0].to);
         with_attr error_message("forbidden call"){
             assert_not_zero((_call[0].to - _drip_manager)*contract_);
         }
