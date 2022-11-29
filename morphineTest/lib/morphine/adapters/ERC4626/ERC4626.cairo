@@ -17,9 +17,7 @@ from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.adapters.baseAdapter import BaseAdapter, drip_manager, drip_transit, target
 from morphine.integrations.ERC4626.IERC4626 import IERC4626
 from morphine.interfaces.IDripManager import IDripManager
-
-const DEPOSIT_SELECTOR = 738373;
-const REDEEM_SELECTOR = 738378393;
+from morphine.utils.various import DEPOSIT_SELECTOR, REDEEM_SELECTOR
 
 //
 // Storage

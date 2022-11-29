@@ -1060,8 +1060,7 @@ func transfer_assets_to{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
         assert_not_zero(_to);
     }
     let (enabled_tokens_) = enabled_tokens.read(_drip);
-    let (oracle_transit_) = oracle_transit.read();
-    recursive_transfer_token(0, _drip, _to, enabled_tokens_);
+    recursive_transfer_token(1, _drip, _to, enabled_tokens_);
     return ();
 }
 

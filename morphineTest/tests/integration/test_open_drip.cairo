@@ -34,7 +34,7 @@ from morphine.interfaces.IDrip import IDrip
 
 from morphine.utils.utils import pow
 
-from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, APPROVE_SELECTOR, REVERT_IF_RECEIVED_LESS_THAN_SELECTOR, ADD_COLLATERAL_SELECTOR, INCREASE_DEBT_SELECTOR, DECREASE_DEBT_SELECTOR, ENABLE_TOKEN_SELECTOR,DISABLE_TOKEN_SELECTOR, DEPOSIT_ALL_SELECTOR, DEPOSIT_SELECTOR, REDEEM_ALL_SELECTOR, REDEEM_SELECTOR
 
 
 
@@ -53,7 +53,7 @@ const TOKEN_SYMBOL_1 = 'ETH';
 const TOKEN_DECIMALS_1 = 18;
 const TOKEN_INITIAL_SUPPLY_LO_1 = 10000000000000000000;
 const TOKEN_INITIAL_SUPPLY_HI_1 = 0;
-const ETH_LT_LOW = 800000;
+const ETH_LT_LOW = 80*10**16;
 const ETH_LT_HIGH = 0;
 
 
@@ -63,7 +63,7 @@ const TOKEN_SYMBOL_2 = 'BTC';
 const TOKEN_DECIMALS_2 = 18;
 const TOKEN_INITIAL_SUPPLY_LO_2 = 5*10**18;
 const TOKEN_INITIAL_SUPPLY_HI_2 = 0;
-const BTC_LT_LOW = 850000;
+const BTC_LT_LOW = 85*10**16;
 const BTC_LT_HIGH = 0;
 
 // Token 3 DAI
@@ -76,7 +76,7 @@ const TOKEN_INITIAL_SUPPLY_HI_3 = 0;
 // Token 4 ERC4626 VETH
 const TOKEN_NAME_4 = 'vethereum';
 const TOKEN_SYMBOL_4 = 'VETH';
-const VETH_LT_LOW = 700000;
+const VETH_LT_LOW = 70*10**16;
 const VETH_LT_HIGH = 0;
 
 // Token 5 RD
@@ -98,13 +98,13 @@ const LUT = 0;
 const NSA = 0;
 
 // LinearRateModel
-const SLOPE1_LO = 15000;
+const SLOPE1_LO = 15*10**15;
 const SLOPE1_HI = 0;
-const SLOPE2_LO = 1000000; 
+const SLOPE2_LO = 1*10**18; 
 const SLOPE2_HI = 0; 
 const BASE_RATE_LO =  0;
 const BASE_RATE_HI =  0;
-const OPTIMAL_RATE_LO = 800000; 
+const OPTIMAL_RATE_LO = 80*10**16; 
 const OPTIMAL_RATE_HI = 0; 
 
 // Pool
@@ -131,12 +131,13 @@ const MAXIMUM_BORROWED_AMOUNT_HI = 0;
 
 const BORROW_AMOUNT_LOW = 20000*10**6;
 const BORROW_AMOUNT_HIGH = 0;
-const LEVERAGE_FACTOR_LOW = 3*10**6;
+const LEVERAGE_FACTOR_LOW = 3*10**18;
 const LEVERAGE_FACTOR_HIGH = 0;
-const WRONG_LEVERAGE_FACTOR_LOW = 157*10**5;
+const WRONG_LEVERAGE_FACTOR_LOW = 16*10**18;
 const WRONG_LEVERAGE_FACTOR_HIGH = 0;
 
 const RANDOM_ADDRESS = 'random_address';
+
 
 
 @view
@@ -764,7 +765,7 @@ func test_open_drip_14{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
     %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
     %{ stop_rolls = [roll(1, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
     %{ expect_events({"name": "OpenDrip", "from_address": context.drip_transit}) %}
-    %{ expect_events({"name": "AddCollateral", "from_address": context.drip_transit}) %}
+    %{ expect_events({"name": "AddCollateral", "data": [ids.USER_1, context.dai, 20000*10**6, 0], "from_address": context.drip_transit}) %}
     let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
     assert morphine_pass_balance_ = Uint256(1,0);
     let (limit_per_block_) = drip_transit_instance.maxBorrowedAmountPerBlock();
@@ -792,7 +793,7 @@ func test_open_drip_14{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
     let (borrowed_amount_) = IDrip.borrowedAmount(drip_);
     let (since_) = IDrip.lastUpdate(drip_);
 
-    assert cumulative_index_ = Uint256(1000000,0);
+    assert cumulative_index_ = Uint256(1*10**18,0);
     assert borrowed_amount_ = Uint256(BORROW_AMOUNT_LOW * 3, 0);
     assert since_ = 0;
 
@@ -806,7 +807,7 @@ func test_open_drip_14{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
     assert total_borrowed_ = Uint256(60000*10**6,0);
 
     let (hf_) = drip_transit_instance.calcDripHealthFactor(drip_);
-    assert hf_ = Uint256(1253333,0);
+    assert hf_ = Uint256(1253333333333333333,0);
 
     let (TV_, TWV_) = drip_transit_instance.calcTotalValue(drip_);
     assert TV_ = Uint256(80000000000,0);
@@ -821,6 +822,73 @@ func test_open_drip_14{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
     return();
 }
 
+@view
+func test_open_multicall_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ stop_warps = [warp(0, contract) for contract in [context.drip_configurator, context.drip_transit, context.drip_manager, context.pool] ] %}
+    %{ expect_events({"name": "OpenDrip", "from_address": context.drip_transit}) %}
+    %{ expect_events({"name": "AddCollateral", "data": [ids.USER_1, context.eth, 2*10**18, 0], "from_address": context.drip_transit}) %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setMaxEnabledTokens(Uint256(2,0));
+    drip_configurator_instance.setExpirationDate(5000);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+    
+
+    let (eth_) = eth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+    IERC20.transfer(eth_, USER_1, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.eth] ] %}
+    let (drip_manager_) = drip_manager_instance.deployed();
+    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (call_array: AccountCallArray*) = alloc();
+    assert call_array[0].to = drip_transit_;
+    assert call_array[0].selector = ADD_COLLATERAL_SELECTOR;
+    assert call_array[0].data_offset = 0;
+    assert call_array[0].data_len = 4;
+    let (call_data: felt*) = alloc();
+    assert call_data[0] = USER_1;
+    assert call_data[1] = eth_;
+    assert call_data[2] = 2*10**18;
+    assert call_data[3] = 0;
+
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.openDripMultiCall(Uint256(10000*10**6, 0), USER_1, 1, call_array, 4, call_data);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (morphine_pass_balance_) = morphine_pass_instance.balanceOf(USER_1);
+    assert morphine_pass_balance_ = Uint256(0,0);
+
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (cumulative_index_) =  IDrip.cumulativeIndex(drip_);
+    let (borrowed_amount_) = IDrip.borrowedAmount(drip_);
+    let (since_) = IDrip.lastUpdate(drip_);
+
+    assert cumulative_index_ = Uint256(1*10**18,0);
+    assert borrowed_amount_ = Uint256(10000*10**6, 0);
+    assert since_ = 0;
+
+    // ((4000*0,8) + 10000*0,94 )/ 10000
+    let (hf_) = drip_transit_instance.calcDripHealthFactor(drip_);
+    assert hf_ = Uint256(126*10**16,0);
+
+    let (TV_, TWV_) = drip_transit_instance.calcTotalValue(drip_);
+    assert TV_ = Uint256(14000*10**6,0);
+    assert TWV_ = Uint256(12600*10**6,0);
+
+    let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+    assert enabled_tokens_ = Uint256(3,0);
+
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
 
 
 namespace drip_configurator_instance{
@@ -828,6 +896,13 @@ namespace drip_configurator_instance{
         tempvar drip_configurator;
         %{ ids.drip_configurator = context.drip_configurator %}
         return (drip_configurator,);
+    }
+
+    func setMaxEnabledTokens{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_new_max_enabled_tokens: Uint256){
+    tempvar drip_configurator;
+    %{ ids.drip_configurator = context.drip_configurator %}
+    IDripConfigurator.setMaxEnabledTokens(drip_configurator, _new_max_enabled_tokens);
+    return();
     }
 
     func addToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){

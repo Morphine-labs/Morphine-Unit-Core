@@ -1,7 +1,8 @@
 [project]
-protostar-version = "0.7.0"
-lib-path = "lib"
+protostar-version = "0.8.1"
+lib-path = "lib"                           
+cairo-path = ["lib"] 
 
 [contracts]
-adapter = ["lib/morphine/token/minter.cairo"]
+main = ["src/pool.cairo"]
 

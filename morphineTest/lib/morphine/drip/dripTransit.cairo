@@ -301,7 +301,7 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     }
 
     let (is_liquidatable_, total_value_) = is_drip_liquidatable(drip_);
-    with_attr error_message("Can't Liquidate with such HF"){
+    with_attr error_message("can not Liquidate with such HF"){
         assert is_liquidatable_ = 1;
     }
 
@@ -1097,8 +1097,8 @@ func revert_if_out_borrowed_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
     alloc_locals;
     let (minimum_borrowed_amount_) = minimum_borrowed_amount.read();
     let (maximum_borrowed_amount_) = maximum_borrowed_amount.read();
-    let (is_allowed_borrowed_amount1_) = uint256_lt(minimum_borrowed_amount_, _borrowed_amount);
-    let (is_allowed_borrowed_amount2_) = uint256_lt(_borrowed_amount, maximum_borrowed_amount_);
+    let (is_allowed_borrowed_amount1_) = uint256_le(minimum_borrowed_amount_, _borrowed_amount);
+    let (is_allowed_borrowed_amount2_) = uint256_le(_borrowed_amount, maximum_borrowed_amount_);
     with_attr error_message("borrow amount out of limit") {
         assert_not_zero(is_allowed_borrowed_amount1_ * is_allowed_borrowed_amount2_);
     }

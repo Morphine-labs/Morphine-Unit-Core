@@ -34,7 +34,7 @@ from morphine.interfaces.IDrip import IDrip
 
 from morphine.utils.utils import pow
 
-from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, APPROVE_SELECTOR, REVERT_IF_RECEIVED_LESS_THAN_SELECTOR, ADD_COLLATERAL_SELECTOR, INCREASE_DEBT_SELECTOR, DECREASE_DEBT_SELECTOR, ENABLE_TOKEN_SELECTOR,DISABLE_TOKEN_SELECTOR, DEPOSIT_ALL_SELECTOR, DEPOSIT_SELECTOR 
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, APPROVE_SELECTOR, REVERT_IF_RECEIVED_LESS_THAN_SELECTOR, ADD_COLLATERAL_SELECTOR, INCREASE_DEBT_SELECTOR, DECREASE_DEBT_SELECTOR, ENABLE_TOKEN_SELECTOR,DISABLE_TOKEN_SELECTOR, DEPOSIT_ALL_SELECTOR, DEPOSIT_SELECTOR, REDEEM_ALL_SELECTOR, REDEEM_SELECTOR
 
 
 
@@ -299,7 +299,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     %}
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setMaxEnabledTokens(Uint256(2,0));
+    drip_configurator_instance.setMaxEnabledTokens(Uint256(3,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
 
@@ -391,23 +391,26 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
 
-    let (eth_) = eth_instance.deployed();
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
-    IERC20.transfer(eth_, USER_1, Uint256(2*10**18));
-    %{ [stop_prank() for stop_prank in stop_pranks] %}
-
     return();
 }
 
 @view
-func test_adapter_erc4626{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+func test_adapter_erc4626_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-    %{ expect_events({"name": "IncreaseBorrowedAmount", "data": [ids.USER_1, 10000*10**6,0],"from_address": context.drip_transit}) %}
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setMaxEnabledTokens(Uint256(2,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
 
-    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+
     let (eth_) = eth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+    IERC20.transfer(eth_, USER_1, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.eth] ] %}
     let (drip_manager_) = drip_manager_instance.deployed();
-    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18));
+    let (eth_) = eth_instance.deployed();
+    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     let (erc4626_adapter_) = erc4626_adapter_instance.deployed();
@@ -419,12 +422,48 @@ func test_adapter_erc4626{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, rang
     assert call_array[0].selector = ADD_COLLATERAL_SELECTOR;
     assert call_array[0].data_offset = 0;
     assert call_array[0].data_len = 4;
+    assert call_array[1].to = erc4626_adapter_;
+    assert call_array[1].selector = DEPOSIT_ALL_SELECTOR;
+    assert call_array[1].data_offset = 4;
+    assert call_array[1].data_len = 0;
     let (call_data: felt*) = alloc();
     assert call_data[0] = USER_1;
     assert call_data[1] = eth_;
     assert call_data[2] = 2*10**18;
     assert call_data[3] = 0;
 
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.multicall(2, call_array, 4, call_data);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (veth_) = veth_instance.deployed();
+    let (veth_balance_) = IERC20.balanceOf(veth_, drip_);
+    assert veth_balance_ = Uint256(1*10**18,0);
+    let (tv_, tvw_) = drip_transit_instance.calcTotalValue(drip_);
+    assert tv_ = Uint256(84000*10**6,0);
+    assert tvw_ = Uint256((80000*10**6*94/100) + (4000*10**6*70/100),0);
+    let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+    assert enabled_tokens_ = Uint256(5,0);
+    return();
+}
+
+@view
+func test_adapter_erc4626_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+
+    let (eth_) = eth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+    IERC20.transfer(eth_, USER_1, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.eth] ] %}
+    let (drip_manager_) = drip_manager_instance.deployed();
+    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (erc4626_adapter_) = erc4626_adapter_instance.deployed();
 
 
     let (drip_transit_) = drip_transit_instance.deployed();
@@ -434,26 +473,152 @@ func test_adapter_erc4626{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, rang
     assert call_array[0].data_offset = 0;
     assert call_array[0].data_len = 4;
     assert call_array[1].to = erc4626_adapter_;
-    assert call_array[1].selector = DEPOSIT_ALL_SELECTOR;
-    assert call_array[1].data_offset = 0;
+    assert call_array[1].selector = DEPOSIT_SELECTOR;
+    assert call_array[1].data_offset = 4;
     assert call_array[1].data_len = 2;
     let (call_data: felt*) = alloc();
-    assert call_data[0] = 10000*10**6;
-    assert call_data[1] = 0;
-
+    assert call_data[0] = USER_1;
+    assert call_data[1] = eth_;
+    assert call_data[2] = 2*10**18;
+    assert call_data[3] = 0;
+    assert call_data[4] = 1*10**18;
+    assert call_data[5] = 0;
 
     %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
-    drip_transit_instance.multicall(1, call_array, 2, call_data);
+    drip_transit_instance.multicall(2, call_array, 6, call_data);
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
-    let (drip_) = drip_manager_instance.getDrip(USER_1);
-    let (tv_, tvw_) = drip_transit_instance.calcTotalValue(drip_);
-    assert tv_ = Uint256(90000*10**6,0);
-    let (borrowed_amount_) = IDrip.borrowedAmount(drip_);
-    assert borrowed_amount_ = Uint256(70000*10**6,0);
-    let (cumulative_index_) = IDrip.cumulativeIndex(drip_);
-    assert cumulative_index_ = Uint256(1*10**6,0);
 
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (veth_) = veth_instance.deployed();
+    let (veth_balance_) = IERC20.balanceOf(veth_, drip_);
+    assert veth_balance_ = Uint256(5*10**17,0);
+    let (tv_, tvw_) = drip_transit_instance.calcTotalValue(drip_);
+    assert tv_ = Uint256(84000*10**6,0);
+    assert tvw_ = Uint256((80000*10**6*94/100) + (2000*10**6*80/100) + (2000*10**6*70/100),0);
+    let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+    assert enabled_tokens_ = Uint256(7,0);
+    return();
+}
+
+@view
+func test_adapter_erc4626_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.setMaxEnabledTokens(Uint256(2,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (eth_) = eth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+    IERC20.transfer(eth_, USER_1, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.eth] ] %}
+    let (drip_manager_) = drip_manager_instance.deployed();
+    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (erc4626_adapter_) = erc4626_adapter_instance.deployed();
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (call_array: AccountCallArray*) = alloc();
+    assert call_array[0].to = drip_transit_;
+    assert call_array[0].selector = ADD_COLLATERAL_SELECTOR;
+    assert call_array[0].data_offset = 0;
+    assert call_array[0].data_len = 4;
+    assert call_array[1].to = erc4626_adapter_;
+    assert call_array[1].selector = DEPOSIT_SELECTOR;
+    assert call_array[1].data_offset = 4;
+    assert call_array[1].data_len = 2;
+    assert call_array[2].to = erc4626_adapter_;
+    assert call_array[2].selector = REDEEM_ALL_SELECTOR;
+    assert call_array[2].data_offset = 6;
+    assert call_array[2].data_len = 0;
+    let (call_data: felt*) = alloc();
+    assert call_data[0] = USER_1;
+    assert call_data[1] = eth_;
+    assert call_data[2] = 2*10**18;
+    assert call_data[3] = 0;
+    assert call_data[4] = 1*10**18;
+    assert call_data[5] = 0;
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.multicall(3, call_array, 6, call_data);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (veth_) = veth_instance.deployed();
+    let (veth_balance_) = IERC20.balanceOf(veth_, drip_);
+    assert veth_balance_ = Uint256(0,0);
+    let (eth_balance_) = IERC20.balanceOf(eth_, drip_);
+    assert eth_balance_ = Uint256(2*10**18,0);
+    let (tv_, tvw_) = drip_transit_instance.calcTotalValue(drip_);
+    assert tv_ = Uint256(84000*10**6,0);
+    assert tvw_ = Uint256((80000*10**6*94/100) + (4000*10**6*80/100),0);
+    let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+    assert enabled_tokens_ = Uint256(3,0);
+    return();
+}
+
+@view
+func test_adapter_erc4626_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    let (eth_) = eth_instance.deployed();
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.eth] ] %}
+    IERC20.transfer(eth_, USER_1, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.eth] ] %}
+    let (drip_manager_) = drip_manager_instance.deployed();
+    IERC20.approve(eth_, drip_manager_, Uint256(2*10**18,0));
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (erc4626_adapter_) = erc4626_adapter_instance.deployed();
+
+
+    let (drip_transit_) = drip_transit_instance.deployed();
+    let (call_array: AccountCallArray*) = alloc();
+    assert call_array[0].to = drip_transit_;
+    assert call_array[0].selector = ADD_COLLATERAL_SELECTOR;
+    assert call_array[0].data_offset = 0;
+    assert call_array[0].data_len = 4;
+    assert call_array[1].to = erc4626_adapter_;
+    assert call_array[1].selector = DEPOSIT_SELECTOR;
+    assert call_array[1].data_offset = 4;
+    assert call_array[1].data_len = 2;
+    assert call_array[2].to = erc4626_adapter_;
+    assert call_array[2].selector = REDEEM_SELECTOR;
+    assert call_array[2].data_offset = 6;
+    assert call_array[2].data_len = 2;
+    let (call_data: felt*) = alloc();
+    assert call_data[0] = USER_1;
+    assert call_data[1] = eth_;
+    assert call_data[2] = 2*10**18;
+    assert call_data[3] = 0;
+    assert call_data[4] = 1*10**18;
+    assert call_data[5] = 0;
+    assert call_data[6] = 25*10**16;
+    assert call_data[7] = 0;
+
+    %{ stop_pranks = [start_prank(ids.USER_1, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.multicall(3, call_array, 8, call_data);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (veth_) = veth_instance.deployed();
+    let (veth_balance_) = IERC20.balanceOf(veth_, drip_);
+    assert veth_balance_ = Uint256(25*10**16,0);
+    let (eth_balance_) = IERC20.balanceOf(eth_, drip_);
+    assert eth_balance_ = Uint256(15*10**17,0);
+    let (tv_, tvw_) = drip_transit_instance.calcTotalValue(drip_);
+    assert tv_ = Uint256(84000*10**6,0);
+    assert tvw_ = Uint256((80000*10**6*94/100) + (3000*10**6*80/100) + (1000*10**6*70/100),0);
+    let (enabled_tokens_) = drip_manager_instance.enabledTokensMap(drip_);
+    assert enabled_tokens_ = Uint256(7,0);
     return();
 }
 
