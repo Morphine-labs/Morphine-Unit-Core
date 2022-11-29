@@ -1029,7 +1029,6 @@ func recursive_calcul_value{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
             let (is_le_) = uint256_le(_borrowed_amount_with_interests, new_cumulative_twv_usd_);
             if(is_le_ == 1){
                 let (total_tokens_enabled_) = calc_enabled_tokens(_enabled_tokens,  Uint256(0,0));
-                assert total_tokens_enabled_= Uint256(1,0);
                 let (max_allowed_enabled_tokens_length_) = max_allowed_enabled_tokens_length.read();
                 let (is_lt_) = uint256_lt(max_allowed_enabled_tokens_length_, total_tokens_enabled_);
                 if(is_lt_ == 1){

@@ -32,6 +32,8 @@ from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
+const USER_1 = 'user-1';
+
 //
 // Events
 //
@@ -61,7 +63,7 @@ func IncreaseBorrowedAmount(borrower: felt, amount: Uint256){
 }
 
 @event 
-func DecreaseBorrowedAmount(oracle: felt, amount: Uint256){
+func DecreaseBorrowedAmount(borrower: felt, amount: Uint256){
 }
 
 @event 
@@ -780,7 +782,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             tempvar bitwise_ptr = bitwise_ptr;
         }
         let (is_increase_debt_was_called_, expected_balances_len, expected_balances) = call_drip_facade(_call[0], _drip_manager, _borrower, _drip, _is_increase_debt_was_called, _expected_balances_len, _expected_balances);
-        return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip, _is_closure, is_increase_debt_was_called_, _this, _drip_manager, expected_balances_len, expected_balances);
+        return recursive_multicall(_call_len - 1, _call + Call.SIZE, _borrower, _drip, _is_closure, is_increase_debt_was_called_, _this, _drip_manager, expected_balances_len, expected_balances);
     } else {
         let (contract_) = IDripManager.adapterToContract(_drip_manager, _call[0].selector);
         with_attr error_message("forbidden call"){
@@ -788,7 +790,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         }
         // let (retdata_len: felt, retdata: felt*) = 
         call_contract(_call[0].to, _call[0].selector, _call[0].calldata_len, _call[0].calldata);
-        return recursive_multicall(_call_len - 1, _call + 3 + _call[0].calldata_len, _borrower, _drip, _is_closure, _is_increase_debt_was_called, _this, _drip_manager, _expected_balances_len, _expected_balances);
+        return recursive_multicall(_call_len - 1, _call + Call.SIZE, _borrower, _drip, _is_closure, _is_increase_debt_was_called, _this, _drip_manager, _expected_balances_len, _expected_balances);
     }
 }
 
@@ -807,18 +809,15 @@ func call_drip_facade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         with_attr error_message("incorrect datalen"){
             assert _call.calldata_len = 4;
         }
-        assert _call.calldata[0] = 88;
-        assert _call.calldata[0] = 67;
-        let (drip_from_on_belhalf_of_) = IDripManager.getDripOrRevert(_drip_manager, _call.calldata[0]);
         
-        tempvar temp_drip: felt;
         if(_call.calldata[0] == _borrower){
-            temp_drip = _drip;
+            add_collateral(_call.calldata[0], _drip,_call.calldata[1], Uint256(_call.calldata[2],_call.calldata[3]));
+            return(_is_increase_debt_was_called, _expected_balances_len, _expected_balances,);
         } else{
-            temp_drip = drip_from_on_belhalf_of_;
+            let (drip_from_on_belhalf_of_) = IDripManager.getDripOrRevert(_drip_manager, _call.calldata[0]);
+            add_collateral(_call.calldata[0], drip_from_on_belhalf_of_,_call.calldata[1], Uint256(_call.calldata[2],_call.calldata[3]));
+            return(_is_increase_debt_was_called, _expected_balances_len, _expected_balances,);
         }
-        add_collateral(_call.calldata[0], temp_drip,_call.calldata[1], Uint256(_call.calldata[2],_call.calldata[3]));
-        return(_is_increase_debt_was_called, _expected_balances_len, _expected_balances,);
     } else{
         if(_call.selector == INCREASE_DEBT_SELECTOR){
             with_attr error_message("incorrect datalen"){
