@@ -1,6 +1,7 @@
 [project]
 protostar-version = "0.8.1"
-lib-path = "lib"
+lib-path = "lib"                           
+cairo-path = ["lib"] 
 
 [contracts]
 main = ["src/pool.cairo"]
