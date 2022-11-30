@@ -26,12 +26,14 @@ from morphine.interfaces.IDripTransit import IDripTransit, AccountCallArray
 from morphine.interfaces.IERC4626 import IERC4626
 from morphine.utils.utils import pow
 
-from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
+from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_LIQUIDATION_PREMIUM, PRECISION, DEFAULT_FEE_LIQUIDATION, DEFAULT_FEE_LIQUIDATION_EXPIRED, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER, APPROVE_SELECTOR, REVERT_IF_RECEIVED_LESS_THAN_SELECTOR, ADD_COLLATERAL_SELECTOR, INCREASE_DEBT_SELECTOR, DECREASE_DEBT_SELECTOR, ENABLE_TOKEN_SELECTOR,DISABLE_TOKEN_SELECTOR, DEPOSIT_ALL_SELECTOR, DEPOSIT_SELECTOR, REDEEM_ALL_SELECTOR, REDEEM_SELECTOR
 
 
 
 const ADMIN = 'morphine-admin';
 const USER_1 = 'user-1';
+const USER_2 = 'user_2';
+const USER_3 = 'user_2';
 
 // NFT
 const PASS_TOKEN_NAME = 'morphine_pool_access';
@@ -42,9 +44,9 @@ const PASS_TOKEN_SYMBOL = 'MPA';
 const TOKEN_NAME_1 = 'ethereum';
 const TOKEN_SYMBOL_1 = 'ETH';
 const TOKEN_DECIMALS_1 = 18;
-const TOKEN_INITIAL_SUPPLY_LO_1 = 10000000000000000000;
+const TOKEN_INITIAL_SUPPLY_LO_1 = 300*10**18;
 const TOKEN_INITIAL_SUPPLY_HI_1 = 0;
-const ETH_LT_LOW = 800000;
+const ETH_LT_LOW = 80*10**16;
 const ETH_LT_HIGH = 0;
 
 
@@ -54,20 +56,20 @@ const TOKEN_SYMBOL_2 = 'BTC';
 const TOKEN_DECIMALS_2 = 18;
 const TOKEN_INITIAL_SUPPLY_LO_2 = 5*10**18;
 const TOKEN_INITIAL_SUPPLY_HI_2 = 0;
-const BTC_LT_LOW = 850000;
+const BTC_LT_LOW = 85*10**16;
 const BTC_LT_HIGH = 0;
 
 // Token 3 DAI
 const TOKEN_NAME_3 = 'dai';
 const TOKEN_SYMBOL_3 = 'DAI';
 const TOKEN_DECIMALS_3 = 6;
-const TOKEN_INITIAL_SUPPLY_LO_3 = 20000*10**6;
+const TOKEN_INITIAL_SUPPLY_LO_3 = 1000000*10**6;
 const TOKEN_INITIAL_SUPPLY_HI_3 = 0;
 
 // Token 4 ERC4626 VETH
 const TOKEN_NAME_4 = 'vethereum';
 const TOKEN_SYMBOL_4 = 'VETH';
-const VETH_LT_LOW = 700000;
+const VETH_LT_LOW = 90*10**16;
 const VETH_LT_HIGH = 0;
 
 // Token 5 RD
@@ -89,19 +91,19 @@ const LUT = 0;
 const NSA = 0;
 
 // LinearRateModel
-const SLOPE1_LO = 15000;
+const SLOPE1_LO = 15*10**15;
 const SLOPE1_HI = 0;
-const SLOPE2_LO = 1000000; 
+const SLOPE2_LO = 1*10**18; 
 const SLOPE2_HI = 0; 
 const BASE_RATE_LO =  0;
 const BASE_RATE_HI =  0;
-const OPTIMAL_RATE_LO = 800000; 
+const OPTIMAL_RATE_LO = 80*10**16; 
 const OPTIMAL_RATE_HI = 0; 
 
 // Pool
 const ERC4626_NAME = 'Mdai';
 const ERC4626_SYMBOL = 'MDAI';
-const EXPECTED_LIQUIDITY_LIMIT_LO = 1000000*10**6;
+const EXPECTED_LIQUIDITY_LIMIT_LO = 2000*10**18;
 const EXPECTED_LIQUIDITY_LIMIT_HI = 0;
 
 
@@ -114,11 +116,18 @@ const DRIP_FACTORY= 'drip_factory';
 
 //drip configurator 
 const DRIP_TRANSIT= 'drip_transit';
-const MINIMUM_BORROWED_AMOUNT_LO = 10000*10**6;
+const MINIMUM_BORROWED_AMOUNT_LO = 1*10**17;
 const MINIMUM_BORROWED_AMOUNT_HI = 0;
-const MAXIMUM_BORROWED_AMOUNT_LO = 1000000*10**6;
+const MAXIMUM_BORROWED_AMOUNT_LO = 1000*10**18;
 const MAXIMUM_BORROWED_AMOUNT_HI = 0;
 
+
+const BORROW_AMOUNT_LOW = 5*10**18;
+const BORROW_AMOUNT_HIGH = 0;
+const LEVERAGE_FACTOR_LOW = 8*10**18;
+const LEVERAGE_FACTOR_HIGH = 0;
+const WRONG_LEVERAGE_FACTOR_LOW = 157*10**18;
+const WRONG_LEVERAGE_FACTOR_HIGH = 0;
 
 const RANDOM_ADDRESS = 'random_address';
 
@@ -387,7 +396,7 @@ func test_add_token_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     let (btc_) = btc_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect liquidation threshold") %}
-    drip_configurator_instance.addToken(btc_, Uint256(950000,0));
+    drip_configurator_instance.addToken(btc_, Uint256(950000*10**12,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -635,7 +644,7 @@ func test_set_lt_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     let (rd_) = rd_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect liquidation threshold") %}
-    drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(950000,0));
+    drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(950000*10**12,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -646,7 +655,7 @@ func test_set_lt_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     let (rd_) = rd_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="token not allowed") %}
-    drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(800000,0));
+    drip_configurator_instance.setLiquidationThreshold(rd_, Uint256(800000*10**12,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -655,12 +664,12 @@ func test_set_lt_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
 func test_set_lt_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     let (eth_) = eth_instance.deployed();
-    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [ids.eth_, 930000, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [ids.eth_, 930000*10**12, 0],"from_address": context.drip_configurator}) %}
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setLiquidationThreshold(eth_, Uint256(930000,0));
+    drip_configurator_instance.setLiquidationThreshold(eth_, Uint256(930000*10**12,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
-    assert liquidation_threshold_ = Uint256(930000, 0);
+    assert liquidation_threshold_ = Uint256(930000*10**12, 0);
     return();
 }
 
@@ -814,7 +823,7 @@ func test_set_fees_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect fees") %}
-    drip_configurator_instance.setFees(Uint256(1000001, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(1000001*10**12, 0),Uint256(40000*10**12, 0), Uint256(80000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -824,7 +833,7 @@ func test_set_fees_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect fees") %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(930000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(930000*10**12, 0), Uint256(80000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -834,7 +843,7 @@ func test_set_fees_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect fees") %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(980000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(40000*10**12, 0), Uint256(980000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -844,7 +853,7 @@ func test_set_fees_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect fees") %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(950000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(40000*10**12, 0), Uint256(80000*10**12, 0), Uint256(950000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -854,7 +863,7 @@ func test_set_fees_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
     %{ expect_revert(error_message="incorrect fees") %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(970000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(40000*10**12, 0), Uint256(80000*10**12, 0), Uint256(40000*10**12, 0), Uint256(970000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return();
 }
@@ -863,12 +872,12 @@ func test_set_fees_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
 func test_set_fees_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     let (dai_) = dai_instance.deployed();
-    %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 20000, 0, 960000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "FeesUpdated", "data": [200000*10**12, 0, 20000*10**12, 0, 960000*10**12, 0, 40000*10**12, 0, 940000*10**12, 0],"from_address": context.drip_configurator}) %}
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(20000, 0), Uint256(40000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(20000*10**12, 0), Uint256(40000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-    assert liquidation_threshold_ = Uint256(940000, 0);
+    assert liquidation_threshold_ = Uint256(940000*10**12, 0);
     return();
 }
 
@@ -877,13 +886,13 @@ func test_set_fees_8{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     let (dai_) = dai_instance.deployed();
     let (eth_) =  eth_instance.deployed();
-    %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 40000, 0, 920000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
-    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 880000, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "FeesUpdated", "data": [200000*10**12, 0, 40000*10**12, 0, 920000*10**12, 0, 40000*10**12, 0, 940000*10**12, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 880000*10**12, 0],"from_address": context.drip_configurator}) %}
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(40000, 0), Uint256(80000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(40000*10**12, 0), Uint256(80000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-    assert liquidation_threshold_ = Uint256(880000, 0);
+    assert liquidation_threshold_ = Uint256(880000*10**12, 0);
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
     assert liquidation_threshold_ = Uint256(ETH_LT_LOW, ETH_LT_HIGH);
     return();
@@ -894,16 +903,16 @@ func test_set_fees_9{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     alloc_locals;
     let (dai_) = dai_instance.deployed();
     let (eth_) =  eth_instance.deployed();
-    %{ expect_events({"name": "FeesUpdated", "data": [200000, 0, 200000, 0, 800000, 0, 40000, 0, 940000, 0],"from_address": context.drip_configurator}) %}
-    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 600000, 0],"from_address": context.drip_configurator}) %}
-    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.eth, 600000, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "FeesUpdated", "data": [200000*10**12, 0, 200000*10**12, 0, 800000*10**12, 0, 40000*10**12, 0, 940000*10**12, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.dai, 600000*10**12, 0],"from_address": context.drip_configurator}) %}
+    %{ expect_events({"name": "TokenLiquidationThresholdUpdated", "data": [context.eth, 600000*10**12, 0],"from_address": context.drip_configurator}) %}
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
-    drip_configurator_instance.setFees(Uint256(200000, 0),Uint256(200000, 0), Uint256(200000, 0), Uint256(40000, 0), Uint256(60000, 0));
+    drip_configurator_instance.setFees(Uint256(200000*10**12, 0),Uint256(200000*10**12, 0), Uint256(200000*10**12, 0), Uint256(40000*10**12, 0), Uint256(60000*10**12, 0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(dai_);
-    assert liquidation_threshold_ = Uint256(600000, 0);
+    assert liquidation_threshold_ = Uint256(600000*10**12, 0);
     let (liquidation_threshold_) = drip_manager_instance.liquidationThreshold(eth_);
-    assert liquidation_threshold_ = Uint256(600000, 0);
+    assert liquidation_threshold_ = Uint256(600000*10**12, 0);
     return();
 }
 
