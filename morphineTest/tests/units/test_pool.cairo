@@ -27,14 +27,13 @@ const TOKEN_INITIAL_SUPPLY_LO = 1000000000000;
 const TOKEN_INITIAL_SUPPLY_HI = 0;
 
 // LinearRateModel
-
-const SLOPE1_LO = 15000;
+const SLOPE1_LO = 15*10**15;
 const SLOPE1_HI = 0;
-const SLOPE2_LO = 1000000; 
+const SLOPE2_LO = 1*10**18; 
 const SLOPE2_HI = 0; 
 const BASE_RATE_LO =  0;
 const BASE_RATE_HI =  0;
-const OPTIMAL_RATE_LO = 800000; 
+const OPTIMAL_RATE_LO = 80*10**16; 
 const OPTIMAL_RATE_HI = 0; 
 
 
@@ -155,7 +154,7 @@ func test_withdraw_fee_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range
     alloc_locals;
     let (pool_) = pool_instance.deployed();
     %{ expect_revert(error_message="Ownable: caller is not the owner") %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     return ();
 }
 
@@ -164,8 +163,8 @@ func test_withdraw_fee_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range
     alloc_locals;
     let (pool_) = pool_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    %{ expect_revert(error_message="0 <= withdrawFee <= 10.000") %}
-    pool_instance.setWithdrawFee(Uint256(100000,0));
+    %{ expect_revert(error_message="withdraw fee 1 max") %}
+    pool_instance.setWithdrawFee(Uint256(10*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     return ();
 }
@@ -175,11 +174,11 @@ func test_withdraw_fee_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range
     alloc_locals;
     let (pool_) = pool_instance.deployed();
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    %{ expect_events({"name": "NewWithdrawFee", "data": [10000, 0],"from_address": ids.pool_}) %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    %{ expect_events({"name": "NewWithdrawFee", "data": [1*10**16, 0],"from_address": ids.pool_}) %}
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (withdraw_fee_) = pool_instance.withdrawFee();
-    assert withdraw_fee_ = Uint256(10000,0);
+    assert withdraw_fee_ = Uint256(1*10**16,0);
     return ();
 }
 
@@ -682,7 +681,7 @@ func test_withdraw_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_che
     assert allowance_ = Uint256(1000000000,0);
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
@@ -721,7 +720,7 @@ func test_preview_withdraw_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, r
 
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     // after fees
@@ -753,7 +752,7 @@ func test_max_withdraw_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range
     assert max_withdraw_ = Uint256(1000000000,0);
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     // after fees
@@ -891,7 +890,7 @@ func test_redeem_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
      %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     let (allowance_) = IERC20.allowance(pool_, ADMIN, pool_);
@@ -929,7 +928,7 @@ func test_max_redeem_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_c
     assert max_reedem_ = Uint256(1000000000,0);
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     // after fees
@@ -979,7 +978,7 @@ func test_preview_redeem_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ran
 
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     // after fees
@@ -1244,9 +1243,9 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
     let (total_borrowed_) = pool_instance.totalBorrowed();
     assert total_borrowed_ = Uint256(50000000000,0);
     let (borrow_rate_) = pool_instance.borrowRate();
-    assert borrow_rate_ = Uint256(9375,0);
+    assert borrow_rate_ = Uint256(9375*10**12,0);
     let (cumulative_index_) = pool_instance.cumulativeIndex();
-    assert cumulative_index_ = Uint256(1000000,0);
+    assert cumulative_index_ = Uint256(1*10**18,0);
 
 
     let (max_withdraw_) = pool_instance.maxWithdraw(ADMIN);
@@ -1259,7 +1258,7 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
     assert preview_withdraw_ = Uint256(100000000000,0);
 
     %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [ids.pool_] ] %}
-    pool_instance.setWithdrawFee(Uint256(10000,0));
+    pool_instance.setWithdrawFee(Uint256(1*10**16,0));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
 
     let (max_withdraw_) = pool_instance.maxWithdraw(ADMIN);
@@ -1277,11 +1276,11 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
 
     %{ stop_warp = warp(31536000, ids.pool_) %}
     let (last_cumu_) = pool_instance.cumulativeIndex();
-    assert last_cumu_ = Uint256(1000000,0);
+    assert last_cumu_ = Uint256(1000000000000000000,0);
     let (last_updated_timestamp_) = pool_instance.lastUpdatedTimestamp();
     assert last_updated_timestamp_ = 0;
     let (cumu_) = pool_instance.calcLinearCumulativeIndex();
-    assert cumu_ = Uint256(1009375,0);
+    assert cumu_ = Uint256(1009375000000000000,0);
     let (total_assets_) = pool_instance.totalAssets();
     assert total_assets_ = Uint256(100468750000, 0);
 
@@ -1305,11 +1304,11 @@ func test_liquidity_scenario_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
     let (total_borrowed_) = pool_instance.totalBorrowed();
     assert total_borrowed_ = Uint256(50000000000,0);
     let (borrow_rate_) = pool_instance.borrowRate();
-    assert borrow_rate_ = Uint256(4720,0);
+    assert borrow_rate_ = Uint256(4720381917381137,0);
     let (cumulative_index_) = pool_instance.cumulativeIndex();
-    assert cumulative_index_ = Uint256(1009375,0);
+    assert cumulative_index_ = Uint256(1009375*10**12,0);
     let (last_cumu_) = pool_instance.cumulativeIndex();
-    assert last_cumu_ = Uint256(1009375,0);
+    assert last_cumu_ = Uint256(1009375*10**12,0);
     let (last_updated_timestamp_) = pool_instance.lastUpdatedTimestamp();
     assert last_updated_timestamp_ = 31536000;
 

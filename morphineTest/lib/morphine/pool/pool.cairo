@@ -255,7 +255,7 @@ func setWithdrawFee{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (max_fee_,_) = unsigned_div_rem(PRECISION, 100);
     let (is_allowed_amount1_) = uint256_le(_base_withdraw_fee, Uint256(max_fee_, 0));
     let (is_allowed_amount2_) = uint256_le(Uint256(0, 0), _base_withdraw_fee);
-    with_attr error_message("0 <= withdrawFee <= 10.000") {
+    with_attr error_message("withdraw fee 1 max") {
         assert is_allowed_amount1_ * is_allowed_amount2_ = 1;
     }
     withdraw_fee.write(_base_withdraw_fee);

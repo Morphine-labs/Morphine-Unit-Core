@@ -615,7 +615,119 @@ func test_liquidate_drip_3{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ran
 @view 
 func test_liquidate_drip_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
-     %{ expect_events({"name": "LiquidateDrip", "data": [ids.USER_1, ids.USER_2, ids.USER_2, 17998*10**14, 0],"from_address": context.drip_transit}) %}
+    %{ expect_events({"name": "LiquidateExpiredDrip", "data": [ids.USER_1, ids.USER_2, ids.USER_2, 0, 0],"from_address": context.drip_transit}) %}
+
+    %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool, context.drip_factory] ] %}
+    
+    let (call_array_: AccountCallArray*) = alloc();
+    let (calldata_: felt*) = alloc();
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+    assert borrowedAmount_ = Uint256(40*10**18,0);
+    assert borrowedAmountWithInterest_ = Uint256(406*10**17, 0);
+    assert borrowedAmountWithInterestAndFees_ = Uint256(4066*10**16, 0);
+    // 4066*10**16/ 0,94 = 432553191489*10**8
+    
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    %{
+        store(context.eth, "ERC20_balances", [430000000000*10**8,0], key=[ids.drip_])
+        store(context.veth, "ERC20_balances", [0,0], key=[ids.drip_])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.liquidateExpiredDrip(USER_1, USER_2, 0, call_array_, 0, calldata_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (eth_) = eth_instance.deployed();
+    let (eth_user_balance1_) = IERC20.balanceOf(eth_, USER_1);
+    assert eth_user_balance1_ = Uint256(3500*10**16,0);
+
+    let (eth_user_balance2_) = IERC20.balanceOf(eth_, USER_2);
+    assert eth_user_balance2_ = Uint256(172*10**16,0);
+
+    let (veth_) = veth_instance.deployed();
+    let (veth_user_balance2_) = IERC20.balanceOf(veth_, USER_2);
+    assert veth_user_balance2_ = Uint256(0,0);
+
+
+    let (total_assets_) = pool_instance.totalAssets();
+    assert total_assets_ = Uint256(5128*10**16,0);
+    let (expected_liquidity_) = pool_instance.expectedLiquidity();
+    assert expected_liquidity_ = Uint256(5128*10**16,0);
+    let (available_liquidity_) = pool_instance.availableLiquidity();
+    assert available_liquidity_ = Uint256(5128*10**16,0);
+    let (total_borrowed_) = pool_instance.totalBorrowed();
+    assert total_borrowed_ = Uint256(0,0);
+    
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view 
+func test_liquidate_drip_5{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ expect_events({"name": "LiquidateDrip", "data": [ids.USER_1, ids.USER_2, ids.USER_2, 1480000000000000000, 0],"from_address": context.drip_transit}) %}
+
+    %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool, context.drip_factory] ] %}
+    
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_configurator] ] %}
+    drip_configurator_instance.addEmergencyLiquidator(USER_2);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    %{ stop_pranks = [start_prank(ids.ADMIN, contract) for contract in [context.drip_manager] ] %}
+    drip_manager_instance.pause();
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+
+
+    let (call_array_: AccountCallArray*) = alloc();
+    let (calldata_: felt*) = alloc();
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+    assert borrowedAmount_ = Uint256(40*10**18,0);
+    assert borrowedAmountWithInterest_ = Uint256(406*10**17, 0);
+    assert borrowedAmountWithInterestAndFees_ = Uint256(4066*10**16, 0);
+    // 4066*10**16/ 0,94 = 432553191489*10**8
+    
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    %{
+        store(context.eth, "ERC20_balances", [430000000000*10**8,0], key=[ids.drip_])
+        store(context.veth, "ERC20_balances", [0,0], key=[ids.drip_])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.liquidateDrip(USER_1, USER_2, 0, call_array_, 0, calldata_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (eth_) = eth_instance.deployed();
+    let (eth_user_balance1_) = IERC20.balanceOf(eth_, USER_1);
+    assert eth_user_balance1_ = Uint256(3500*10**16 + (430000000000*10**8 - (4066*10**16 + 430000000000*10**6*2)),0);
+
+    let (eth_user_balance2_) = IERC20.balanceOf(eth_, USER_2);
+    assert eth_user_balance2_ = Uint256(0,0);
+
+    let (veth_) = veth_instance.deployed();
+    let (veth_user_balance2_) = IERC20.balanceOf(veth_, USER_2);
+    assert veth_user_balance2_ = Uint256(0,0);
+
+
+    let (total_assets_) = pool_instance.totalAssets();
+    assert total_assets_ = Uint256(51520000000000000000,0);
+    let (expected_liquidity_) = pool_instance.expectedLiquidity();
+    assert expected_liquidity_ = Uint256(51520000000000000000,0);
+    let (available_liquidity_) = pool_instance.availableLiquidity();
+    assert available_liquidity_ = Uint256(51520000000000000000,0);
+    let (total_borrowed_) = pool_instance.totalBorrowed();
+    assert total_borrowed_ = Uint256(0,0);
+    
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view 
+func test_liquidate_drip_6{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+     %{ expect_events({"name": "LiquidateDrip", "data": [ids.USER_1, ids.USER_1, ids.USER_2, 17998*10**14, 0],"from_address": context.drip_transit}) %}
 
     %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool, context.drip_factory] ] %}
     
@@ -663,22 +775,72 @@ func test_liquidate_drip_4{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, ran
     assert eth_user_balance1_ = Uint256(36799800000000000000,0);
 
     let (eth_user_balance2_) = IERC20.balanceOf(eth_, USER_2);
-    assert eth_user_balance2_ = Uint256(1729600000000000000,0);
-
-    let (veth_user_balance2_) = IERC20.balanceOf(eth_, USER_2);
-    assert veth_user_balance2_ = Uint256(17296*10**14,0);
+    assert eth_user_balance2_ = Uint256(0,0);
 
     let (veth_) = veth_instance.deployed();
+    let (veth_user_balance2_) = IERC20.balanceOf(veth_, USER_2);
+    assert veth_user_balance2_ = Uint256(225850000000*10**8,0);
 
-    let (veth_user_balance3_) = IERC20.balanceOf(veth_, USER_3);
-    assert veth_user_balance3_ = Uint256(225850000000*10**8,0);
 
     let (total_assets_) = pool_instance.totalAssets();
-    assert total_assets_ = Uint256(5128*10**16,0);
+    assert total_assets_ = Uint256(515634*10**14,0);
     let (expected_liquidity_) = pool_instance.expectedLiquidity();
-    assert expected_liquidity_ = Uint256(5128*10**16,0);
+    assert expected_liquidity_ = Uint256(515634*10**14,0);
     let (available_liquidity_) = pool_instance.availableLiquidity();
-    assert available_liquidity_ = Uint256(5128*10**16,0);
+    assert available_liquidity_ = Uint256(515634*10**14,0);
+    
+    %{ [stop_warp() for stop_warp in stop_warps] %}
+    return();
+}
+
+@view 
+func test_liquidate_drip_7{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
+    alloc_locals;
+    %{ expect_events({"name": "LiquidateDrip", "data": [ids.USER_1, ids.USER_2, ids.USER_2, 0, 0],"from_address": context.drip_transit}) %}
+
+    %{ stop_warps = [warp(31536000, contract) for contract in [context.drip_transit, context.drip_manager, context.pool, context.drip_factory] ] %}
+    
+    let (call_array_: AccountCallArray*) = alloc();
+    let (calldata_: felt*) = alloc();
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+    let (borrowedAmount_ , borrowedAmountWithInterest_, borrowedAmountWithInterestAndFees_) = drip_manager_instance.calcDripAccruedInterest(drip_);
+    assert borrowedAmount_ = Uint256(40*10**18,0);
+    assert borrowedAmountWithInterest_ = Uint256(406*10**17, 0);
+    assert borrowedAmountWithInterestAndFees_ = Uint256(4066*10**16, 0);
+    // 4066*10**16/ 0,94 = 432553191489*10**8
+    
+    let (drip_) = drip_manager_instance.getDrip(USER_1);
+
+    %{
+        store(context.eth, "ERC20_balances", [41291667*10**12,0], key=[ids.drip_])
+        store(context.veth, "ERC20_balances", [0,0], key=[ids.drip_])
+    %}
+
+    %{ stop_pranks = [start_prank(ids.USER_2, contract) for contract in [context.drip_transit] ] %}
+    drip_transit_instance.liquidateDrip(USER_1, USER_2, 0, call_array_, 0, calldata_);
+    %{ [stop_prank() for stop_prank in stop_pranks] %}
+
+    let (eth_) = eth_instance.deployed();
+    let (eth_user_balance1_) = IERC20.balanceOf(eth_, USER_1);
+    assert eth_user_balance1_ = Uint256(3500*10**16,0);
+
+    let (eth_user_balance2_) = IERC20.balanceOf(eth_, USER_2);
+    assert eth_user_balance2_ = Uint256(1651666680000000000,0);
+
+    let (veth_) = veth_instance.deployed();
+    let (veth_user_balance2_) = IERC20.balanceOf(veth_, USER_2);
+    assert veth_user_balance2_ = Uint256(0,0);
+
+    // 3964*10**16 total funds liquidation, 406*10**17 borrower amount interest
+    // 
+    let (total_assets_) = pool_instance.totalAssets();
+    assert total_assets_ = Uint256(49640000320000000000,0);
+    let (expected_liquidity_) = pool_instance.expectedLiquidity();
+    assert expected_liquidity_ = Uint256(49640000320000000000,0);
+    let (available_liquidity_) = pool_instance.availableLiquidity();
+    assert available_liquidity_ = Uint256(49640000320000000000,0);
+    let (total_borrowed_) = pool_instance.totalBorrowed();
+    assert total_borrowed_ = Uint256(0,0);
     
     %{ [stop_warp() for stop_warp in stop_warps] %}
     return();

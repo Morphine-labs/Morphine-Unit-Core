@@ -112,7 +112,7 @@ func test_update_parameters_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, 
 func test_approve_token_1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     %{ expect_revert(error_message="Only drip manager can call this function") %}
-    drip_instance.approveToken(83, APPROVED_CONTRACT);
+    drip_instance.approveToken(83, APPROVED_CONTRACT, Uint256(3,8));
     return ();
 }
 
@@ -124,7 +124,7 @@ func test_approve_token_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, rang
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (dai_) = dai_instance.deployed();
     %{ stop_pranks = [start_prank(ids.DRIP_MANAGER, contract) for contract in [context.drip] ] %}
-    drip_instance.approveToken(dai_, APPROVED_CONTRACT);
+    drip_instance.approveToken(dai_, APPROVED_CONTRACT, Uint256(ALL_ONES, ALL_ONES));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (drip_) = drip_instance.deployed();
     let (allowance_) = IERC20.allowance(dai_, drip_, APPROVED_CONTRACT);
@@ -148,7 +148,7 @@ func test_cancel_allowance_2{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, r
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (dai_) = dai_instance.deployed();
     %{ stop_pranks = [start_prank(ids.DRIP_MANAGER, contract) for contract in [context.drip] ] %}
-    drip_instance.approveToken(dai_, APPROVED_CONTRACT);
+    drip_instance.approveToken(dai_, APPROVED_CONTRACT, Uint256(ALL_ONES, ALL_ONES));
     %{ [stop_prank() for stop_prank in stop_pranks] %}
     let (drip_) = drip_instance.deployed();
     let (allowance_) = IERC20.allowance(dai_, drip_, APPROVED_CONTRACT);
@@ -244,10 +244,10 @@ namespace drip_instance{
         return ();
     }
 
-    func approveToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _contract: felt) {
+    func approveToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_token: felt, _contract: felt, _amount: Uint256) {
         tempvar drip;
         %{ ids.drip = context.drip %}
-        IDrip.approveToken(drip, _token, _contract);
+        IDrip.approveToken(drip, _token, _contract, _amount);
         return ();
     }
 

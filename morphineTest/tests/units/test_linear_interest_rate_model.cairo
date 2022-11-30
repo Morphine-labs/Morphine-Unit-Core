@@ -8,14 +8,13 @@ from starkware.cairo.common.uint256 import Uint256
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
 // LinearRateModel
-
-const SLOPE1_LO = 15000;
+const SLOPE1_LO = 15*10**15;
 const SLOPE1_HI = 0;
-const SLOPE2_LO = 1000000; 
+const SLOPE2_LO = 1*10**18; 
 const SLOPE2_HI = 0; 
 const BASE_RATE_LO =  0;
 const BASE_RATE_HI =  0;
-const OPTIMAL_RATE_LO = 800000; 
+const OPTIMAL_RATE_LO = 80*10**16; 
 const OPTIMAL_RATE_HI = 0; 
 
 // Pool random param
@@ -49,7 +48,7 @@ func __setup__{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     tempvar interest_rate_model_contract;
     %{
         ids.interest_rate_model_contract = deploy_contract(
-            "./src/morphine/pool/linearInterestRateModel.cairo", 
+            "./lib/morphine/pool/linearInterestRateModel.cairo", 
             [ids.OPTIMAL_RATE_LO, ids.OPTIMAL_RATE_HI, ids.SLOPE1_LO, ids.SLOPE1_HI, ids.SLOPE2_LO, ids.SLOPE2_HI, ids.BASE_RATE_LO, ids.BASE_RATE_HI]).contract_address 
         context.interest_rate_model_contract = ids.interest_rate_model_contract
         print(ids.interest_rate_model_contract)
@@ -91,21 +90,21 @@ func test_right_borrow_rate_calcul{syscall_ptr : felt*, pedersen_ptr : HashBuilt
 
     let (borrow_rate_1_) = interest_rate_model_instance.calcBorrowRate(interest_rate_model_, Uint256(EXPECTED_LIQUIDITY_1_LO, EXPECTED_LIQUIDITY_1_HI), Uint256(AVAILABLE_LIQUIDITY_1_LO, AVAILABLE_LIQUIDITY_1_HI));
     // 0 + 15000*(5/8) = 9375
-    assert Uint256(9375, 0) = borrow_rate_1_;
+    assert Uint256(9375*10**12, 0) = borrow_rate_1_;
 
     let (borrow_rate_2_) = interest_rate_model_instance.calcBorrowRate(interest_rate_model_, Uint256(EXPECTED_LIQUIDITY_2_LO, EXPECTED_LIQUIDITY_2_HI), Uint256(AVAILABLE_LIQUIDITY_2_LO, AVAILABLE_LIQUIDITY_2_HI));
     // 0 + 15000*(8/8) = 15000
-    assert Uint256(15000, 0) = borrow_rate_2_;
+    assert Uint256(15000*10**12, 0) = borrow_rate_2_;
 
      // Should increase linearly from 1.5% to 101.5% for LU 80 to 100 
 
     let (borrow_rate_3_) = interest_rate_model_instance.calcBorrowRate(interest_rate_model_, Uint256(EXPECTED_LIQUIDITY_3_LO, EXPECTED_LIQUIDITY_3_HI), Uint256(AVAILABLE_LIQUIDITY_3_LO, AVAILABLE_LIQUIDITY_3_HI));
     // 0 + 15000 + 1000000/2 = 515000
-    assert Uint256(515000, 0) = borrow_rate_3_;
+    assert Uint256(515000*10**12, 0) = borrow_rate_3_;
 
     let (borrow_rate_4_) = interest_rate_model_instance.calcBorrowRate(interest_rate_model_, Uint256(EXPECTED_LIQUIDITY_4_LO, EXPECTED_LIQUIDITY_4_HI), Uint256(AVAILABLE_LIQUIDITY_4_LO, AVAILABLE_LIQUIDITY_4_HI));
     // 0 + 15000 + 1000000 = 1015000
-    assert Uint256(1015000, 0) = borrow_rate_4_;
+    assert Uint256(1015000*10**12, 0) = borrow_rate_4_;
 
     return ();
 }
