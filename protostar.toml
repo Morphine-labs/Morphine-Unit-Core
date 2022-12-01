@@ -4,5 +4,5 @@ lib-path = "lib"
 cairo-path = ["lib"] 
 
 [contracts]
-main = ["src/pool.cairo"]
+erc20 = ["lib/openzeppelin/token/erc20/presets/ERC20Mintable.cairo"]
 
