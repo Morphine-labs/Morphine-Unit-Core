@@ -4,5 +4,7 @@ lib-path = "lib"
 cairo-path = ["lib"] 
 
 [contracts]
+faucet = ["lib/utils/faucet.cairo"]
 erc20 = ["lib/openzeppelin/token/erc20/presets/ERC20Mintable.cairo"]
+
 
