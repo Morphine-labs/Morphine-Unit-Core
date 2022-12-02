@@ -11,12 +11,3 @@ PUBLIC_KEY = config('PUBLIC_KEY')
 UDC = "0x041a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf"
 CHAIN = "0x534e5f474f45524c4932"
 
-
-## VARIOUS
-
-SALT = 0
-
-
-## ABI
-ERC20_ABI="build/erc20_abi.json"
-

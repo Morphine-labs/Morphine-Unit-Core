@@ -1,23 +1,4 @@
-import asyncio
-from starknet_py.net import AccountClient, KeyPair
-from starknet_py.net.gateway_client import GatewayClient
-from starknet_py.contract import Contract
-from starknet_py.net.udc_deployer.deployer import Deployer
-from utils import str_to_felt, to_uint
-import settings
-import utils
-
-
-TOKEN_NAME = 'morphineDai'
-TOKEN_SYMBOL = 'MDAI'
-TOKEN_DECIMALS = 6
-TOKEN_INITIAL_SUPPLY_LO = (10**12)*10**6
-TOKEN_INITIAL_SUPPLY_HI = 0
-
-
-TOKEN_CONTRACT= ['../../lib/openzeppelin/token/erc20/presets/ERC20Mintable.cairo']
-
-ABI = [
+[
     {
         "members": [
             {
@@ -354,41 +335,3 @@ ABI = [
         "type": "function"
     }
 ]
-
-async def deploy():
-    goerli2_client = GatewayClient("https://alpha4-2.starknet.io/")
-
-    # deployer = AccountClient(
-    #         client=current_client, 
-    #         address=deployed_accounts[0]["address"],
-    #         key_pair=KeyPair(private_key=773226257887243615725145662263978686691460209496363084148792726531265848363, public_key=3260281675601709103560498194009673788088220875676491641367091347543912979573),
-    #         chain=StarknetChainId.TESTNET,
-    #         supported_tx_version=1
-    #         )
-
-    admin = AccountClient(
-        client=goerli2_client,
-        address="0x06F7F332d385b36342392B0A997eDb2297898B036257f271f082E1DB745d3154",
-        key_pair=KeyPair(private_key=773226257887243615725145662263978686691460209496363084148792726531265848363, public_key=3260281675601709103560498194009673788088220875676491641367091347543912979573),
-        chain=1536727068981429685321,
-        supported_tx_version=1,
-    )
-
-# 1536727068981429685321
-    balance = await admin.get_balance("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7")
-    print(f'✨ ERC20 Contract deployed at {balance}')
-
-    # # # If the ABI is known, create the contract directly (this is the preferred way).
-    # eth = Contract(
-    #     2087021424722619777119509474943472645767659996348769578120564519014510906823,
-    #     ABI,
-    #     admin,
-    #     )
-
-    # # # Calling contract's function doesn't create a new transaction, you get the function's result.
-    # (balance_eth,) = await eth.functions["balanceOf"].call(897)
-    # # # balance = print(f'✨ ERC20 Contract deployed at {balance_eth}')
-
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(deploy())
