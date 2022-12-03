@@ -35,33 +35,57 @@ StarknetChainId = as_our_module(_StarknetChainId)
 
 async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
-    keypair = KeyPair(private_key=int(settings.PRIVATE_KEY,10), public_key=int(settings.PUBLIC_KEY,10))
+    # keypair = KeyPair(private_key=int(settings.PRIVATE_KEY), public_key=int(settings.PUBLIC_KEY))
     
-    admin = AccountClient(
-        client=goerli2_client,
-        address=settings.ADMIN,
-        key_pair=keypair,
-        chain=StarknetChainId.TESTNET_2,
-        supported_tx_version=1,
-    )    
-    deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
-    print(f'🧱 Ck: {StarknetChainId.TESTNET.value}')
-    block = await admin.get_block(block_number="latest")
-    print(f'🧱 Current block: {block.block_number}')
-    balance = await admin.get_balance(utils.ETH)
-    print(f'💰 Deployer balance: {balance/(10**18)} ETH')
+    # admin = await AccountClient.create_account(
+    #     client=goerli2_client,
+    #     private_key= int(settings.PRIVATE_KEY),
+    #     chain= StarknetChainId.TESTNET_2,
+    # )
 
-    print(f'⌛️ Declaring ERC20...')
+    # print(admin.address)
 
-    declare_transaction_erc20 = await admin.sign_declare_transaction(
-    compiled_contract=Path("../../build/erc20.json").read_text(), max_fee=int(1e16)
-    )
 
-    resp = await admin.declare(transaction=declare_transaction_erc20)
-    await admin.wait_for_tx(resp.transaction_hash)
-    erc20_class_hash = resp.class_hash
+    account_to_deploy = await AccountClient.sign_deploy_account_transaction(
+        class_hash="0x68cb33b3ab73ee34d2084cfcb7d07b24db48095ad0907c10b6fdb7b0e91ef0a",
+        contract_address_salt=7383738,
+        constructor_calldata=[3260281675601709103560498194009673788088220875676491641367091347543912979573]
+    )  
 
-    print(f'✅ Success! Class Hash: {erc20_class_hash} ')
+    
+    print(f'🧱 Ck: {account_to_deploy}')
+
+
+
+
+    # create_account(client: Client, private_key: Optional[int] = None, signer: Optional[BaseSigner] = None, chain: Optional[StarknetChainId] = None)
+
+    # admin = AccountClient(
+    #     client=goerli2_client,
+    #     address=settings.ADMIN,
+    #     key_pair=keypair,
+    #     chain=StarknetChainId.TESTNET_2,
+    #     supported_tx_version=1,
+    # )    
+
+    # deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
+    # print(f'🧱 Ck: {StarknetChainId.TESTNET.value}')
+    # block = await admin.get_block(block_number="latest")
+    # print(f'🧱 Current block: {block.block_number}')
+    # balance = await admin.get_balance(utils.ETH)
+    # print(f'💰 Deployer balance: {balance/(10**18)} ETH')
+
+    # print(f'⌛️ Declaring ERC20...')
+
+    # declare_transaction_erc20 = await admin.sign_declare_transaction(
+    # compiled_contract=Path("../../build/erc20.json").read_text(), max_fee=int(1e16)
+    # )
+
+    # resp = await admin.declare(transaction=declare_transaction_erc20)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # erc20_class_hash = resp.class_hash
+
+    # print(f'✅ Success! Class Hash: {erc20_class_hash} ')
 
 
     # print(f'⌛️ Declaring faucet...')
