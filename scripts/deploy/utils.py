@@ -26,14 +26,13 @@ def decimal_to_hex(decimal: int):
 SALT = 0
 
 
-## CONTRACTS SOURCE CODE
-ERC20_SOURCE_CODE = "../../lib/openzeppelin/token/erc20/presets/ERC20Mintable.cairo"
-FAUCET_SOURCE_CODE = "../../lib/utils/faucet.cairo"
+## CONTRACTS COMPILED 
+ERC20_ABI = "../../build/erc20_abi.json"
+FAUCET_ABI ="../../build/faucet_abi.json"
 
 ## CONTRACTS ABI
 ERC20_ABI = "../../build/erc20_abi.json"
 FAUCET_ABI ="../../build/faucet_abi.json"
-
 
 
 ## CONTRACTS ADDRESSES
