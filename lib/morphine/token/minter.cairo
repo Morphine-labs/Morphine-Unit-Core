@@ -34,6 +34,7 @@ func has_minted(user: felt) -> (state: felt) {
 // Protectors
 //
 
+// @notice: Only Whitelisted person who doesn't have a NFT yet can mint
 func assert_only_whitelisted_and_not_minted{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
     let (is_whitelisted_) = is_whitelisted.read(caller_);
@@ -51,6 +52,7 @@ func assert_only_whitelisted_and_not_minted{syscall_ptr: felt*, pedersen_ptr: Ha
 // Constructor
 //
 
+// @notice: Constructor for the contract can only be called once
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _nft_contract: felt
@@ -63,6 +65,9 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // Getters
 //
 
+// @notice: Check if a user is whitelistedo
+// @param: _user User to check
+// @return: state True if user is whitelisted
 @view
 func isWhitelisted{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_user: felt) -> (
     state: felt
@@ -71,6 +76,9 @@ func isWhitelisted{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_p
     return (is_whitelisted_,);
 }
 
+// @notice: Check if a user has minted
+// @param: _user User to check
+// @return: state True if user has minted
 @view
 func hasMinted{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_user: felt) -> (
     state: felt
@@ -83,6 +91,7 @@ func hasMinted{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
 // Externals
 //
 
+// @notice: mint a NFT
 @external
 func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     alloc_locals;
@@ -94,6 +103,8 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     return ();
 }
 
+// @notice: Whitelist some user or users
+// @param: _address user or users addressto whitelist
 @external
 func setWhitelist{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_address_len: felt, _address: felt*) {
     alloc_locals;

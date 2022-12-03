@@ -59,6 +59,7 @@ func base_URI() -> (minter: felt) {
 // Protectors
 //
 
+// @notice: Only the owner or the drip transit can call this function
 func assert_only_owner_or_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
     let (owner_) = RegisteryAccess.owner();
@@ -69,6 +70,7 @@ func assert_only_owner_or_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBui
     return();
 }
 
+// @notice: Only a user who mint can call this function
 func assert_only_minter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     let (caller_) = get_caller_address();
     let (minter_) = minter.read();
@@ -82,6 +84,7 @@ func assert_only_minter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 // Constructor
 //
 
+// @notice: Constructor for the contract can only be called by once
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _name: felt, _symbol: felt, _registery: felt
@@ -97,6 +100,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // Getters
 //
 
+// @notice: Get the Morphine pass totalSupply
+// @return: The total supply of Morphine pass
 @view
 func totalSupply{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}() -> (
     totalSupply: Uint256
@@ -105,82 +110,114 @@ func totalSupply{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr
     return (totalSupply=totalSupply);
 }
 
+// @notice: Get the Morphine pass coresponding to the token id
+// @param: _index The index of the NFT you want
+// @return: The token id of the NFT
 @view
 func tokenByIndex{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-    index: Uint256
+    _index: Uint256
 ) -> (tokenId: Uint256) {
-    let (tokenId: Uint256) = ERC721Enumerable.token_by_index(index);
+    let (tokenId: Uint256) = ERC721Enumerable.token_by_index(_index);
     return (tokenId=tokenId);
 }
 
+// @notice: Get the Morphine pass owner coresponding to the token id
+// @param: owner The owner address of the NFT you want
+// @return: The token id of the NFT
 @view
 func tokenOfOwnerByIndex{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-    owner: felt, index: Uint256
+    _owner: felt, _index: Uint256
 ) -> (tokenId: Uint256) {
-    let (tokenId: Uint256) = ERC721Enumerable.token_of_owner_by_index(owner, index);
+    let (tokenId: Uint256) = ERC721Enumerable.token_of_owner_by_index(_owner, _index);
     return (tokenId=tokenId);
 }
 
+// @notice: Check if the interface is supported
+// @param: _interfaceId The interface id you want to check
+// @return: success True if the interface is supported
 @view
 func supportsInterface{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    interfaceId: felt
+    _interfaceId: felt
 ) -> (success: felt) {
     return ERC165.supports_interface(interfaceId);
 }
 
+// @notice : Get the ERC721 name
+// @return : The ERC721 name
 @view
 func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (name: felt) {
     return ERC721.name();
 }
 
+// @notice : Get the ERC721 symbol
+// @return : The ERC721 symbol
 @view
 func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (symbol: felt) {
     return ERC721.symbol();
 }
 
+// @notice : Get the ERC721 balanceOf
+// @param: _owner The owner address of the NFT you want
+// @return : The ERC721 balanceOf
 @view
-func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(owner: felt) -> (
+func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_owner: felt) -> (
     balance: Uint256
 ) {
-    return ERC721.balance_of(owner);
+    return ERC721.balance_of(_owner);
 }
 
+// @notice : Get the ERC721 ownerOf
+// @param: _tokenId The token id of the NFT you want
+// @return : The ERC721 ownerOf
 @view
-func ownerOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(tokenId: Uint256) -> (
+func ownerOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_tokenId: Uint256) -> (
     owner: felt
 ) {
-    return ERC721.owner_of(tokenId);
+    return ERC721.owner_of(_tokenId);
 }
 
+// @notice: Approuve your ERC721 token
+// @param: _tokenId The token id of the NFT you want to approve
+// @return: approved True if the approval is successful
 @view
 func getApproved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    tokenId: Uint256
+    _tokenId: Uint256
 ) -> (approved: felt) {
-    return ERC721.get_approved(tokenId);
+    return ERC721.get_approved(_tokenId);
 }
 
+// @notice: Check if the operator is approved for all
+// @param: _owner The owner address of the NFT you want to check
+// @param: _operator The operator address of the NFT you want to check
+// @return: isApproved True if the operator is approved for all
 @view
 func isApprovedForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    owner: felt, operator: felt
+    _owner: felt, _operator: felt
 ) -> (isApproved: felt) {
-    let (isApproved: felt) = ERC721.is_approved_for_all(owner, operator);
+    let (isApproved: felt) = ERC721.is_approved_for_all(_owner, _operator);
     return (isApproved=isApproved);
 }
 
+// @notice: Get the token URI
+// @param: _tokenId The token id of the NFT you want to get the token URI
+// @return: tokenURI The token URI of the NFT
 @view
 func tokenURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    tokenId: Uint256
+    _tokenId: Uint256
 ) -> (tokenURI: felt) {
     let (token_uri_) = baseURI();
     return(token_uri_,);
 }
 
+// @notice: Get the base URI
+// @return: baseURI The base URI of the NFT
 @view
 func baseURI{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (baseURI: felt) {
     let (baseURI_: felt) = base_URI.read();
     return (baseURI_,);
 }
 
+// @notice: Get the owner of the NFT
 @view
 func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (owner: felt) {
     return RegisteryAccess.owner();
@@ -191,6 +228,8 @@ func owner{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() ->
 // Externals
 //
 
+// @notice: Set Minter status
+// @param: _minter The minter address you want to set
 @external
 func setMinter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _minter: felt
@@ -201,6 +240,8 @@ func setMinter{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return ();
 }
 
+// @notice: add Drip transit 
+// @param: _dripTransit The drip transit address you want to add
 @external
 func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_transit: felt
@@ -230,6 +271,8 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return ();
 }
 
+// @notice: remove Drip transit
+// @param: _dripTransit The drip transit address you want to remove
 @external
 func removeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_transit: felt
@@ -245,6 +288,7 @@ func removeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 }
 
 
+// @notice: TODO
 @external
 func approve{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     to: felt, tokenId: Uint256
@@ -255,6 +299,7 @@ func approve{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return ();
 }
 
+// @notice: TODO
 @external
 func setApprovalForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     operator: felt, approved: felt
@@ -265,6 +310,7 @@ func setApprovalForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return ();
 }
 
+// @notice: TODO
 @external
 func transferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     from_: felt, to: felt, tokenId: Uint256
@@ -275,6 +321,7 @@ func transferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_pt
     return ();
 }
 
+// @notice: TODO
 @external
 func safeTransferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     from_: felt, to: felt, tokenId: Uint256, data_len: felt, data: felt*
@@ -285,6 +332,9 @@ func safeTransferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_chec
     return ();
 }
 
+// @notice: mint NFT
+// @param: _to The address you want to mint the NFT to
+// @param: _amount The amount of NFT you want to mint 
 @external
 func mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _to: felt, _amount: Uint256
@@ -295,6 +345,11 @@ func mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return ();
 }
 
+// @notice: recursive mint NFT
+// @param: _to The address you want to mint the NFT to
+// @param: _amount The amount of NFT you want to mint
+// @param: _index The index of the NFT you want to mint
+// @param: _balance_before The balance of the NFT before minting
 func recursive_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _to: felt, _amount: Uint256, _index: Uint256,_balance_before_: Uint256
 ) {
@@ -313,6 +368,9 @@ func recursive_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_
     return recursive_mint(_to, _amount, new_index_, _balance_before_);
 }
 
+// @notice: burn NFT
+// @param: _from The address you want to burn the NFT from
+// @param: _amount The amount of NFT you want to burn
 @external
 func burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_from: felt, _amount: Uint256) {
     assert_only_owner_or_drip_transit();
@@ -325,6 +383,11 @@ func burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_from
     return ();
 }
 
+// @notice: recursive burn NFT
+// @param: _from The address you want to burn the NFT from
+// @param: _amount The amount of NFT you want to burn
+// @param: _index The index of the NFT you want to burn
+// @param: _balance_before The balance of the NFT before burning
 func recursive_burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _from: felt, _amount: Uint256, _index: Uint256,_user_balance: Uint256
 ) {
@@ -344,6 +407,8 @@ func recursive_burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_
     return recursive_burn(_from, _amount, new_index_, _user_balance);
 }
 
+// @notice: set Base URI NFT
+// @param: _baseURI The base URI you want to set
 @external
 func setBaseURI{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_baseURI: felt) {
     RegisteryAccess.assert_only_owner();
@@ -351,19 +416,26 @@ func setBaseURI{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}
     return ();
 }
 
-
-func is_equal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(a: felt, b: felt) -> (state: felt) {
-    if (a == b){
+// @notice: Check is two felt are equal
+// @custom: Internal function
+// @param: _a The first felt
+// @param: _b The second felt
+// @return: state_ 1 if equal, 0 otherwise
+func is_equal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_a: felt, _b: felt) -> (state: felt) {
+    if (_a == _b){
         return(1,);
     } else {
         return(0,);
     }
 }
 
+// @notice: transform felt to Uint256
+// @param: _felt_value The felt you want to transform
+// @return: uint256_value The Uint256 value
 func felt_to_uint256{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    felt_value : felt
+    _felt_value : felt
 ) -> (uint256_value : Uint256) {
-    let (high, low) = split_felt(felt_value);
+    let (high, low) = split_felt(_felt_value);
     let uint256_value : Uint256 = Uint256(low, high);
     return (uint256_value,);
 }
