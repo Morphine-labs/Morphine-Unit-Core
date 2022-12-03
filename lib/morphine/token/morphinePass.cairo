@@ -288,7 +288,7 @@ func removeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 }
 
 
-// @notice: TODO
+// @notice: Method for SBT should all aways fail
 @external
 func approve{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     to: felt, tokenId: Uint256
@@ -299,7 +299,7 @@ func approve{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return ();
 }
 
-// @notice: TODO
+// @notice: Method for SBT should all aways fail
 @external
 func setApprovalForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     operator: felt, approved: felt
@@ -310,7 +310,7 @@ func setApprovalForAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return ();
 }
 
-// @notice: TODO
+// @notice: Method for SBT should all aways fail
 @external
 func transferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     from_: felt, to: felt, tokenId: Uint256
@@ -321,7 +321,7 @@ func transferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_pt
     return ();
 }
 
-// @notice: TODO
+// @notice: Method for SBT should all aways fail
 @external
 func safeTransferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     from_: felt, to: felt, tokenId: Uint256, data_len: felt, data: felt*
