@@ -31,6 +31,9 @@ func token() -> (address : felt) {
 //  Constructor
 //
 
+// @notice: Constructor for the adapter will be called only once.
+// @param: _drip_manager drip manager address
+// @param: _target target address
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _drip_manager: felt,
@@ -59,18 +62,24 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 //  Views
 //
 
+// @notice: Returns the drip manager address
+// @return: drip manager address
 @view
 func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
     let (drip_manager_) = drip_manager.read();
     return (drip_manager_,);
 }
 
+// @notice: Returns the drip transit address
+// @return: drip transit address
 @view
 func dripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripTransit: felt){
     let (drip_transit_) = drip_transit.read();
     return (drip_transit_,);
 }
 
+// @notice: Returns the target address
+// @return: target address
 @view
 func targetContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (target: felt){
     let (target_) = target.read();
@@ -81,6 +90,8 @@ func targetContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 //  Externals
 //
 
+// @notice: Deposits tokens 
+// @return: amount of tokens deposited
 @external 
 func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (shares: Uint256) {
     ReentrancyGuard._start();
@@ -100,6 +111,9 @@ func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     }
 }
 
+// @notice: Deposits tokens
+// @param: _amount amount of tokens to deposit
+// @return: shares amount of shares
 @external 
 func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_amount: Uint256) -> (shares: Uint256) {
     ReentrancyGuard._start();
@@ -111,6 +125,8 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_a
     return (shares_,);
 }
 
+// @notice: Redeem all tokens
+// @return: amount of tokens redeemed
 @external
 func redeemAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (assets: Uint256) {
     ReentrancyGuard._start();
@@ -130,6 +146,9 @@ func redeemAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     }
 }
 
+// @notice: Redeem tokens
+// @param: _amount  amount of shares to redeem
+// @return: amount of assets redeemed
 @external 
 func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_amount: Uint256) -> (assets: Uint256) {
     ReentrancyGuard._start();
@@ -145,6 +164,12 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_am
 //  Internals 
 //
 
+// @notice: Deposits tokens
+// @custom: internal function
+// @param: _drip drip address
+// @param: _amount amount of tokens to deposit
+// @param: _disable_token_in boolean to disable token in
+// @return: shares amount of shares
 func _deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt, _amount: Uint256, _disable_token_in: felt) -> (shares: Uint256) {
     alloc_locals;
     let (token_in_) = token.read();
@@ -157,6 +182,12 @@ func _deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return (Uint256(retdata[0], retdata[1]),);
 }
 
+// @notice: Redeem tokens
+// @custom: internal function
+// @param: _drip drip address
+// @param: _amount amount of shares to redeem
+// @param: _disable_token_out boolean to disable token out
+// @return: amount of assets redeemed
 func _redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt, _amount: Uint256, _disable_token_in: felt) -> (assets: Uint256) {
     alloc_locals;
     let (token_out_) = token.read();

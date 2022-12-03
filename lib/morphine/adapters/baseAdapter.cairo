@@ -26,12 +26,16 @@ func drip_transit() -> (drip_manager: felt) {
 func target() -> (drip_manager: felt) {
 }
 
+// @title: BaseAdapter namespace
 namespace BaseAdapter {
 
     //
     // Initializer
     //
 
+    // @notice: Initializes the contract.
+    // @param: _drip_manager The address of the drip manager.
+    // @param: _target_contract The address of the target.
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_manager: felt, _target_contract: felt) {
         with_attr error_message("zero address") {
             assert_not_zero(_drip_manager * _target_contract);
@@ -43,6 +47,9 @@ namespace BaseAdapter {
         return ();
     }
 
+    // @notice: Approve tokens to the drip manager.
+    // @param: _token The address of the token.
+    // @param: _amount The amount of tokens to approve.
     func approve_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _amount: Uint256) {
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
@@ -51,6 +58,12 @@ namespace BaseAdapter {
         return ();
     }
 
+    // @notice: Execute order on the target contract.
+    // @param: _selector The selector of the function to call.
+    // @param: _calldata The data to pass to the function.
+    // @param: _calladata_len The length of the data.
+    // @return: retdata The return data of the function call.
+    // @return: retdata_len The length of the return data.
     func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_selector: felt, _calldata_len: felt, _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         alloc_locals;
         let (drip_manager_) = drip_manager.read();
@@ -60,6 +73,16 @@ namespace BaseAdapter {
         return (retdata_len, retdata,);
     }
 
+    // @notice: Execute maximum allowance
+    // @param: _token_in 
+    // @param: _token_out
+    // @param: _allow_token_in Check if the token_in is allowed
+    // @param: _disable_token_in 
+    // @param: _selector The selector of the function to call.
+    // @param: _calldata The data to pass to the function.
+    // @param: _calladata_len The length of the data.
+    // @return: retdata The return data of the function call.
+    // @return: retdata_len The length of the return data.
     func execute_max_allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _token_in: felt,
             _token_out: felt, 
@@ -75,6 +98,17 @@ namespace BaseAdapter {
         return (retdata_len, retdata,);
     }
 
+    // @notice: Execute maximum allowance drip
+    // @param: _drip The drip to execute
+    // @param: _token_in
+    // @param: _token_out
+    // @param: _allow_token_in Check if the token_in is allowed
+    // @param: _disable_token_in 
+    // @param: _selector The selector of the function to call.
+    // @param: _calldata The data to pass to the function.
+    // @param: _calladata_len The length of the data.
+    // @return: retdata The return data of the function call.
+    // @return: retdata_len The length of the return data.
     func execute_max_allowance_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt,
             _token_in: felt,
@@ -110,6 +144,16 @@ namespace BaseAdapter {
         return (retdata_len, retdata,);
     }
 
+    // @notice: Safe execute
+    // @param: _token_in
+    // @param: _token_out
+    // @param: _allow_token_in Check if the token_in is allowed
+    // @param: _disable_token_in
+    // @param: _selector The selector of the function to call.
+    // @param: _calldata The data to pass to the function.
+    // @param: _calladata_len The length of the data.
+    // @return: retdata The return data of the function call.
+    // @return: retdata_len The length of the return data.
     func safe_execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _token_in: felt,
             _token_out: felt, 
@@ -125,6 +169,16 @@ namespace BaseAdapter {
         return (retdata_len, retdata,);
     }
 
+    // @notice: Safe execute
+    // @param: _token_in
+    // @param: _token_out
+    // @param: _allow_token_in Check if the token_in is allowed
+    // @param: _disable_token_in
+    // @param: _selector The selector of the function to call.
+    // @param: _calldata The data to pass to the function.
+    // @param: _calladata_len The length of the data.
+    // @return: retdata The return data of the function call.
+    // @return: retdata_len The length of the return data.
     func safe_execute_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt,
             _token_in: felt,
@@ -164,6 +218,11 @@ namespace BaseAdapter {
         return (retdata_len, retdata,);
     }
 
+    // @notice: Full check
+    // @param: _drip The drip 
+    // @param: _token_in
+    // @param: _token_out
+    // @param: _disable_token_in
     func full_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt, 
             _token_in: felt,
@@ -193,6 +252,8 @@ namespace BaseAdapter {
         }
     }
 
+    // @notice: Check and optimize enable token
+    // @param: _drip The drip
     func check_and_optimize_enabled_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt) {
         alloc_locals;
