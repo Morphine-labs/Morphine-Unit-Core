@@ -1,4 +1,5 @@
 from starkware.python.utils import from_bytes
+from starkware.crypto.signature.signature import private_to_stark_key
 import asyncio
 from starknet_py.net import AccountClient, KeyPair
 from starknet_py.net.gateway_client import GatewayClient
@@ -6,6 +7,7 @@ from starknet_py.contract import Contract
 from starknet_py.net.udc_deployer.deployer import Deployer
 from enum import Enum
 from starknet_py.net.models import StarknetChainId
+from starknet_py.net.signer.stark_curve_signer import StarkCurveSigner
 from starknet_py.utils.docs import as_our_module
 from pathlib import Path
 import settings
@@ -35,35 +37,21 @@ StarknetChainId = as_our_module(_StarknetChainId)
 
 async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
-    # keypair = KeyPair(private_key=int(settings.PRIVATE_KEY), public_key=int(settings.PUBLIC_KEY))
-    
-    # admin = await AccountClient.create_account(
-    #     client=goerli2_client,
-    #     private_key= int(settings.PRIVATE_KEY),
-    #     chain= StarknetChainId.TESTNET_2,
-    # )
 
-    # print(admin.address)
+    prvkey=int(settings.PRIVATE_KEY, 10)
+    pubkey=private_to_stark_key(prvkey)
+    print(pubkey)
 
 
-    account_to_deploy = await AccountClient.sign_deploy_account_transaction(
-        class_hash="0x68cb33b3ab73ee34d2084cfcb7d07b24db48095ad0907c10b6fdb7b0e91ef0a",
-        contract_address_salt=7383738,
-        constructor_calldata=[3260281675601709103560498194009673788088220875676491641367091347543912979573]
-    )  
+    keypair = KeyPair(private_key=int(settings.PRIVATE_KEY,10), public_key=int(settings.PUBLIC_KEY,10))
+    print(keypair)
 
-    
-    print(f'🧱 Ck: {account_to_deploy}')
-
-
-
-
-    # create_account(client: Client, private_key: Optional[int] = None, signer: Optional[BaseSigner] = None, chain: Optional[StarknetChainId] = None)
-
+    # signesr = StarkCurveSigner(settings.ADMIN, keypair, StarknetChainId.TESTNET_2)
     # admin = AccountClient(
     #     client=goerli2_client,
     #     address=settings.ADMIN,
     #     key_pair=keypair,
+    #     signer=signesr,
     #     chain=StarknetChainId.TESTNET_2,
     #     supported_tx_version=1,
     # )    
