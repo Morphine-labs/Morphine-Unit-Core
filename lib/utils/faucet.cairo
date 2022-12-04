@@ -38,11 +38,16 @@ func user_unlock_time(address: felt) -> (unlock_time: felt) {
 // Constructor
 //
 
+// @notice: Constructor
+// @param: _owner - contract owner
+// @param: _token_address Address of the ERC20 token
+// @param: _allowed_amount Amount of tokens allowed to be minted per mint
+// @param: _time Time between each mint
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    owner: felt, _token_address: felt, _allowed_amount: Uint256, _time: felt
+    _owner: felt, _token_address: felt, _allowed_amount: Uint256, _time: felt
 ) {
-    Ownable.initializer(owner);
+    Ownable.initializer(_owner);
     token_address.write(_token_address);
     allowed_amount.write(_allowed_amount);
     waiter.write(_time);
@@ -53,6 +58,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // Setters
 //
 
+// @notice: Faucet mint function
+// @return: True if successful
 @external
 func faucet_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     success: felt
@@ -81,6 +88,8 @@ func faucet_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // Getters
 //
 
+// @notice: Get the token address
+// @return: Token address
 @view
 func get_token_address{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     res: felt
@@ -89,12 +98,16 @@ func get_token_address{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return (res,);
 }
 
+// @notice: Get the wait time
+// @return: Wait time
 @view
 func get_wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res: felt) = waiter.read();
     return (res,);
 }
 
+// @notice: Get the time when you will be able to mint again
+// @return: Time when you will be able to mint again
 @view
 func get_allowed_time{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     account: felt
@@ -103,6 +116,8 @@ func get_allowed_time{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return (res,);
 }
 
+// @notice: Check if an address is allowed to mint
+// @return: True if allowed
 @view
 func isAllowedForTransaction{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     address: felt

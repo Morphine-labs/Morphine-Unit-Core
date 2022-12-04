@@ -34,7 +34,7 @@ func cumulative_index() -> (borrow_info: Uint256) {
 func since() -> (time: felt) {
 }
 
-// Protector
+// @notice: Only drip manager can call this function
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (caller_) = get_caller_address();
     let (drip_manager_) = drip_manager.read();
@@ -44,6 +44,7 @@ func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     return ();
 }
 
+// @notice: Constructor will be called when the contract is deployed
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (caller_) = get_caller_address();
@@ -51,7 +52,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
-
+// @notice: Cumulative index 
+// @return: Cumulative index
 @view
 func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     cumulativeIndex: Uint256
@@ -60,6 +62,8 @@ func cumulativeIndex{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (cumulative_index_,);
 }
 
+// @notice: Borrowed amount
+// @return: Borrowed amount
 @view
 func borrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     totalBorrowed: Uint256
@@ -68,6 +72,8 @@ func borrowedAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return (borrowed_amount_,);
 }
 
+// @notice: Last update time
+// @return: Last update time
 @view
 func lastUpdate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     since: felt
@@ -79,6 +85,10 @@ func lastUpdate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 
 // External
 
+// @notice: Drip initialize
+// @param: _drip_manager_ Drip manager address
+// @param: _borrowed_amount_ Borrowed amount(Uint256)
+// @param: _cumulative_index_ Cumulative index(Uint256)
 @external
 func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256
@@ -96,6 +106,9 @@ func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return ();
 }
 
+// @notice: Update paramaters
+// @param: _borrowed_amount_ Borrowed amount(Uint256)
+// @param: _cumulative_index_ Cumulative index(Uint256)
 @external
 func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _cumulative_index: Uint256
@@ -106,6 +119,10 @@ func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return ();
 }
 
+// @notice: Approve token
+// @param: _token_ Token address
+// @param: _contract Address of the contract to approve
+// @param: _amount_ Amount (Uint256)
 @external
 func approveToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _contract: felt, _amount: Uint256
@@ -115,6 +132,9 @@ func approveToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
+// @notice: Cancel Allowance
+// @param: _token_ Token address
+// @param: _contract Address of the contract to approve
 @external
 func cancelAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _contract: felt
@@ -124,6 +144,10 @@ func cancelAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return ();
 }
 
+// @notice: Safe transfer
+// @param: _token Token address
+// @param: _to Address to transfer to
+// @param: _amount Amount (Uint256)
 @external
 func safeTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _to: felt, _amount: Uint256
@@ -133,6 +157,13 @@ func safeTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
+// @notice: Execute function
+// @param: _to Address to transfer to
+// @param: _selector Selector
+// @param: _calldata Data
+// @param: _calldata_len Length of data
+// @return: retdata Return data
+// @return: retdata_len Length of return data
 @external
 func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*

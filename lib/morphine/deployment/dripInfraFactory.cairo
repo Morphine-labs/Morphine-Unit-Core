@@ -58,6 +58,7 @@ func drip_configurator() -> (drip_configurator: felt) {
 
 // Constructor
 
+// @notice Constructor will be called once when the contract is deployed.
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip_manager_hash: felt,
@@ -70,7 +71,16 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
-
+// @notice Deploy the DripManager contract.
+// @param: _drip_infra_factory - The address of the DripInfraFactory contract.
+// @param: _pool - The pool address.
+// @param: _nft - The NFT address.
+// @param: _expirable
+// @param: _minimum_borrowed_amount (Uint256)
+// @param: _maximum_borrowed_amount (Uint256)
+// @param: _allowed_token_len 
+// @param: _allowed_tokens (AllowedToken*))
+// @param: _salt
 @external
 func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
         _drip_infra_factory: felt, 
@@ -112,6 +122,10 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return ();
 }
 
+// @notice: Get Drip Infra Address
+// @return: _drip_manager - The address of the DripManager contract.
+// @return: _drip_transit - The address of the DripTransit contract.
+// @return: _drip_configurator - The address of the DripConfigurator contract.
 @view
 func getDripInfraAddresses{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() -> (
         drip_manager: felt, drip_transit: felt, drip_configurator: felt) {
