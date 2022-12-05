@@ -25,6 +25,10 @@ from morphine.interfaces.IRegistery import IRegistery
 from morphine.utils.utils import pow
 
 
+/// @title Oracle Transit
+/// @author Graff Sacha (0xSacha)
+/// @dev Modular and Intelligent Oracle contract
+/// @custom:experimental This is an experimental contract. LP Pricing to think.
 
 // Events
 
@@ -51,7 +55,10 @@ func derivative_to_price_feed(derivative: felt) -> (res: felt) {
 }
 
 // Constructor
-@constructor
+
+// @notice: Oracle Transit Consutructor
+// @param: _oracle Primitive Oracle (felt)
+// @param: _registery Registery (felt)
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle: felt, _registery: felt) {
     with_attr error_message("zero address") {
         assert_not_zero(_oracle);
@@ -64,6 +71,9 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 // TOKEN MANAGEMENT
 
+// @notice: Add Primitive
+// @param: _token Token of wanted pricefeed (felt)
+// @param: _pair_id Id for query price (felt)
 @external
 func addPrimitive{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _pair_id: felt
@@ -88,6 +98,10 @@ func addPrimitive{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
+
+// @notice: Add Derivative
+// @param: _token Token of wanted pricefeed (felt)
+// @param: _derivative_price_feed Contract to query underlying values (felt)
 @external
 func addDerivative{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _derivative_price_feed: felt
@@ -116,6 +130,9 @@ func addDerivative{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 
 // View
 
+// @notice: Primitive Pair ID
+// @param: _primitive Token to look for pair id (felt)
+// @return: pair_id Pair ID (felt)
 @view
 func primitivePairId{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _primitive: felt
@@ -124,6 +141,9 @@ func primitivePairId{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check
     return (pair_id_,);
 }
 
+// @notice: Derivative Price Feed
+// @param: _derivative Token to look for derivative pricefeed (felt)
+// @return: price_feed_ Derivative Price Feed (felt)
 @view
 func derivativePriceFeed{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _derivative: felt
@@ -132,6 +152,11 @@ func derivativePriceFeed{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_c
     return (price_feed_,);
 }
 
+// @notice: convert To USD
+// @dev decimals token are managed and the output is 8 decimals
+// @param: _amount amount of token (Uint256)
+// @param: _token token to convert (felt)
+// @return: tokenPriceUsd  Token Price in USD (Uint256)
 @view
 func convertToUSD{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _amount: Uint256, _token: felt
@@ -145,6 +170,11 @@ func convertToUSD{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_pt
     return (token_price_usd_,);
 }
 
+// @notice: convert From USD
+// @dev decimals token are managed and the input is 8 decimals
+// @param: _amount amount of tokens in USD (Uint256)
+// @param: _token  convert to Token (felt)
+// @return: tokenPrice  Token Price (Uint256)
 @view
 func convertFromUSD{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _amount: Uint256, _token: felt
@@ -158,6 +188,12 @@ func convertFromUSD{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_
     return (token_price_,);
 }
 
+// @notice: convert
+// @dev Converts directly an asset into an other one
+// @param: _amount amount of tokens from (Uint256)
+// @param: _token_from  Token from (felt)
+// @param: _token_to  Token To (felt)
+// @return: price  Token Price (Uint256)
 @view
 func convert{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _amount: Uint256, _token_from: felt, _token_to: felt
@@ -167,6 +203,14 @@ func convert{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return (price_,);
 }
 
+// @notice: Fast Check
+// @dev Used to check price of incoming and leaving asset, to control loss
+// @param: _amount_from Amount of token from (Uint256)
+// @param: _token_from  Token from (felt)
+// @param: _amount_to Amount of token to (Uint256)
+// @param: _token_to  Token to (felt)
+// @return: collateralFrom  Collateral From (Uint256)
+// @return: collateralTo   Collateral To (Uint256)
 @view
 func fastCheck{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _amount_from: Uint256, _token_from: felt, _amount_to: Uint256, _token_to: felt
@@ -179,6 +223,10 @@ func fastCheck{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
 
 // Internals
 
+
+// @notice: get_price
+// @param: _token  Token to get price (felt)
+// @return: token_price_usd   Token Price in USD (Uint256)
 func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_token: felt) -> (
     token_price_usd: Uint256
 ) {
@@ -214,6 +262,12 @@ func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     }
 }
 
+// @notice: recursive_calcul_derivative
+// @param: underlying_assets_len  Underlying Assets Length (felt)
+// @param: underlying_assets  Underlying Assets (felt*)
+// @param: underlying_amounts_len  Underlying Amounts Length (felt)
+// @param: underlying_amounts  Underlying Amounts (Uint256*)
+// @return: res Token Price in USD (Uint256)
 func recursive_calcul_derivative{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     underlying_assets_len: felt,
     underlying_assets: felt*,
