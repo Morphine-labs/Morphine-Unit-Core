@@ -101,6 +101,8 @@ func salt() -> (res: felt) {
 
 // Protector
 
+// @notice: only_drip_manager
+// @dev: check if caller is drip manager
 func only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (registery_) = RegisteryAccess.registery();
     let (caller_: felt) = get_caller_address();
@@ -113,6 +115,8 @@ func only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 
 // Constructor
 
+// @notice: Drip Factory Constructor
+// @param: _registery Registery (felt)
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _registery: felt
@@ -130,6 +134,9 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
 // View
 
+// @notice: Next Drip
+// @param: _drip Drip (felt)
+// @return: drip Next Drip (felt)
 @view
 func nextDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (
     drip: felt
@@ -138,6 +145,8 @@ func nextDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return (next_,);
 }
 
+// @notice: Drip Length
+// @return: dripLength Total Drip Length  (felt)
 @view
 func dripsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     dripLength: felt
@@ -146,6 +155,9 @@ func dripsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return (drip_length_,);
 }
 
+// @notice: ID To Drip
+// @param: _id Drip ID (felt)
+// @return: drip Drip (felt)
 @view
 func idToDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (
     drip: felt
@@ -154,6 +166,9 @@ func idToDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return (drip_,);
 }
 
+// @notice: Drip To ID
+// @param: _drip Drip (felt)
+// @return: id Drip ID (felt)
 @view
 func dripToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (
     id: felt
@@ -162,6 +177,9 @@ func dripToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return (id_,);
 }
 
+// @notice: Is Drip
+// @param: _drip Drip (felt)
+// @return: state 1 if is Drip, 0 else (felt)
 @view
 func isDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip: felt) -> (
     state: felt
@@ -170,6 +188,9 @@ func isDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_dr
     return (state_,);
 }
 
+// @notice: Drip Stock Length
+// @dev: Unused drip are stored to save gas for new Drip
+// @return: length Drip Stock Length (felt)
 @view
 func dripStockLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     length: felt
@@ -180,6 +201,8 @@ func dripStockLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     return (length_,);
 }
 
+// @notice: add Drip
+// @dev: Deploy a new Drip
 @external
 func addDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     alloc_locals;
@@ -196,6 +219,11 @@ func addDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() 
     return ();
 }
 
+// @notice: Take Drip
+// @dev: Function Used by Drip Manager for new borrower
+// @param: _borrowed_amount Borrowed Amount (Uint256)
+// @param: _cumulative_index Cumulative Index (Uint256)
+// @return: address Drip Address (felt)
 @external
 func takeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _cumulative_index: Uint256
@@ -213,6 +241,9 @@ func takeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (drip_,);
 }
 
+// @notice: Return Drip
+// @dev: Function Used by Drip Manager when closing Drip
+// @param: _used_drip Used Drip (felt)
 @external
 func returnDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_used_drip: felt) {
     alloc_locals;
@@ -233,6 +264,11 @@ func returnDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return ();
 }
 
+// @notice: Take Out
+// @dev: Function Used by the Admin to Remove a bad Drip
+// @param: _prev Previous Drip (felt)
+// @param: _drip Drip to remove (felt)
+// @param: _to Address to connect Drip (felt)
 @external
 func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _prev: felt, _drip: felt, _to: felt
@@ -304,6 +340,8 @@ func takeOut{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
 // Internals
 
+// @notice: deploy_drip_account 
+// @return: contract_address Drip Deployed Address (felt)
 func deploy_drip_account{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     contract_address: felt
 ) {
@@ -316,6 +354,9 @@ func deploy_drip_account{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return (contract_address_,);
 }
 
+
+// @notice: check_stock
+// @dev: Check for eventuals Drips in Stock and deploy if nothing is stock
 func check_stock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (head_: felt) = head.read();
     let (next_head_) = next_drip.read(head_);
@@ -326,6 +367,12 @@ func check_stock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
+// @notice: recursive_stock_length 
+// @dev: Calculate Drip Stock Length
+// @param: _temp_head Temp Head (felt)
+// @param: _tail Drip Tail (felt)
+// @param: _count Drip Cumulative Count (felt)
+// @return: count Drip Stock Length (felt)
 func recursive_stock_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _temp_head: felt, _tail: felt, _count: felt
 ) -> (count: felt) {
