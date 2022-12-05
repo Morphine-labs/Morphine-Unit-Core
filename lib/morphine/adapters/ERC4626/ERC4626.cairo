@@ -90,7 +90,7 @@ func targetContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 //  Externals
 //
 
-// @notice: Deposits tokens 
+// @notice: Deposits all tokens 
 // @return: amount of tokens deposited
 @external 
 func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (shares: Uint256) {
