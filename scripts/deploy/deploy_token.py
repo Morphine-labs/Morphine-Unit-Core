@@ -38,6 +38,7 @@ StarknetChainId = as_our_module(_StarknetChainId)
 async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
 
+    OZ_HASH = "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f"
     prvkey=int(settings.PRIVATE_KEY, 10)
     pubkey=private_to_stark_key(prvkey)
     print(pubkey)
