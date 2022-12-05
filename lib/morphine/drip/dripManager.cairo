@@ -7,11 +7,8 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
     get_caller_address,
 )
-
 from starkware.cairo.common.math_cmp import is_le, is_nn, is_not_zero
-
 from starkware.cairo.common.uint256 import Uint256, uint256_pow2
-
 from starkware.cairo.common.uint256 import (
     uint256_sub,
     uint256_check,
@@ -33,26 +30,22 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.starknet.common.syscalls import deploy
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
-
 from starkware.cairo.common.math import assert_not_zero
-
 from openzeppelin.security.pausable.library import Pausable
-
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
-
 from morphine.interfaces.IDrip import IDrip
-
 from morphine.interfaces.IRegistery import IRegistery
-
 from morphine.interfaces.IPool import IPool
-
 from morphine.interfaces.IDripFactory import IDripFactory
-
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import PRECISION
 
+/// @title Drip Manager
+/// @author Graff Sacha (0xSacha)
+/// @dev Contract Contract Managing Drip Infrastructure
+/// @custom:experimental This is an experimental contract.
 
 // Storage
 @storage_var

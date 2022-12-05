@@ -30,6 +30,10 @@ from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
+/// @title Pool
+/// @author Graff Sacha (0xSacha)
+/// @dev Pool contract, respecting ERC4626 implementation
+/// @custom:experimental This is an experimental contract.
 
 // Events
 
@@ -139,7 +143,8 @@ func repay_frozen() -> (res: felt) {
 
 // Protectors
 
-
+// @notice Initialize the contract
+// @dev: assert caller is drip manager
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (caller_) = get_caller_address();
         let (drip_manager_) = drip_manager.read();

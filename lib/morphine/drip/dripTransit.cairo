@@ -14,17 +14,12 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math import assert_not_zero
 from starkware.cairo.common.math_cmp import is_le
-
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.token.erc721.IERC721 import IERC721
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from openzeppelin.security.safemath.library import SafeUint256
-
-
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import PRECISION, REVERT_IF_RECEIVED_LESS_THAN_SELECTOR, ADD_COLLATERAL_SELECTOR, INCREASE_DEBT_SELECTOR, DECREASE_DEBT_SELECTOR, ENABLE_TOKEN_SELECTOR, DISABLE_TOKEN_SELECTOR
-
-
 from morphine.interfaces.IDripTransit import Call, AccountCallArray,tokenAndBalance
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IDripManager import IDripManager
@@ -32,7 +27,11 @@ from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
-const USER_1 = 'user-1';
+/// @title Drip Transit
+/// @author Graff Sacha (0xSacha)
+/// @dev Contract Used to interact with the Drip Infrastructure
+/// @custom:experimental This is an experimental contract.
+
 
 //
 // Events

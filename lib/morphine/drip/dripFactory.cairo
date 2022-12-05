@@ -7,11 +7,8 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
     get_caller_address,
 )
-
 from starkware.cairo.common.math_cmp import is_le, is_nn, is_not_zero
-
 from starkware.cairo.common.uint256 import Uint256
-
 from starkware.cairo.common.uint256 import (
     uint256_sub,
     uint256_check,
@@ -33,19 +30,20 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import deploy
 from openzeppelin.token.erc20.IERC20 import IERC20
-
 from starkware.cairo.common.math import assert_not_zero
-
-
 from openzeppelin.security.pausable.library import Pausable
-
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
-
 from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.interfaces.IDrip import IDrip
 from morphine.interfaces.IRegistery import IRegistery
 
+/// @title Drip Factory
+/// @author Graff Sacha (0xSacha)
+/// @dev Contract Contract Factory with recycling mechanisms
+/// @custom:experimental This is an experimental contract.
 
+
+// Events
 
 @event
 func NewDrip(drip: felt) {
