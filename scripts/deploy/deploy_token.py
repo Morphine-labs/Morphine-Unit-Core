@@ -1,5 +1,5 @@
 from starkware.python.utils import from_bytes
-from starkware.crypto.signature.signature import private_to_stark_key
+from starkware.crypto.signature.signature import private_to_stark_key, get_random_private_key
 import asyncio
 from starknet_py.net import AccountClient, KeyPair
 from starknet_py.net.gateway_client import GatewayClient
@@ -37,15 +37,22 @@ StarknetChainId = as_our_module(_StarknetChainId)
 
 async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
-
-    OZ_HASH = "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f"
-    prvkey=int(settings.PRIVATE_KEY, 10)
-    pubkey=private_to_stark_key(prvkey)
+    # private_key = get_random_private_key()
+    # print(private_key)
+    private_key = '2053539942446241156039494054289107534421462015588117229646018314795714715897'
+    key_pair=KeyPair.from_private_key(int(private_key, 10)),
+    print(key_pair)
+    pubkey=private_to_stark_key(int(private_key, 10))
     print(pubkey)
 
+    # OZ_HASH = "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f"
+    # prvkey=int(settings.PRIVATE_KEY, 16)
 
-    keypair = KeyPair(private_key=int(settings.PRIVATE_KEY,10), public_key=int(settings.PUBLIC_KEY,10))
-    print(keypair)
+    # print(pubkey)
+
+
+    # keypair = KeyPair(private_key=int(settings.PRIVATE_KEY,10), public_key=int(settings.PUBLIC_KEY,10))
+    # print(keypair)
 
     # signesr = StarkCurveSigner(settings.ADMIN, keypair, StarknetChainId.TESTNET_2)
     # admin = AccountClient(
