@@ -10,6 +10,11 @@ from starkware.cairo.common.math import assert_not_zero
 from morphine.interfaces.IRegistery import IRegistery
 
 
+/// @title: Registery Access
+/// @author: Morphine team
+/// @dev: Contract that contains all method needed for Registery Access
+/// @custom: experimental This is an experimental contract.
+
 //
 // Storage
 //

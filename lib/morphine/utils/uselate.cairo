@@ -32,15 +32,19 @@ from morphine.utils.utils import (
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
+// @notice: Struct representing a Drip Position
 struct Position {
     asset: felt,
     total_debt : felt,
 }
 
 
+// @notice: Calculate a Pool debt
+// @param: _pool_id pool id
+// @return: Position
 @view
 func poolDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool_id: felt) -> (
-    debt: felt
+    debt: Position
 ) {
     let (registery_) = registery.read();
     let (pool_factory_) = IRegistery.getPoolFactory(registery_);
@@ -54,6 +58,10 @@ func poolDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return (Position(asset_, total_debt_),);
 }
 
+// @notice: Calculate all Pool Debt
+// @return: debt_len return all debt hold by different pools
+// @return: deb Position
+// TODO
 @view
 func allPoolDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     debt_len: felt, debt: Position
@@ -66,6 +74,10 @@ func allPoolDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return (debt_len, debt,);
 }
 
+// @notice: Calculate collateral
+// @param: _asset_id asset id
+// @return: collateralAmount
+// MAYBE SHOULD be a UINT256
 @view
 func collateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _asset_id: felt
@@ -77,6 +89,7 @@ func collateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (collateral_amount_);
 }
 
+// @notice: Calculate all collateral
 @view
 func allCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     collateral_len: felt, collateral: Position

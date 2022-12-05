@@ -10,7 +10,13 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 // @description A library for safe interactions with ERC20 contracts
 // @author Peteris <github.com/Pet3ris>
 
+
 namespace SafeERC20 {
+
+    // @notice: Safe ERC20 transfer function
+    // @param: contract_address 
+    // @param: recipient recipient address
+    // @param: amount amount of token you want to transfer (Uint256)
     func transfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         contract_address: felt, recipient: felt, amount: Uint256
     ) {
@@ -23,7 +29,12 @@ namespace SafeERC20 {
 
         return ();
     }
-
+    
+    // @notice: SafeERC20 transferFrom
+    // @param: contract_address
+    // @param: sender sender address
+    // @param: recipient recipient address
+    // @param: amount amount of token you want to transfer (Uint256)
     func transferFrom{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         contract_address: felt, sender: felt, recipient: felt, amount: Uint256
     ) {

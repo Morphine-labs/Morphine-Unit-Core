@@ -21,6 +21,11 @@ from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IDripManager import IDripManager
 
+/// @title: Morphine pass 
+/// @author: Morphine team
+/// @dev: ERC721 and ERC721Enumerable for Morphine pass
+/// @custom: experimental This is an experimental contract.
+
 //
 // Events 
 //

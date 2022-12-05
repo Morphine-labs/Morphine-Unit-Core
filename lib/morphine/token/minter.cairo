@@ -18,6 +18,11 @@ from openzeppelin.token.erc721.enumerable.library import ERC721Enumerable
 from openzeppelin.security.safemath.library import SafeUint256
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
+/// @title Minter method for Morphine pass
+/// @author Morphine team
+/// @dev Contract that contains all the method needed for NFT mint
+/// @custom:experimental This is an experimental contract.
+
 @storage_var
 func nft_contract() -> (nft_contract: felt) {
 }

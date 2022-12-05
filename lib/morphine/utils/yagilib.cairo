@@ -17,6 +17,8 @@ from morphine.utils.fixedpointmathlib import mul_div_up, mul_div_down
 // @description An ERC4626-style vault implementation.
 //              Adapted from the solmate implementation: https://github.com/Rari-Capital/solmate/blob/main/src/mixins/ERC4626.sol
 // @author Peteris <github.com/Pet3ris>
+// @dev: Comment added by Morphine team
+
 //
 // EVENTS
 //
@@ -42,6 +44,10 @@ namespace ERC4626 {
     // CONSTRUCTOR
     //
 
+    // @notice: Initializer
+    // @param: asset asset contract_address
+    // @param: name asset name
+    // @param: symbol
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         asset: felt, name: felt, symbol: felt
     ) {
@@ -56,14 +62,23 @@ namespace ERC4626 {
     // MAX ACTIONS
     //
 
+    // @notice: max deposit
+    // @notice: to address to (why it is here :-) )
+    // @return: max asset Biggest uint possible in cairo(Uint256)
     func max_deposit(to: felt) -> (max_assets: Uint256) {
         return (Uint256(ALL_ONES, ALL_ONES),);
     }
 
+    // @notice: max mint
+    // @notice: to address to (why it is here :-) )
+    // @return: max shares Biggest uint possible in cairo(Uint256)
     func max_mint(to: felt) -> (max_shares: Uint256) {
         return (Uint256(ALL_ONES, ALL_ONES),);
     }
 
+    // @notice: max redeem
+    // @notice: caller the function caller
+    // @return: max shares balance from caller
     func max_redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         caller: felt
     ) -> (max_shares: Uint256) {
@@ -75,6 +90,10 @@ namespace ERC4626 {
     // INTERNAL
     //
 
+    // @notice: decrease allowance
+    // @param: owner the fund owner
+    // @param: spender the spender authorized by the owner
+    // @param: subtracted_value the allowance reduction wanted by the owner
     func ERC20_decrease_allowance_manual{
         syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     }(owner: felt, spender: felt, subtracted_value: Uint256) -> () {

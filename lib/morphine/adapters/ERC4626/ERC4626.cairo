@@ -19,6 +19,11 @@ from morphine.integrations.ERC4626.IERC4626 import IERC4626
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.utils.various import DEPOSIT_SELECTOR, REDEEM_SELECTOR
 
+/// @title: ERC4626 cairo
+/// @author: Morphine team
+/// @dev: Contract that contains all method needed for ERC4626
+/// @custom: experimental This is an experimental contract.
+
 //
 // Storage
 //

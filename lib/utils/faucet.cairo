@@ -10,9 +10,17 @@ from openzeppelin.access.ownable.library import Ownable
 
 from openzeppelin.token.erc20.IERC20 import IERC20
 
+
+/// @title: Faucet Contract
+/// @author: Morphine team
+/// @dev: this contract is like our registery where you can find all useful contract address
+/// @custom: Taken from Exo Monk faucet, https://github.com/ExoMonk
+
+
 //
 // Storage
 //
+
 
 // ERC20 token address
 @storage_var

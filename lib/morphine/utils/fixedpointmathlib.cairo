@@ -6,10 +6,10 @@ from starkware.cairo.common.math import assert_not_zero
 from starkware.cairo.common.uint256 import Uint256, uint256_add, uint256_eq, uint256_sub
 from openzeppelin.security.safemath.library import SafeUint256
 
-// # @title Fixed point math library
-// # @description A fixed point math library
-// # @description Adapted from solmate: https://github.com/Rari-Capital/solmate/blob/main/src/utils/FixedPointMathLib.sol
-// # @author Peteris <github.com/Pet3ris>
+// @title Fixed point math library
+// @description A fixed point math library
+// @description Adapted from solmate: https://github.com/Rari-Capital/solmate/blob/main/src/utils/FixedPointMathLib.sol
+// @author Peteris <github.com/Pet3ris>
 
 func mul_div_down{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, y: Uint256, denominator: Uint256

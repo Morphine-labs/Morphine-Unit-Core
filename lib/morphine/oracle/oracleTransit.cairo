@@ -56,7 +56,7 @@ func derivative_to_price_feed(derivative: felt) -> (res: felt) {
 
 // Constructor
 
-// @notice: Oracle Transit Consutructor
+// @notice: Oracle Transit Constructor
 // @param: _oracle Primitive Oracle (felt)
 // @param: _registery Registery (felt)
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle: felt, _registery: felt) {

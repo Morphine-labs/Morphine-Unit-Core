@@ -10,6 +10,12 @@ from starkware.cairo.common.uint256 import ALL_ONES, Uint256
 from openzeppelin.token.erc20.IERC20 import IERC20
 from morphine.interfaces.IDripManager import IDripManager
 
+
+/// @title: BaseAdapter
+/// @author: Morphine team
+/// @dev: Contract that contains all method needed for future protocol integraton
+/// @custom: experimental This is an experimental contract.
+
 //
 // Storage
 //

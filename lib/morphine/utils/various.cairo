@@ -4,6 +4,11 @@ from starkware.cairo.common.uint256 import uint256_unsigned_div_rem, uint256_mul
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
+/// @title: Various
+/// @author: Morphine team
+/// @dev: this contract is like a bagppack you can put all constant you needed inside
+/// @custom: experimental This is an experimental contract.
+
 // SELECTORS 
 const APPROVE_SELECTOR = 949021990203918389843157787496164629863144228991510976554585288817234167820;
 const REVERT_IF_RECEIVED_LESS_THAN_SELECTOR = 1152808638417114049948843928103925621792822987696523837861797894375176919641;
@@ -33,11 +38,12 @@ const DEFAULT_FEE_LIQUIDATION_EXPIRED = 2*10**16;
 // const MAX_WITHDRAW_FEE = ;
 const DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER = 5;
 
-
-
-
 // CONVERSION
 
+// @notice: Uint256 to permillion in order to have better precision
+// @param: x is a Uint256 (Uint256)
+// @param: permillion is here to help to us have a better precision
+// @return: New Uint256 with more precision
 func uint256_permillion{pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, permillion: Uint256
 ) -> (res: Uint256) {
