@@ -11,8 +11,8 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 
 
 /// @title: Faucet Contract
-/// @author: Morphine team
-/// @dev: this contract is like our registery where you can find all useful contract address
+/// @author: ExoMonk
+/// @dev: Mint Tokens!
 /// @custom: Taken from Exo Monk faucet, https://github.com/ExoMonk
 
 
