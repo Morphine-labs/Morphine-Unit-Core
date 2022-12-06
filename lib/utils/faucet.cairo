@@ -7,7 +7,6 @@ from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.uint256 import Uint256
 from starkware.starknet.common.syscalls import get_caller_address, get_block_timestamp
 from openzeppelin.access.ownable.library import Ownable
-
 from openzeppelin.token.erc20.IERC20 import IERC20
 
 

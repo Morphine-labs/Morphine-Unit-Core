@@ -12,19 +12,23 @@ from starknet_py.utils.docs import as_our_module
 from pathlib import Path
 import settings
 import utils
-
+import json
 
 ## ERC20
-TOKEN_NAME = 'morphineDai'
-TOKEN_SYMBOL = 'MDAI'
-TOKEN_DECIMALS = 6
-TOKEN_INITIAL_SUPPLY_LO = (10**12)*10**6
+TOKEN_NAME = 'morphineEth'
+TOKEN_SYMBOL = 'METH'
+TOKEN_DECIMALS = 18
+TOKEN_INITIAL_SUPPLY_LO = (10**9)*10**18
 TOKEN_INITIAL_SUPPLY_HI = 0
 
 ## FAUCET
-ALLOWED_AMOUNT_LO = 1500*10**6
+ALLOWED_AMOUNT_LO = 2*10**18
 ALLOWED_AMOUNT_HI = 0
 TIME = 24*60*3600
+
+INITIAL_FUNDING_LO = (10**6)*10**18
+INITIAL_FUNDING_HI = 0
+
 
 class _StarknetChainId(Enum):
     MAINNET = from_bytes(b"SN_MAIN")
@@ -37,46 +41,26 @@ StarknetChainId = as_our_module(_StarknetChainId)
 
 async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
-    # private_key = get_random_private_key()
-    # print(private_key)
-    private_key = '2053539942446241156039494054289107534421462015588117229646018314795714715897'
-    key_pair=KeyPair.from_private_key(int(private_key, 10)),
-    print(key_pair)
-    pubkey=private_to_stark_key(int(private_key, 10))
-    print(pubkey)
+    key_pair = KeyPair(private_key=int(settings.PRIVATE_KEY,16), public_key=int(settings.PUBLIC_KEY,16))
+    signer = StarkCurveSigner(settings.ADMIN, key_pair, StarknetChainId.TESTNET_2)
+    admin = AccountClient(
+        client=goerli2_client,
+        address=settings.ADMIN,
+        key_pair=key_pair,
+        signer=signer,
+        chain=StarknetChainId.TESTNET_2,
+        supported_tx_version=1,
+    )    
+    
+    balance = await admin.get_balance(utils.ETH)
+    print(f'💰 User balance: {balance/(10**18)} ETH')
 
-    # OZ_HASH = "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f"
-    # prvkey=int(settings.PRIVATE_KEY, 16)
-
-    # print(pubkey)
-
-
-    # keypair = KeyPair(private_key=int(settings.PRIVATE_KEY,10), public_key=int(settings.PUBLIC_KEY,10))
-    # print(keypair)
-
-    # signesr = StarkCurveSigner(settings.ADMIN, keypair, StarknetChainId.TESTNET_2)
-    # admin = AccountClient(
-    #     client=goerli2_client,
-    #     address=settings.ADMIN,
-    #     key_pair=keypair,
-    #     signer=signesr,
-    #     chain=StarknetChainId.TESTNET_2,
-    #     supported_tx_version=1,
-    # )    
-
-    # deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
-    # print(f'🧱 Ck: {StarknetChainId.TESTNET.value}')
-    # block = await admin.get_block(block_number="latest")
-    # print(f'🧱 Current block: {block.block_number}')
-    # balance = await admin.get_balance(utils.ETH)
-    # print(f'💰 Deployer balance: {balance/(10**18)} ETH')
+    deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
 
     # print(f'⌛️ Declaring ERC20...')
-
     # declare_transaction_erc20 = await admin.sign_declare_transaction(
-    # compiled_contract=Path("../../build/erc20.json").read_text(), max_fee=int(1e16)
+    # compilation_source=Path(utils.ERC20_SOURCE_CODE).read_text(), max_fee=int(1e16)
     # )
-
     # resp = await admin.declare(transaction=declare_transaction_erc20)
     # await admin.wait_for_tx(resp.transaction_hash)
     # erc20_class_hash = resp.class_hash
@@ -86,45 +70,56 @@ async def deploy():
 
     # print(f'⌛️ Declaring faucet...')
     # declare_transaction_faucet = await admin.sign_declare_transaction(
-    # compilation_source=Path(utils.FAUCET_SOURCE_CODE), max_fee=int(1e16)
+    # compilation_source=Path(utils.FAUCET_SOURCE_CODE).read_text(), max_fee=int(1e16)
     # )
     # resp = await admin.declare(transaction=declare_transaction_faucet)
     # await admin.wait_for_tx(resp.transaction_hash)
     # faucet_class_hash = resp.class_hash
-
     # print(f'✅ Success! Class Hash: {faucet_class_hash} ')
+
     
-    # print(f'⌛️ Deploying erc20...')
-    # deploy_erc20_call, erc20 = deployer.create_deployment_call(
-    # class_hash=erc20_class_hash,
-    # abi=utils.ERC20_ABI,
-    # calldata={
-    #     TOKEN_NAME,
-    #     TOKEN_SYMBOL,
-    #     TOKEN_DECIMALS,
-    #     (TOKEN_INITIAL_SUPPLY_LO, TOKEN_INITIAL_SUPPLY_HI),
-    #     admin.address
-    # })
+    print(f'⌛️ Deploying erc20...')
+    deploy_erc20_call, erc20 = deployer.create_deployment_call(
+    class_hash=utils.ERC20_HASH,
+    abi=json.loads(Path(utils.ERC20_ABI).read_text()),
+    calldata={
+        "name": TOKEN_NAME,
+        "symbol": TOKEN_SYMBOL,
+        "decimals": TOKEN_DECIMALS,
+        "initial_supply": {"low":TOKEN_INITIAL_SUPPLY_LO, "high":TOKEN_INITIAL_SUPPLY_HI},
+        "recipient": admin.address,
+        "owner": admin.address
+    })
 
-    # resp = await admin.execute(deploy_erc20_call, max_fee=int(1e16))
-    # await account_client.wait_for_tx(resp.transaction_hash)
+    resp = await admin.execute(deploy_erc20_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
 
-    # print(f'✅ Success! Token deployed to {erc20} ')
+    print(f'✅ Success! Token deployed to {erc20} ')
 
 
-    # print(f'⌛️ Deploying faucet...')
-    # deploy_faucet_call, faucet = deployer.create_deployment_call(
-    # class_hash=faucet_class_hash,
-    # abi=utils.FAUCET_ABI,
-    # calldata={
-    #     admin.address,
-    #     erc20,
-    #     (ALLOWED_AMOUNT_LO, ALLOWED_AMOUNT_HI),
-    #     TIME
-    # })
-    # resp = await admin.execute(deploy_faucet_call, max_fee=int(1e16))
-    # await account_client.wait_for_tx(resp.transaction_hash)
-    # print(f'✅ Success! Faucet deployed to {faucet} ')
+    print(f'⌛️ Deploying faucet...')
+    deploy_faucet_call, faucet = deployer.create_deployment_call(
+    class_hash=utils.FAUCET_HASH,
+    abi=json.loads(Path(utils.FAUCET_ABI).read_text()),
+    calldata={
+        "_owner": admin.address,
+        "_token_address": erc20,
+        "_allowed_amount": {"low":ALLOWED_AMOUNT_LO, "high":ALLOWED_AMOUNT_HI},
+        "_time": TIME,
+    })
+    resp = await admin.execute(deploy_faucet_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! Faucet deployed to {faucet} ')
+
+
+    print(f'⌛️ Funding faucet...')
+    erc20_contract = await Contract.from_address(client=admin, address=erc20)
+    invocation = await erc20_contract.functions["transfer"].invoke(faucet, {"low":INITIAL_FUNDING_LO, "high":INITIAL_FUNDING_HI}, max_fee=int(1e16))
+    await invocation.wait_for_acceptance()
+
+    print(f'✅ Success! Faucet  has been funded ')
+    (balance,) = await erc20_contract.functions["balanceOf"].call(faucet)
+    print(f'💰 Faucet Balance : {balance} ')
 
 
 
