@@ -64,9 +64,9 @@ func id_to_drip_manager(id: felt) -> (drip: felt) {
 // @param: _oracle_transit: Address of the oracle transit contract
 // @param: _drip_hash : drip hash 
 @constructor
-func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_owner : felt, _treasuary: felt, _oracle_transit: felt, _drip_hash: felt) {
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(_owner : felt, _treasury: felt, _oracle_transit: felt, _drip_hash: felt) {
     Ownable.initializer(_owner);
-    treasury.write(_treasuary);
+    treasury.write(_treasury);
     oracle_transit.write(_oracle_transit);
     drip_hash.write(_drip_hash);
     return();

@@ -59,6 +59,7 @@ func derivative_to_price_feed(derivative: felt) -> (res: felt) {
 // @notice: Oracle Transit Constructor
 // @param: _oracle Primitive Oracle (felt)
 // @param: _registery Registery (felt)
+@constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle: felt, _registery: felt) {
     with_attr error_message("zero address") {
         assert_not_zero(_oracle);

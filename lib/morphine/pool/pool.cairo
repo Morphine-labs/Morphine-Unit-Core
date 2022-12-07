@@ -322,7 +322,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256, _receiver: felt
 ) -> (shares: Uint256) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
 
     let (shares_) = previewDeposit(_assets);
@@ -352,7 +352,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     expected_liquidity.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     Deposit.emit(caller_, _receiver, _assets, shares_);
     return (shares_,);
 }
@@ -366,7 +366,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256, _receiver: felt
 ) -> (assets: Uint256) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
 
     let (assets_) = previewMint(_shares);
@@ -397,7 +397,7 @@ func mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     expected_liquidity.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     Deposit.emit(caller_, _receiver, assets_, _shares);
     return (assets_,);
 }
@@ -413,7 +413,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _assets: Uint256, _receiver: felt, _owner: felt
 ) -> (shares: Uint256) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
     let (registery_) = RegisteryAccess.registery();
     let (treasury_) = IRegistery.getTreasury(registery_);
@@ -466,7 +466,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     expected_liquidity.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     Withdraw.emit(_owner, _receiver, _assets, shares_);
     return (shares_,);
 }
@@ -481,7 +481,7 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256, _receiver: felt, _owner: felt
 ) -> (assets: Uint256) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
 
     let (assets_) = convertToAssets(_shares);
@@ -519,7 +519,7 @@ func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     expected_liquidity.write(new_expected_liqudity_);
     update_borrow_rate(Uint256(0, 0));
 
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     Withdraw.emit(_owner, _receiver, remaining_assets_, _shares);
     return (remaining_assets_,);
 }
@@ -534,7 +534,7 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrow_amount: Uint256, _drip: felt
 ) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
     assert_only_drip_manager();
     assert_borrow_not_frozen();
@@ -548,7 +548,7 @@ func borrow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (total_borrowed_) = total_borrowed.read();
     let (new_total_borrowed_) = SafeUint256.add(total_borrowed_, _borrow_amount);
     total_borrowed.write(new_total_borrowed_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     Borrow.emit(_drip, _borrow_amount);
     return ();
 }
@@ -562,7 +562,7 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     _borrowed_amount: Uint256, _profit: Uint256, _loss: Uint256
 ) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
     assert_only_drip_manager();
     assert_repay_not_frozen();
@@ -603,7 +603,7 @@ func repayDripDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     let (total_borrowed_) = total_borrowed.read();
     let (new_total_borrowed_) = SafeUint256.sub_le(total_borrowed_, _borrowed_amount);
     total_borrowed.write(new_total_borrowed_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     RepayDebt.emit(_borrowed_amount, _profit, _loss);
     return ();
 }

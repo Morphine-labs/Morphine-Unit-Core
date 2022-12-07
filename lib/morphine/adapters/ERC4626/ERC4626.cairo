@@ -99,7 +99,7 @@ func targetContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 // @return: amount of tokens deposited
 @external 
 func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (shares: Uint256) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = dripManager();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
@@ -108,10 +108,10 @@ func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     let (is_lt_) = uint256_lt(Uint256(0,0), balance_);
     if(is_lt_ == 1){
         let (shares_) = _deposit(drip_, balance_, 1);
-        ReentrancyGuard._end();
+        ReentrancyGuard.end();
         return (shares_,);
     } else {
-        ReentrancyGuard._end();
+        ReentrancyGuard.end();
         return (Uint256(0,0),);
     }
 }
@@ -121,12 +121,12 @@ func depositAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 // @return: shares amount of shares
 @external 
 func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_amount: Uint256) -> (shares: Uint256) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = dripManager();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     let (shares_) = _deposit(drip_, _amount, 0);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (shares_,);
 }
 
@@ -134,7 +134,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_a
 // @return: amount of tokens redeemed
 @external
 func redeemAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (assets: Uint256) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = dripManager();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
@@ -143,10 +143,10 @@ func redeemAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (is_lt_) = uint256_lt(Uint256(0,0), balance_);
     if(is_lt_ == 1){
         let (assets_) = _redeem(drip_, balance_, 1);
-        ReentrancyGuard._end();
+        ReentrancyGuard.end();
         return (assets_,);
     } else {
-        ReentrancyGuard._end();
+        ReentrancyGuard.end();
         return (Uint256(0,0),);
     }
 }
@@ -156,12 +156,12 @@ func redeemAll{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 // @return: amount of assets redeemed
 @external 
 func redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_amount: Uint256) -> (assets: Uint256) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     let (assets_) = _redeem(drip_, _amount, 0);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (assets_,);
 }
 
