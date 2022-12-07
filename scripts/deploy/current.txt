@@ -1,0 +1,8 @@
+ETH DAI faucet
+empiric
+erc4626
+set empiric dai + eth
+deploy erc4626 pricefeed
+deploy Core
+setPrimitive dai + eth
+setDerivative VMETH

@@ -277,7 +277,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _on_belhalf_of: felt
 ) -> (drip: felt) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     Pausable.assert_not_paused();
     assert_only_drip_transit();
     let (pool_) = pool.read();
@@ -287,7 +287,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     IPool.borrow(pool_, _borrowed_amount, drip_);
     safe_drip_set(_on_belhalf_of, drip_);
     enabled_tokens.write(drip_, Uint256(1, 0));
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (drip_,);
 }
 
@@ -303,7 +303,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     _borrower: felt, _type: felt, _total_value: Uint256, _payer: felt, _to: felt
 ) -> (remainingFunds: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_only_drip_transit();
     let (is_paused_) = Pausable.is_paused();
     let (can_liquidate_while_paused_) = can_liquidate_while_paused.read(_payer);
@@ -368,7 +368,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     transfer_assets_to(drip_, _to);
     let (drip_factory_) = drip_factory.read();
     IDripFactory.returnDrip(drip_factory_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (remaining_funds_,);
 }
 
@@ -382,12 +382,12 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     _payer: felt, _drip: felt, _token: felt, _amount: Uint256
 ) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_only_drip_transit();
     Pausable.assert_not_paused();
     check_and_enable_token(_drip, _token);
     SafeERC20.transferFrom(_token, _payer, _drip, _amount);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return ();
 }
 
@@ -401,7 +401,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     _drip: felt, _amount: Uint256, _increase: felt
 ) -> (newBorrowedAmount: Uint256) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_only_drip_transit();
     Pausable.assert_not_paused();
     let (borrowed_amount_, cumulative_index_, current_cumulative_index_) = dripParameters(_drip);
@@ -412,7 +412,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         let (cumulative_index_at_borrow_more_) = calc_new_cumulative_index(borrowed_amount_, _amount, current_cumulative_index_, cumulative_index_, 1);
         IPool.borrow(pool_, _amount, _drip);
         IDrip.updateParameters(_drip, new_borrowed_amount_, cumulative_index_at_borrow_more_);
-        ReentrancyGuard._end();
+        ReentrancyGuard.end();
         return (new_borrowed_amount_,);
     } else {
         let (step1_) = SafeUint256.mul(borrowed_amount_, current_cumulative_index_);
@@ -431,7 +431,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             IPool.repayDripDebt(pool_, to_repay_, profit_, Uint256(0, 0));
             let (new_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
             IDrip.updateParameters(_drip, new_borrowed_amount_, new_cumulative_index_);
-            ReentrancyGuard._end();
+            ReentrancyGuard.end();
             return(new_borrowed_amount_,);
         } else {
             let (step1_) = SafeUint256.mul(_amount, Uint256(PRECISION,0));
@@ -442,7 +442,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             IPool.repayDripDebt(pool_, Uint256(0,0), amount_to_fees_, Uint256(0, 0));
             let (new_cumulative_index_) = calc_new_cumulative_index(borrowed_amount_, amount_to_interest_, current_cumulative_index_, cumulative_index_, 0);
             IDrip.updateParameters(_drip, borrowed_amount_, new_cumulative_index_);
-            ReentrancyGuard._end();
+            ReentrancyGuard.end();
             return(borrowed_amount_,);
         }
     }
@@ -458,7 +458,7 @@ func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     _borrower: felt, _target: felt, _token: felt, _amount: Uint256
 ) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_not_paused_or_emergency();
     let (caller_) = get_caller_address();
     let (adapter_to_contract_) = adapter_to_contract.read(caller_);
@@ -485,7 +485,7 @@ func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     }
     let (drip_) = getDripOrRevert(_borrower);
     IDrip.approveToken(drip_, _token, _target, _amount);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return ();
 }
 
@@ -502,7 +502,7 @@ func executeOrder{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     _borrower: felt, _to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*
 ) -> (retdata_len: felt, retdata: felt*) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_not_paused_or_emergency();
     let (caller_) = get_caller_address();
     let (adapter_to_contract_) = adapter_to_contract.read(caller_);
@@ -514,7 +514,7 @@ func executeOrder{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     let (retdata_len: felt, retdata: felt*) = IDrip.execute(
         drip_, _to, _selector, _calldata_len, _calldata
     );
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (retdata_len, retdata);
 }
 
@@ -525,11 +525,11 @@ func executeOrder{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 func checkAndEnableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
     _drip: felt, _token: felt
 ) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_not_paused_or_emergency();
     assert_only_drip_transit_or_adapters();
     check_and_enable_token(_drip, _token);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return ();
 }
 
@@ -545,9 +545,9 @@ func disableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     alloc_locals;
     assert_not_paused_or_emergency();
     assert_only_drip_transit_or_adapters();
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (was_changed_) = disable_token(_drip, _token);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return (was_changed_,);
 }
 
@@ -558,13 +558,13 @@ func disableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 func transferDripOwnership{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _from: felt, _to: felt
 ) {
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_only_drip_transit();
     assert_not_paused_or_emergency();
     let (drip_) = getDripOrRevert(_from);
     borrower_to_drip.write(_from, 0);
     safe_drip_set(_to, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return ();
 }
 
@@ -579,10 +579,10 @@ func fullCollateralCheck{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     _drip: felt
 ) {
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     assert_only_drip_transit_or_adapters();
     full_collateral_check(_drip);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return ();
 }
 

@@ -197,7 +197,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, b
         _on_belhalf_of: felt,
         _leverage_factor: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     revert_if_open_drip_not_allowed(_on_belhalf_of);
     let (step1_) = SafeUint256.mul(_amount, _leverage_factor);
     let (borrowed_amount_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
@@ -219,7 +219,7 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, b
     OpenDrip.emit(_on_belhalf_of, drip_, borrowed_amount_);
     let (underlying_) = underlying.read();
     add_collateral(_on_belhalf_of, drip_, underlying_, _amount);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -239,7 +239,7 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
         _calldata_len: felt,
         _calldata: felt*){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     revert_if_open_drip_not_allowed(_on_belhalf_of);
     check_and_update_borrowed_block_limit(_borrowed_amount);
     revert_if_out_borrowed_limits(_borrowed_amount);
@@ -263,7 +263,7 @@ func openDripMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
         tempvar bitwise_ptr = bitwise_ptr;
     }
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -281,7 +281,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
         _calldata_len: felt,
         _calldata: felt*){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
@@ -303,7 +303,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
 
     IDripManager.closeDrip(drip_manager_, caller_, 0,  Uint256(0,0),caller_, _to);
     CloseDrip.emit(caller_, _to);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -323,7 +323,7 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         _calldata_len: felt,
         _calldata: felt*){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _borrower);
     with_attr error_message("zero address"){
@@ -367,7 +367,7 @@ func liquidateDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     let (caller_) = get_caller_address();
     let (remaining_funds_) = IDripManager.closeDrip(drip_manager_, _borrower, 1, total_value_, caller_, _to);
     LiquidateDrip.emit(_borrower, caller_, _to, remaining_funds_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -387,7 +387,7 @@ func liquidateExpiredDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
         _calldata_len: felt,
         _calldata: felt*){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _borrower);
     with_attr error_message("zero address"){
@@ -432,7 +432,7 @@ func liquidateExpiredDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     let (caller_) = get_caller_address();
     let (remaining_funds_) = IDripManager.closeDrip(drip_manager_, _borrower, 2, total_value_, caller_, _to);
     LiquidateExpiredDrip.emit(_borrower, caller_, _to, remaining_funds_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -443,13 +443,13 @@ func liquidateExpiredDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
 @external
 func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     increase_debt(caller_, drip_, _amount);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -458,13 +458,13 @@ func increaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 @external
 func decreaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_amount: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     decrease_debt(caller_, drip_, _amount);
     IDripManager.fullCollateralCheck(drip_manager_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -475,12 +475,12 @@ func decreaseDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 @external
 func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_on_belhalf_of: felt, _token: felt, _amount: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, _on_belhalf_of);
     add_collateral(_on_belhalf_of, drip_, _token, _amount);
     IDripManager.checkAndOptimizeEnabledTokens(drip_manager_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -497,7 +497,7 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
         _calldata_len: felt,
         _calldata: felt*){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
@@ -516,7 +516,7 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar bitwise_ptr = bitwise_ptr;
     }
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -526,13 +526,13 @@ func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
 @external
 func enableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_token: felt){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
     enable_token(caller_, drip_, _token);
     IDripManager.checkAndOptimizeEnabledTokens(drip_manager_, drip_);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
@@ -543,7 +543,7 @@ func enableToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 @external
 func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_target: felt, _token: felt, _amount: Uint256){
     alloc_locals;
-    ReentrancyGuard._start();
+    ReentrancyGuard.start();
     let (drip_manager_) = drip_manager.read();
     let (caller_) = get_caller_address();
     let (adapter_) = IDripManager.contractToAdapter(drip_manager_, _target);
@@ -551,7 +551,7 @@ func approve{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bi
         assert_not_zero(adapter_);
     }
     IDripManager.approveDrip(drip_manager_, caller_, _target, _token, _amount);
-    ReentrancyGuard._end();
+    ReentrancyGuard.end();
     return();
 }
 
