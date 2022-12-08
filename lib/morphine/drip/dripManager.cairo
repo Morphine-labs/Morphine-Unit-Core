@@ -1392,7 +1392,6 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 // @param: _drip_cumulative_index Drip Cumulative Index (Uint256)
 // @param: is_increase Increase Debt if 1, Decrease Debt else (felt)
 // @return: new_cumulative_index New Cumulative Index (Uint256)
-_current_cumulative_index
 func calc_new_cumulative_index{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrowed_amount: Uint256, _delta: Uint256, _current_cumulative_index: Uint256, _drip_cumulative_index: Uint256, is_increase: felt) -> (new_cumulative_index: Uint256) {
     alloc_locals;
     if(is_increase == 1){

@@ -144,7 +144,7 @@ func tokenOfOwnerByIndex{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_c
 func supportsInterface{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _interfaceId: felt
 ) -> (success: felt) {
-    return ERC165.supports_interface(interfaceId);
+    return ERC165.supports_interface(_interfaceId);
 }
 
 // @notice : Get the ERC721 name

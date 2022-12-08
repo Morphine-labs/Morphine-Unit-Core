@@ -39,6 +39,12 @@ DRIP_FACTORY_SOURCE_CODE = "../../lib/morphine/drip/dripFactory.cairo"
 ORACLE_TRANSIT_SOURCE_CODE = "../../lib/morphine/oracle/oracleTransit.cairo"
 INTEREST_RATE_MODEL_SOURCE_CODE = "../../lib/morphine/pool/linearInterestRateModel.cairo"
 POOL_SOURCE_CODE = "../../lib/morphine/pool/pool.cairo"
+PASS_SOURCE_CODE = "../../lib/morphine/token/morphinePass.cairo"
+MINTER_SOUCRE_CODE = "../../lib/morphine/token/minter.cairo"
+DRIP_MANAGER_SOURCE_CODE = "../../lib/drip/dripManager.cairo"
+DRIP_TRANSIT_SOURCE_CODE = "../../lib/drip/dripTransit.cairo"
+DRIP_CONFIGURATOR_SOURCE_CODE = "../../lib/drip/dripConfigurator.cairo"
+DRIP_INFRA_FACTORY_SOURCE_CODE = "../../lib/deployment/dripInfraFactory.cairo"
 
 
 ## HASH
@@ -55,6 +61,7 @@ ORACLE_TRANSIT_HASH = 1102954667229741963948847799486493325283950793995721023205
 INTEREST_RATE_MODEL_HASH = 1082642635321285981211985190038968243353495468799428202225732642323319566301
 POOL_HASH = 2068719357389587093117220843425794625257440204655673718455302627313576042071
 
+
 ## CONTRACTS ABI
 ERC20_ABI = "../../build/erc20_abi.json"
 FAUCET_ABI ="../../build/faucet_abi.json"
@@ -64,6 +71,16 @@ REGISTERY_ABI = "../../build/registery_abi.json"
 DRIP_FACTORY_ABI = "../../build/drip_factory_abi.json"
 INTEREST_RATE_MODEL_ABI= "../../build/interest_rate_model_abi.json"
 POOL_ABI= "../../build/pool_abi.json"
+PASS_ABI= "../../build/pass_abi.json"
+MINTER_ABI = "../../build/minter_abi.json"
+DRIP_MANAGER_ABI = "../../build/drip_manager_abi.json"
+DRIP_CONFIGURATOR_ABI = "../../build/drip_configurator_abi.json"
+DRIP_TRANSIT_ABI = "../../build/drip_transit_abi.json"
+DRIP_INFRA_FACTORY_ABI = "../../build/drip_infra_factory_abi.json"
+
+
+
+
 
 
 ## CONTRACT ADDRESSES TOKEN
