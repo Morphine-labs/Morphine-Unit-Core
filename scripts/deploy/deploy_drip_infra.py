@@ -99,13 +99,33 @@ async def deploy():
     class_hash=pass_class_hash,
     abi=json.loads(Path(utils.PASS_ABI).read_text()),
     calldata={
-        "_optimal_liquidity_utilization": {"low":OPTIMAL_RATE_LO, "high":OPTIMAL_RATE_HI},
-        "_slope1": {"low":SLOPE1_LO, "high":SLOPE1_HI},
-        "_slope2": {"low":SLOPE2_LO, "high":SLOPE2_HI},
-        "_base_rate": {"low":BASE_RATE_LO, "high":BASE_RATE_HI}})
-    resp = await admin.execute(deploy_interest_rate_model_call, max_fee=int(1e16))
+        "_name": PASS_TOKEN_NAME,
+        "_symbol": PASS_TOKEN_SYMBOL,
+        "_registery": utils.REGISTERY})
+    resp = await admin.execute(deploy_pass_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
-    print(f'✅ Success! Interest Rate Model deployed to {interest_rate_model} ')
+    print(f'✅ Success! Pass deployed to {pass_} ')
+
+    print(f'⌛️ Deploying Minter...')
+    deploy_minter_call, minter_ = deployer.create_deployment_call(
+    class_hash=minter_class_hash,
+    abi=json.loads(Path(utils.MINTER_ABI).read_text()),
+    calldata={"_nft_contract": pass_})
+    resp = await admin.execute(deploy_minter_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! Pass deployed to {minter_} ')
+
+    print(f'⌛️ Deploying Drip Infra Factory...')
+    deploy_drip_infra_factory_call, drip_manager = deployer.create_deployment_call(
+    class_hash=drip_infra_factory_class_hash,
+    abi=json.loads(Path(utils.DRIP_INFRA_FACTORY_ABI).read_text()),
+    calldata={"_drip_manager_hash": drip_manager_class_hash,
+            "_drip_transit_hash": drip_transit_class_hash,
+            "drip_configurator": drip_configurator_class_hash})
+    resp = await admin.execute(deploy_minter_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! Pass deployed to {minter_} ')
+    
 
 
     # print(f'⌛️ Deploying Pool...')
