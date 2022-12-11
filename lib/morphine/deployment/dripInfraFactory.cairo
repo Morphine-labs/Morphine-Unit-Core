@@ -119,6 +119,8 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert drip_configurator_calldata_[5] = _maximum_borrowed_amount.high;
     assert drip_configurator_calldata_[6] = _allowed_tokens_len;
     memcpy(drip_configurator_calldata_ + 7, _allowed_tokens, _allowed_tokens_len * 3);
+         assert 2 = 0;
+
     let (drip_configurator_address_) = get_contract_address{hash_ptr= pedersen_ptr}(_salt, drip_configurator_hash_, 7 + _allowed_tokens_len * 3, drip_configurator_calldata_, _drip_infra_factory);
     IDripManager.setConfigurator(drip_manager_, drip_configurator_address_);
     let (drip_configurator_) = deploy(drip_configurator_hash_, _salt, 7 + _allowed_tokens_len*3, drip_configurator_calldata_, 0);
