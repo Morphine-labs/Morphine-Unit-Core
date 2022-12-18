@@ -10,6 +10,8 @@ from starkware.starknet.common.syscalls import get_caller_address, get_block_tim
 from openzeppelin.access.ownable.library import Ownable
 from openzeppelin.token.erc20.IERC20 import IERC20
 from morphine.interfaces.IFaucet import IFaucet
+from morphine.interfaces.IRegistery import IRegistery
+from morphine.interfaces.IPool import IPool
 
 
 /// @title: Data Provider
@@ -18,6 +20,16 @@ from morphine.interfaces.IFaucet import IFaucet
 /// @custom:experimental This is an experimental contract. LP Pricing to think.
 
 struct FaucetInfo {
+    token_address: felt,  
+    user_balance: Uint256,  
+    remaining_time: felt,
+}
+
+
+struct PoolInfo {
+    pool_address: felt,
+    underlying: felt,
+    is_paused: felt,
     token_address: felt,  
     user_balance: Uint256,  
     remaining_time: felt,
@@ -45,6 +57,46 @@ func recursive_faucet_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     if(faucet_array_len == 0){
         return();
     }
+    let (token_address_) = IFaucet.get_token_address(faucet_array[0]);
+    assert faucet_info[0].token_address = token_address_;
+
+    let (user_balance_) = IERC20.balanceOf(token_address_, _user);
+    assert faucet_info[0].user_balance = user_balance_;
+
+    let (state_) = IFaucet.isAllowedForTransaction(faucet_array[0], _user);
+
+    if(state_ == 1){
+        assert faucet_info[0].remaining_time = 0;
+        return recursive_faucet_info(_user, faucet_array_len - 1, faucet_array + 1, faucet_info + FaucetInfo.SIZE);
+    }   else {
+        let (allowed_time_) = IFaucet.get_allowed_time(faucet_array[0], _user);
+        let (block_timestamp_) = get_block_timestamp();
+        let remaining_time_ = allowed_time_ - block_timestamp_;
+        assert faucet_info[0].remaining_time = remaining_time_;
+        return recursive_faucet_info(_user, faucet_array_len - 1, faucet_array + 1, faucet_info + FaucetInfo.SIZE);
+    }
+}
+
+
+@view
+func poolListInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) -> (
+    pool_info_len: felt, pool_info: PoolInfo*
+) {
+    alloc_locals;
+    let (pool_info: PoolInfo*) = alloc();
+    let (pool_info_len:felt) = IRegistery.poolsLength(_registery);
+    recursive_pool_info(_registery, pool_info_len, 0, pool_info);
+    return (pool_info_len, pool_info,);
+}
+
+func recursive_pool_list_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, pool_info_len: felt, _index: felt, pool_info: PoolInfo*) {
+    alloc_locals;
+    if(_index == pool_info_len){
+        return();
+    }
+    let (pool_) = IRegistery.idToPool(_registery, _index)
+
+
     let (token_address_) = IFaucet.get_token_address(faucet_array[0]);
     assert faucet_info[0].token_address = token_address_;
 

@@ -124,7 +124,7 @@ async def deploy():
     class_hash=drip_infra_factory_class_hash,
     abi=json.loads(Path(utils.DRIP_INFRA_FACTORY_ABI).read_text()),
     calldata={"_drip_manager_hash": utils.DRIP_MANAGER_HASH,
-            "_drip_transit_hash": utils.DRIP_CONFIGURATOR_HASH,
+            "_drip_transit_hash": utils.DRIP_TRANSIT_HASH,
             "_drip_configurator_hash": utils.DRIP_CONFIGURATOR_HASH})
     resp = await admin.execute(deploy_drip_infra_factory_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
@@ -139,8 +139,11 @@ async def deploy():
         utils.PASS, 
         1,
         {"low": MINIMUM_BORROWED_AMOUNT_LO, "high": MINIMUM_BORROWED_AMOUNT_HI},
-        {"low": MAXIMUM_BORROWED_AMOUNT_LO, "high": MINIMUM_BORROWED_AMOUNT_HI},
-        [],
+        {"low": MAXIMUM_BORROWED_AMOUNT_LO, "high": MAXIMUM_BORROWED_AMOUNT_HI},
+        [
+        {"address": utils.METH_TOKEN, {"low": METH_TOKEN_LT_POOL_DAI, "high": 0}},
+        {"address": utils.VMETH, {"low": VMETH_TOKEN_LT_POOL_DAI, "high": 0}}
+        ],
         0,
         max_fee=int(1e17)
     )

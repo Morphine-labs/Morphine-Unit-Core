@@ -6,3 +6,6 @@ deploy erc4626 pricefeed
 deploy Core
 setPrimitive dai + eth
 setDerivative VMETH
+
+
+pool 
