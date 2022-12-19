@@ -637,6 +637,22 @@ func isRepayFrozen{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     return(is_repay_frozen_,);
 }
 
+// @notice get interest rate model address
+// @return interest rate model address
+@view
+func interestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (interestRateModel: felt) {
+    let (interest_rate_model_) = interest_rate_model.read();
+    return (interest_rate_model_,);
+}
+
+// @notice get connected drip manager address
+// @return drip manager address
+@view
+func connectedDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt) {
+    let (drip_manager_) = drip_manager.read();
+    return (drip_manager_,);
+}
+
 
 // @notice get registery 
 // @return registery registrey address 
@@ -1097,6 +1113,7 @@ func symbol{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -
     let (symbol_) = ERC20.symbol();
     return (symbol_,);
 }
+
 
 // @notice get totalSupply
 // @return totalSupply
