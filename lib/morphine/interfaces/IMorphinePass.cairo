@@ -16,6 +16,9 @@ namespace IMorphinePass {
     func totalSupply() -> (totalSupply: Uint256) {
     }
 
+    func baseURI() -> (baseURI: felt) {
+    }
+
     func tokenByIndex(index: Uint256) -> (tokenId: Uint256) {
     }
 

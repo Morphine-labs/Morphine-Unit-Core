@@ -86,6 +86,12 @@ namespace IPool {
     func isRepayFrozen() -> (state: felt) {
     }
 
+    func interestRateModel() -> (interestRateModel: felt) {
+    }
+
+    func connectedDripManager() -> (dripManager: felt) {
+    }
+
     func getRegistery() -> (registery: felt) {
     }
 

@@ -1382,7 +1382,7 @@ func check_if_emergency_liquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
         return ();
     }
 
-)
+
 
 // @notice: is_equal
 // @param: _a first arg (felt)

@@ -26,8 +26,8 @@ OPTIMAL_RATE_LO = 80*10**16
 OPTIMAL_RATE_HI = 0
 
 # Pool
-ERC4626_NAME = 'Pool dai'
-ERC4626_SYMBOL = 'PDAI'
+POOL_NAME = 'Pool dai'
+POOL_SYMBOL = 'PDAI'
 EXPECTED_LIQUIDITY_LIMIT_LO = 50000000*10**6
 EXPECTED_LIQUIDITY_LIMIT_HI = 0
 
@@ -95,16 +95,19 @@ async def deploy():
     calldata={
         "_registery": utils.REGISTERY,
         "_asset": utils.MDAI_TOKEN,
-        "_name": ERC4626_NAME,
-        "_symbol": ERC4626_SYMBOL,
+        "_name": POOL_NAME,
+        "_symbol": POOL_SYMBOL,
         "_expected_liquidity_limit": {"low":EXPECTED_LIQUIDITY_LIMIT_LO, "high":EXPECTED_LIQUIDITY_LIMIT_HI},
         "_interest_rate_model": interest_rate_model})
     resp = await admin.execute(deploy_pool_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
     print(f'✅ Success! Pool deployed to {pool} ')
 
-
-
+    print(f'⌛️ Saving Pool to registery...')
+    registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
+    invocation = await registery_contract.functions["addPool"].invoke(pool, max_fee=int(1e16))
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! ')
    
 loop = asyncio.get_event_loop()
 loop.run_until_complete(deploy())
