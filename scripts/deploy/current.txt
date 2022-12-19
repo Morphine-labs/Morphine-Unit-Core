@@ -7,5 +7,7 @@ deploy Core
 setPrimitive dai + eth
 setDerivative VMETH
 
+pool Dai Added to registery
+pool Eth Added to registery 
 
-pool 
+deployed dataProvider

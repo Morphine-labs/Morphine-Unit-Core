@@ -39,19 +39,19 @@ async def deploy():
 
     deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
 
-    # print(f'⌛️ Declaring Data Provider...')
-    # declare_transaction_dp = await admin.sign_declare_transaction(
-    # compilation_source=Path(utils.DP_SOURCE_CODE).read_text(), max_fee=int(1e16)
-    # )
-    # resp = await admin.declare(transaction=declare_transaction_dp)
-    # await admin.wait_for_tx(resp.transaction_hash)
-    # dp_class_hash = resp.class_hash
+    print(f'⌛️ Declaring Data Provider...')
+    declare_transaction_dp = await admin.sign_declare_transaction(
+    compilation_source=Path(utils.DP_SOURCE_CODE).read_text(), max_fee=int(1e16)
+    )
+    resp = await admin.declare(transaction=declare_transaction_dp)
+    await admin.wait_for_tx(resp.transaction_hash)
+    dp_class_hash = resp.class_hash
 
-    # print(f'✅ Success! Class Hash: {dp_class_hash} ')
+    print(f'✅ Success! Class Hash: {dp_class_hash} ')
     
     print(f'⌛️ Deploying data Provider...')
     deploy_dp_call, dp = deployer.create_deployment_call(
-    class_hash=utils.DP_HASH)
+    class_hash=dp_class_hash)
     resp = await admin.execute(deploy_dp_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
     print(f'✅ Success! Data Provider deployed to {dp} ')

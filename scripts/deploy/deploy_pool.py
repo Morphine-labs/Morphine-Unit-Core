@@ -26,9 +26,9 @@ OPTIMAL_RATE_LO = 80*10**16
 OPTIMAL_RATE_HI = 0
 
 # Pool
-POOL_NAME = 'Pool dai'
-POOL_SYMBOL = 'PDAI'
-EXPECTED_LIQUIDITY_LIMIT_LO = 50000000*10**6
+POOL_NAME = 'Pool ethereum'
+POOL_SYMBOL = 'PETH'
+EXPECTED_LIQUIDITY_LIMIT_LO = 2000*10**18
 EXPECTED_LIQUIDITY_LIMIT_HI = 0
 
 
@@ -57,26 +57,26 @@ async def deploy():
 
     deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
 
-    print(f'⌛️ Declaring Interest Rate Model...')
-    declare_transaction_interest_rate_model = await admin.sign_declare_transaction(
-    compilation_source=Path(utils.INTEREST_RATE_MODEL_SOURCE_CODE).read_text(), max_fee=int(1e16))
-    resp = await admin.declare(transaction=declare_transaction_interest_rate_model)
-    await admin.wait_for_tx(resp.transaction_hash)
-    interest_rate_model_class_hash = resp.class_hash
-    print(f'✅ Success! Class Hash: {interest_rate_model_class_hash} ')
+    # print(f'⌛️ Declaring Interest Rate Model...')
+    # declare_transaction_interest_rate_model = await admin.sign_declare_transaction(
+    # compilation_source=Path(utils.INTEREST_RATE_MODEL_SOURCE_CODE).read_text(), max_fee=int(1e16))
+    # resp = await admin.declare(transaction=declare_transaction_interest_rate_model)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # interest_rate_model_class_hash = resp.class_hash
+    # print(f'✅ Success! Class Hash: {interest_rate_model_class_hash} ')
 
-    print(f'⌛️ Declaring Pool...')
-    declare_transaction_pool = await admin.sign_declare_transaction(
-    compilation_source=Path(utils.POOL_SOURCE_CODE).read_text(), max_fee=int(1e16))
-    resp = await admin.declare(transaction=declare_transaction_pool)
-    await admin.wait_for_tx(resp.transaction_hash)
-    pool_class_hash = resp.class_hash
-    print(f'✅ Success! Class Hash: {pool_class_hash} ')
+    # print(f'⌛️ Declaring Pool...')
+    # declare_transaction_pool = await admin.sign_declare_transaction(
+    # compilation_source=Path(utils.POOL_SOURCE_CODE).read_text(), max_fee=int(1e16))
+    # resp = await admin.declare(transaction=declare_transaction_pool)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # pool_class_hash = resp.class_hash
+    # print(f'✅ Success! Class Hash: {pool_class_hash} ')
     
 
     print(f'⌛️ Deploying Interest Rate Model...')
     deploy_interest_rate_model_call, interest_rate_model = deployer.create_deployment_call(
-    class_hash=interest_rate_model_class_hash,
+    class_hash=utils.INTEREST_RATE_MODEL_HASH,
     abi=json.loads(Path(utils.INTEREST_RATE_MODEL_ABI).read_text()),
     calldata={
         "_optimal_liquidity_utilization": {"low":OPTIMAL_RATE_LO, "high":OPTIMAL_RATE_HI},
@@ -90,11 +90,11 @@ async def deploy():
 
     print(f'⌛️ Deploying Pool...')
     deploy_pool_call, pool = deployer.create_deployment_call(
-    class_hash=pool_class_hash,
+    class_hash=utils.POOL_HASH,
     abi=json.loads(Path(utils.POOL_ABI).read_text()),
     calldata={
         "_registery": utils.REGISTERY,
-        "_asset": utils.MDAI_TOKEN,
+        "_asset": utils.METH_TOKEN,
         "_name": POOL_NAME,
         "_symbol": POOL_SYMBOL,
         "_expected_liquidity_limit": {"low":EXPECTED_LIQUIDITY_LIMIT_LO, "high":EXPECTED_LIQUIDITY_LIMIT_HI},
