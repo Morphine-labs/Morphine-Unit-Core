@@ -47,7 +47,7 @@ async def call():
 
     print(f'⌛️ Setting Primitive...')
     oracle_transit_contract = await Contract.from_address(client=admin, address=utils.ORACLE_TRANSIT)
-    invocation = await oracle_transit_contract.functions["addPrimitive"].invoke(utils.MDAI_TOKEN, utils.DAI_USD, max_fee=int(1e16))
+    invocation = await oracle_transit_contract.functions["addPrimitive"].invoke(utils.MBTC_TOKEN, utils.BTC_USD, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
 

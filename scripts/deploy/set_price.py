@@ -48,7 +48,7 @@ async def call():
 
     print(f'⌛️ Setting Token PriceFeed...')
     empiric_contract = await Contract.from_address(client=admin, address=utils.EMPIRIC)
-    invocation = await empiric_contract.functions["set_spot_median"].invoke(utils.DAI_USD, utils.DAI_PRICE, DECIMALS, LAST_UP, NUM_SOURCE, max_fee=int(1e16))
+    invocation = await empiric_contract.functions["set_spot_median"].invoke(utils.BTC_USD, utils.BTC_PRICE, DECIMALS, LAST_UP, NUM_SOURCE, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
 

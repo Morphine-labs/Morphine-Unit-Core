@@ -22,13 +22,13 @@ SLOPE2_LO = 1*10**18
 SLOPE2_HI = 0
 BASE_RATE_LO =  0
 BASE_RATE_HI =  0
-OPTIMAL_RATE_LO = 80*10**16
+OPTIMAL_RATE_LO = 85*10**16
 OPTIMAL_RATE_HI = 0
 
 # Pool
-POOL_NAME = 'Pool ethereum'
-POOL_SYMBOL = 'PETH'
-EXPECTED_LIQUIDITY_LIMIT_LO = 2000*10**18
+POOL_NAME = 'Pool Bitcoin'
+POOL_SYMBOL = 'PBTC'
+EXPECTED_LIQUIDITY_LIMIT_LO = 500*10**18
 EXPECTED_LIQUIDITY_LIMIT_HI = 0
 
 
@@ -94,7 +94,7 @@ async def deploy():
     abi=json.loads(Path(utils.POOL_ABI).read_text()),
     calldata={
         "_registery": utils.REGISTERY,
-        "_asset": utils.METH_TOKEN,
+        "_asset": utils.MBTC_TOKEN,
         "_name": POOL_NAME,
         "_symbol": POOL_SYMBOL,
         "_expected_liquidity_limit": {"low":EXPECTED_LIQUIDITY_LIMIT_LO, "high":EXPECTED_LIQUIDITY_LIMIT_HI},
