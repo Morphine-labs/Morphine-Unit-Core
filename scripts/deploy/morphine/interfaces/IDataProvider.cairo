@@ -8,6 +8,41 @@ struct FaucetInfo {
     remaining_time: felt,
 }
 
+struct TokenInfo {
+    token_address: felt,  
+    user_balance: Uint256,  
+    value: Uint256,
+}
+
+struct PoolTokenInfo {
+    token_address: felt,  
+    user_balance: Uint256,  
+    value: Uint256,
+    apr: Uint256,
+}
+
+struct NftInfo {
+    token_address: felt,  
+    has_token: felt,  
+    uri: felt,
+}
+
+struct DripMiniInfo {
+    token_address: felt,
+    total_balance: Uint256,  
+    user_balance: Uint256,  
+    health_factor: Uint256,
+}
+
+struct DripListInfo {
+    token_address: felt,
+    nft: felt,  
+    borrow_rate: Uint256,  
+    pool_liq: Uint256,
+    pool_liq_usd: Uint256,
+}
+
+
 struct FeesInfo {
     fee_interest: Uint256,  
     fee_liqudidation: Uint256,  

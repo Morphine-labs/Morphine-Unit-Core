@@ -17,9 +17,10 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
-from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo
+from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo
 from morphine.interfaces.IMorphinePass import IMorphinePass
 from morphine.interfaces.IOracleTransit import IOracleTransit
+from starkware.cairo.common.uint256 import ALL_ONES, uint256_eq, uint256_lt, uint256_le
 
 from morphine.utils.various import PRECISION, DEFAULT_FEE_INTEREST
 from morphine.utils.utils import pow
@@ -75,6 +76,192 @@ func recursive_faucet_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     }
 }
 
+@view
+func getUserTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, token_array_len: felt, token_array: felt*) -> (
+    tokenInfo_len: felt, tokenInfo: TokenInfo*
+) {
+    alloc_locals;
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
+    let (user_tokens: TokenInfo*) = alloc();
+    let (user_tokens_len) = recursive_token_info(oracle_transit_, _user, token_array_len, token_array, 0, user_tokens);
+    return (user_tokens_len, user_tokens,);
+}
+
+func recursive_token_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle_transit: felt, _user: felt, token_array_len: felt, token_array: felt*, token_info_len: felt, token_info: TokenInfo*) ->(token_info_len: felt) {
+    alloc_locals;
+    if(token_array_len == 0){
+        return(token_info_len,);
+    }
+
+    let (user_balance_) = IERC20.balanceOf(token_array[0], _user);
+    let (state_) = uint256_le(Uint256(1,0), user_balance_);
+
+    if(state_ == 1){
+        assert token_info[0].token_address = token_array[0];
+        assert token_info[0].user_balance = user_balance_;
+        let (token_value_) = IOracleTransit.convertToUSD(_oracle_transit, user_balance_, token_array[0]);
+        assert token_info[0].value = token_value_;
+        return recursive_token_info(_oracle_transit, _user, token_array_len - 1, token_array + 1, token_info_len + 1, token_info + TokenInfo.SIZE);
+    }   else {
+        return recursive_token_info(_oracle_transit, _user, token_array_len - 1, token_array + 1, token_info_len , token_info);
+    }
+}
+
+@view
+func getUserPoolTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, pool_token_array_len: felt, pool_token_array: felt*) -> (
+    PoolTokenInfo_len: felt, PoolTokenInfo: PoolTokenInfo*
+) {
+    alloc_locals;
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
+    let (user_pool_tokens: PoolTokenInfo*) = alloc();
+    let (user_pool_tokens_len) = recursive_pool_token_info(oracle_transit_, _user, pool_token_array_len, pool_token_array, 0, user_pool_tokens);
+    return (user_pool_tokens_len, user_pool_tokens,);
+}
+
+// @notice: recursive_faucet_info
+func recursive_pool_token_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle_transit: felt, _user: felt, pool_token_array_len: felt, pool_token_array: felt*, pool_token_info_len: felt, pool_token_info: PoolTokenInfo*) ->(pool_token_info_len: felt) {
+    alloc_locals;
+    if(pool_token_array_len == 0){
+        return(pool_token_info_len,);
+    }
+    let (user_balance_) = IERC20.balanceOf(pool_token_array[0], _user);
+    let (state_) = uint256_le(Uint256(1,0), user_balance_);
+
+    if(state_ == 1){
+        assert pool_token_info[0].token_address = pool_token_array[0];
+        assert pool_token_info[0].user_balance = user_balance_;
+        let (pool_token_value_) = IOracleTransit.convertToUSD(_oracle_transit, user_balance_, pool_token_array[0]);
+        assert pool_token_info[0].value = pool_token_value_;
+        let (borrow_rate_) = IPool.borrowRate(pool_token_array[0]);
+        let (total_assets_) = IPool.totalAssets(pool_token_array[0]);
+        if(total_assets_.low == 0){
+            assert pool_token_info[0].apr = Uint256(0,0);
+            return recursive_pool_token_info(_oracle_transit, _user, pool_token_array_len - 1, pool_token_array + 1, pool_token_info_len + 1, pool_token_info + PoolTokenInfo.SIZE,);
+        } else {
+            let (total_borrowed_) = IPool.totalBorrowed(pool_token_array[0]);
+            let (total_borrowed_precision_) = SafeUint256.mul(total_borrowed_, Uint256(PRECISION,0));
+            let (utilization_,_)= SafeUint256.div_rem(total_borrowed_precision_, total_assets_);
+            let (step1_) = SafeUint256.mul(borrow_rate_, Uint256(PRECISION - DEFAULT_FEE_INTEREST,0));
+            let (step2_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION,0));
+            let (step3_) = SafeUint256.mul(step2_, utilization_);
+            let (step4_,_) = SafeUint256.div_rem(step3_, Uint256(PRECISION,0));
+            assert pool_token_info[0].apr = step4_;
+            return recursive_pool_token_info(_oracle_transit, _user, pool_token_array_len - 1, pool_token_array + 1, pool_token_info_len + 1, pool_token_info + PoolTokenInfo.SIZE,);
+        }
+    }   else {
+        return recursive_pool_token_info(_oracle_transit, _user, pool_token_array_len - 1, pool_token_array + 1, pool_token_info_len , pool_token_info,);
+    }
+}
+
+
+@view
+func getUserPass{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_user: felt, nft_len: felt, nft: felt*) -> (
+    hasNft_len: felt, hasNft: NftInfo*
+) {
+    alloc_locals;
+    let (nft_info: NftInfo*) = alloc();
+    let (nft_info_len) = recursive_nft_info(_user, nft_len, nft, 0, nft_info);
+    return (nft_info_len, nft_info,);
+}
+
+// @notice: recursive_faucet_info
+func recursive_nft_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_user: felt, nft_array_len: felt, nft_array: felt*, has_nft_len: felt, has_nft: NftInfo*) ->(has_nft_len: felt) {
+    alloc_locals;
+    if(nft_array_len == 0){
+        return(has_nft_len,);
+    }
+    let (user_balance_) = IMorphinePass.balanceOf(nft_array[0], _user);
+    let (uri_) = IMorphinePass.baseURI(nft_array[0]);
+    let (state_) = uint256_le(Uint256(1,0), user_balance_);
+
+    if(state_ == 1){
+        assert has_nft[0].token_address = 1;
+        assert has_nft[0].has_token = 1;
+        assert has_nft[0].uri = uri_;
+        return recursive_nft_info(_user, nft_array_len - 1, nft_array + 1, has_nft_len + 1, has_nft + NftInfo.SIZE,);
+    }   else {
+        return recursive_nft_info(_user, nft_array_len - 1, nft_array + 1, has_nft_len , has_nft,);
+    }
+}
+
+@view
+func getUserDripsInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt) -> (
+    dripInfo_len: felt, dripInfo: DripMiniInfo*
+) {
+    alloc_locals;
+    let (drip_info: DripMiniInfo*) = alloc();
+    let (pool_info_len:felt) = IRegistery.poolsLength(_registery);
+    let (drip_info_len: felt) = recursive_drip_info(_registery, _user, pool_info_len, 0, 0, drip_info);
+    return (drip_info_len, drip_info,);
+}
+
+func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, pool_info_len: felt, _index: felt, drip_info_len: felt, drip_info: DripMiniInfo*) -> (drip_info_len: felt) {
+    alloc_locals;
+    if(_index == pool_info_len){
+        return(drip_info_len,);
+    }
+    let (pool_) = IRegistery.idToPool(_registery, _index);
+    let (asset_) = IPool.asset(pool_);
+    let (drip_manager_) = IPool.connectedDripManager(pool_);
+    if(drip_manager_ == 0) {
+        return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+    } else {
+        let (drip_) = IDripManager.getDrip(drip_manager_, _user);
+        if(drip_ == 0){
+            return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+        } else {    
+            let (_, _, due_amount_) = IDripManager.calcDripAccruedInterest(drip_manager_, drip_);
+            let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
+            let (total_, twv_ )  = IDripTransit.calcTotalValue(drip_transit_, drip_);
+            let (hf_ )  = IDripTransit.calcDripHealthFactor(drip_transit_, drip_);
+            let (remaining_) = SafeUint256.sub_le(total_, due_amount_);
+            assert drip_info[0].token_address = asset_;
+            assert drip_info[0].total_balance = total_;
+            assert drip_info[0].user_balance = remaining_;
+            assert drip_info[0].health_factor = hf_;
+            return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len + 1, drip_info + DripMiniInfo.SIZE);
+            
+        }
+    }
+}
+
+@view
+func dripListInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) -> (
+    dripListInfo_len: felt, dripListInfo: DripListInfo*
+) {
+    alloc_locals;
+    let (drip_list_info: DripListInfo*) = alloc();
+    let (pool_info_len:felt) = IRegistery.poolsLength(_registery);
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
+    let (drip_list_info_len:felt) = recursive_drip_list_info(_registery, oracle_transit_, pool_info_len, 0, 0, drip_list_info);
+    return (drip_list_info_len, drip_list_info,);
+}
+
+func recursive_drip_list_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _oracle_transit: felt ,pool_info_len: felt, _index: felt, drip_list_info_len: felt, drip_list_info: DripListInfo*) -> (drip_list_info_len: felt){
+    alloc_locals;
+    if(_index == pool_info_len){
+        return(drip_list_info_len,);
+    }
+    let (pool_) = IRegistery.idToPool(_registery, _index);
+    let (borrow_rate_) = IPool.borrowRate(pool_);
+    let (asset_) = IPool.asset(pool_);
+    let (available_liquidity_) = IPool.availableLiquidity(pool_);
+    let (available_liquidity_usd_) = IOracleTransit.convertToUSD(_oracle_transit, available_liquidity_, asset_);
+    let (drip_manager_) = IPool.connectedDripManager(pool_);
+    if(drip_manager_ == 0){
+        return recursive_drip_list_info(_registery, _oracle_transit, pool_info_len, _index + 1, drip_list_info_len, drip_list_info);
+    } else {
+        let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
+        let (nft_) = IDripTransit.getNft(drip_transit_);
+        assert drip_list_info[0].token_address = asset_;
+        assert drip_list_info[0].nft = nft_;
+        assert drip_list_info[0].borrow_rate = borrow_rate_;
+        assert drip_list_info[0].pool_liq = available_liquidity_;
+        assert drip_list_info[0].pool_liq_usd = available_liquidity_usd_;
+        return recursive_drip_list_info(_registery, _oracle_transit, pool_info_len, _index + 1, drip_list_info_len + 1, drip_list_info + DripListInfo.SIZE);
+    }
+}
+
 
 @view
 func poolListInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) -> (
@@ -98,7 +285,6 @@ func recursive_pool_list_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     assert pool_info[_index] = poolInfo_;
     return recursive_pool_list_info(_registery, pool_info_len, _index + 1, pool_info);
 }
-
 
 // @notice: poolInfo
 // @return: pool_info: Struct containing all info concenring a Pool
