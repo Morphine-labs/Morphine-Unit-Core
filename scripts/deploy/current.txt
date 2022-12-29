@@ -17,3 +17,8 @@ set empiric BTC
 setPrimitive BTC
 pool BTC Added to registery
 
+pool drip infra deployed + pass & minter
+
+minter set to pass
+
+
