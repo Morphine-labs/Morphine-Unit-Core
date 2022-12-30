@@ -8,6 +8,14 @@ struct FaucetInfo {
     remaining_time: felt,
 }
 
+struct MinterInfo {
+    token_address: felt,  
+    token_uri: felt,
+    minter_address: felt,  
+    is_whitelisted: felt,
+    has_minted: felt,
+}
+
 struct TokenInfo {
     token_address: felt,  
     user_balance: Uint256,  

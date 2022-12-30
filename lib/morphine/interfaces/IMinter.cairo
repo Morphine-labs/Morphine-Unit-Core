@@ -14,6 +14,9 @@ namespace IMinter {
     func hasMinted(_user: felt) -> (state: felt) {
     }
 
+    func nftContract() -> (nftContract: felt) {
+    }
+
     func mint() {
     }
 

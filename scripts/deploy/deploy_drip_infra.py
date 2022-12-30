@@ -16,14 +16,18 @@ import json
 
 
 # NFT
-PASS_TOKEN_NAME = 'MorphinePassDai'
-PASS_TOKEN_SYMBOL = 'PDAI'
+PASS_TOKEN_NAME = 'MorphinePassEth'
+PASS_TOKEN_SYMBOL = 'PETH'
 
-MINIMUM_BORROWED_AMOUNT_LO = 100000000
+# MINIMUM_BORROWED_AMOUNT_LO = 100000000
+# MINIMUM_BORROWED_AMOUNT_HI = 0
+# MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000
+# MAXIMUM_BORROWED_AMOUNT_HI = 0
+
+MINIMUM_BORROWED_AMOUNT_LO = 500000000000000000
 MINIMUM_BORROWED_AMOUNT_HI = 0
-MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000
+MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000000000000
 MAXIMUM_BORROWED_AMOUNT_HI = 0
-
 
 class _StarknetChainId(Enum):
     MAINNET = from_bytes(b"SN_MAIN")
@@ -110,14 +114,16 @@ async def deploy():
     # await admin.wait_for_tx(resp.transaction_hash)
     # print(f'✅ Success! Pass deployed to {pass_} ')
 
-    # print(f'⌛️ Deploying Minter...')
-    # deploy_minter_call, minter_ = deployer.create_deployment_call(
-    # class_hash=utils.MINTER_HASH,
-    # abi=json.loads(Path(utils.MINTER_ABI).read_text()),
-    # calldata={"_nft_contract": pass_})
-    # resp = await admin.execute(deploy_minter_call, max_fee=int(1e16))
-    # await admin.wait_for_tx(resp.transaction_hash)
-    # print(f'✅ Success! Minter deployed to {minter_} ')
+    pass_ = utils.ETH_PASS
+
+    print(f'⌛️ Deploying Minter...')
+    deploy_minter_call, minter_ = deployer.create_deployment_call(
+    class_hash=utils.MINTER_HASH,
+    abi=json.loads(Path(utils.MINTER_ABI).read_text()),
+    calldata={"_nft_contract": pass_})
+    resp = await admin.execute(deploy_minter_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! Minter deployed to {minter_} ')
 
     # print(f'⌛️ Deploying Drip Infra Factory...')
     # deploy_drip_infra_factory_call, drip_infra_factory = deployer.create_deployment_call(
@@ -133,23 +139,23 @@ async def deploy():
     drip_infra_factory_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_INFRA_FACTORY)
 
 
-    # print(f'⌛️ Deploying Drip Manager, Drip Transit and Drip Configurator...')
-    # invocation = await drip_infra_factory_contract.functions["deployDripInfra"].invoke(
-    #     utils.DRIP_INFRA_FACTORY, 
-    #     utils.POOL_DAI,
-    #     utils.PASS, 
-    #     1,
-    #     {"low": MINIMUM_BORROWED_AMOUNT_LO, "high": MINIMUM_BORROWED_AMOUNT_HI},
-    #     {"low": MAXIMUM_BORROWED_AMOUNT_LO, "high": MAXIMUM_BORROWED_AMOUNT_HI},
-    #     [
-    #     {"address": utils.METH_TOKEN, "liquidation_threshold": {"low": utils.METH_TOKEN_LT_POOL_DAI, "high": 0}},
-    #     {"address": utils.MBTC_TOKEN, "liquidation_threshold": {"low": utils.MBTC_TOKEN_LT_POOL_DAI, "high": 0}},
-    #     {"address": utils.VMETH, "liquidation_threshold": {"low": utils.VMETH_TOKEN_LT_POOL_DAI, "high": 0}},
-    #     ],
-    #     0,
-    #     max_fee=int(1e17)
-    # )
-    # await invocation.wait_for_acceptance()
+    print(f'⌛️ Deploying Drip Manager, Drip Transit and Drip Configurator...')
+    invocation = await drip_infra_factory_contract.functions["deployDripInfra"].invoke(
+        utils.DAI_DRIP_INFRA_FACTORY, 
+        utils.POOL_ETH,
+        utils.ETH_PASS, 
+        1,
+        {"low": MINIMUM_BORROWED_AMOUNT_LO, "high": MINIMUM_BORROWED_AMOUNT_HI},
+        {"low": MAXIMUM_BORROWED_AMOUNT_LO, "high": MAXIMUM_BORROWED_AMOUNT_HI},
+        [
+        {"address": utils.MDAI_TOKEN, "liquidation_threshold": {"low": utils.MDAI_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.MBTC_TOKEN, "liquidation_threshold": {"low": utils.MBTC_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.VMETH, "liquidation_threshold": {"low": utils.VMETH_TOKEN_LT_POOL_ETH, "high": 0}},
+        ],
+        1,
+        max_fee=int(1e17)
+    )
+    await invocation.wait_for_acceptance()
 
     print(f'⌛️ Fetching Drip Manager, Drip Transit and Drip Configurator addresses...')
     data = await drip_infra_factory_contract.functions["getDripInfraAddresses"].call()
@@ -160,75 +166,59 @@ async def deploy():
     drip_transit_ad = data.drip_transit
     drip_configurator_ad = data.drip_configurator
 
-    # pass_contract = await Contract.from_address(client=admin, address=utils.PASS)
-    # print(f'⌛️ Set Minter to Pass...')
-    # invocation = await pass_contract.functions["setMinter"].invoke(
-    #     utils.MINTER,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! Minter Set')
+    drip_configurator_contract = await Contract.from_address(client=admin, address=drip_configurator_ad)
+    print(f'⌛️ set Expiration Date...')
+    invocation = await drip_configurator_contract.functions["setExpirationDate"].invoke(
+        1673997793,
+        max_fee=int(1e16)
+    )
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! New expiration Date Set')
 
+    print(f'⌛️ set MaxEnabled Tokens...')
+    invocation = await drip_configurator_contract.functions["setMaxEnabledTokens"].invoke(
+        {"low":8 ,"high":0},
+        max_fee=int(1e16)
+    )
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! New max enable tokens Set')
 
-    # drip_configurator_contract = await Contract.from_address(client=admin, address=drip_configurator_ad)
-    # print(f'⌛️ set Expiration Date...')
-    # invocation = await drip_configurator_contract.functions["setExpirationDate"].invoke(
-    #     1672997793,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! New expiration Date Set')
-
-    # print(f'⌛️ set MaxEnabled Tokens...')
-    # invocation = await drip_configurator_contract.functions["setMaxEnabledTokens"].invoke(
-    #     {"low":7 ,"high":0},
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! New max enable tokens Set')
-
-    # print(f'⌛️ Saving Drip Manager to registery...')
-    # registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
-    # invocation = await registery_contract.functions["addDripManager"].invoke(drip_manager_ad, max_fee=int(1e16))
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! Drip Manager Saved!')
-
-
-    # pass_contract = await Contract.from_address(client=admin, address=utils.DAI_PASS)
-    # print(f'⌛️ Set Minter to Pass...')
-    # invocation = await pass_contract.functions["setMinter"].invoke(
-    #     utils.MINTER,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! Minter Set')
-
-
-    # print(f'⌛️ Add drip transit to Pass...')
-    # invocation = await pass_contract.functions["addDripTransit"].invoke(
-    #     drip_transit_ad,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! Drip Transit set to pass')
-
-
-    # pool_contract = await Contract.from_address(client=admin, address=utils.POOL_DAI)
-    # print(f'⌛️ Connect drip manager to Pool...')
-    # invocation = await pool_contract.functions["connectDripManager"].invoke(
-    #     drip_manager_ad,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! drip manager connected')
+    print(f'⌛️ Saving Drip Manager to registery...')
+    registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
+    invocation = await registery_contract.functions["addDripManager"].invoke(drip_manager_ad, max_fee=int(1e16))
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! Drip Manager Saved!')
 
 
 
 
+    pass_contract = await Contract.from_address(client=admin, address=pass_)
+    print(f'⌛️ Set Minter to Pass...')
+    invocation = await pass_contract.functions["setMinter"].invoke(
+        minter_,
+        max_fee=int(1e16)
+    )
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! Minter Set')
 
-    # pool_instance.connectDripManager(drip_manager_)
+    print(f'⌛️ Add drip transit to Pass...')
+    invocation = await pass_contract.functions["addDripTransit"].invoke(
+        drip_transit_ad,
+        max_fee=int(1e16)
+    )
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! Drip Transit set to pass')
 
-    # allowContract yearn
+
+    pool_contract = await Contract.from_address(client=admin, address=utils.POOL_ETH)
+    print(f'⌛️ Connect drip manager to Pool...')
+    invocation = await pool_contract.functions["connectDripManager"].invoke(
+        drip_manager_ad,
+        max_fee=int(1e16)
+    )
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! drip manager connected')
+
 
 
 

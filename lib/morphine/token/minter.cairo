@@ -92,6 +92,17 @@ func hasMinted{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return (has_minted_,);
 }
 
+// @notice: get the nft address
+// @return: nft address
+@view
+func nftContract{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}() -> (
+    nftContract: felt
+) {
+    let (nft_contract_) = nft_contract.read();
+    return (nft_contract_,);
+}
+
+
 //
 // Externals
 //

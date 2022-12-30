@@ -108,7 +108,6 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert drip_transit_calldata_[1] = _nft;
     assert drip_transit_calldata_[2] = _expirable;
     let (drip_transit_) = deploy(drip_transit_hash_, _salt, 3, drip_transit_calldata_, 0);
-               
     drip_transit.write(drip_transit_);
     let (drip_configurator_hash_) = drip_configurator_hash.read();
     let (drip_configurator_calldata_: felt*) = alloc();

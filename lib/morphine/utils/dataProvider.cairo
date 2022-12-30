@@ -17,9 +17,11 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
-from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo
+from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo
 from morphine.interfaces.IMorphinePass import IMorphinePass
 from morphine.interfaces.IOracleTransit import IOracleTransit
+from morphine.interfaces.IMinter import IMinter
+
 from starkware.cairo.common.uint256 import ALL_ONES, uint256_eq, uint256_lt, uint256_le
 
 from morphine.utils.various import PRECISION, DEFAULT_FEE_INTEREST
@@ -76,6 +78,35 @@ func recursive_faucet_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     }
 }
 
+
+@view
+func getMinterInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_user: felt, minter_array_len: felt, minter_array: felt*) -> (
+    minterInfo_len: felt, minterInfo: MinterInfo*
+) {
+    alloc_locals;
+    let (minter_info: MinterInfo*) = alloc();
+    recursive_minter_info(_user, minter_array_len, minter_array, minter_info);
+    return (minter_array_len, minter_info,);
+}
+
+// @notice: recursive_faucet_info
+func recursive_minter_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_user: felt, minter_array_len: felt, minter_array: felt*, minter_info: MinterInfo*) {
+    alloc_locals;
+    if(minter_array_len == 0){
+        return();
+    }
+    let (nft_address_) = IMinter.nftContract(minter_array[0]);
+    let (token_uri_) = IMorphinePass.baseURI(nft_address_);
+    let (is_wl_) = IMinter.isWhitelisted(minter_array[0], _user);
+    let (has_minted_) = IMinter.hasMinted(minter_array[0], _user);
+    assert minter_info.token_address = nft_address_;
+    assert minter_info.token_uri = token_uri_;
+    assert minter_info.minter_address = minter_array[0];
+    assert minter_info.is_whitelisted = is_wl_;
+    assert minter_info.has_minted = has_minted_;
+    return recursive_minter_info(_user, minter_array_len - 1, minter_array + 1, minter_info + MinterInfo.SIZE);
+}
+
 @view
 func getUserTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, token_array_len: felt, token_array: felt*) -> (
     tokenInfo_len: felt, tokenInfo: TokenInfo*
@@ -118,7 +149,7 @@ func getUserPoolTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return (user_pool_tokens_len, user_pool_tokens,);
 }
 
-// @notice: recursive_faucet_info
+// @notice: recursive pool_token
 func recursive_pool_token_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_oracle_transit: felt, _user: felt, pool_token_array_len: felt, pool_token_array: felt*, pool_token_info_len: felt, pool_token_info: PoolTokenInfo*) ->(pool_token_info_len: felt) {
     alloc_locals;
     if(pool_token_array_len == 0){
