@@ -130,7 +130,7 @@ async def deploy():
     # await admin.wait_for_tx(resp.transaction_hash)
     # print(f'✅ Success! Drip Infra Factory deployed to {drip_infra_factory} ')
 
-    drip_infra_factory_contract = await Contract.from_address(client=admin, address=utils.DRIP_INFRA_FACTORY)
+    drip_infra_factory_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_INFRA_FACTORY)
 
 
     # print(f'⌛️ Deploying Drip Manager, Drip Transit and Drip Configurator...')
@@ -151,23 +151,14 @@ async def deploy():
     # )
     # await invocation.wait_for_acceptance()
 
-    # print(f'⌛️ Fetching Drip Manager, Drip Transit and Drip Configurator addresses...')
-    # data = await drip_infra_factory_contract.functions["getDripInfraAddresses"].call()
+    print(f'⌛️ Fetching Drip Manager, Drip Transit and Drip Configurator addresses...')
+    data = await drip_infra_factory_contract.functions["getDripInfraAddresses"].call()
     
-    # print(f'✅ Success! Drip Manager: {data.drip_manager}, Drip Transit: {data.drip_transit}, Drip Configurator:{data.drip_configurator}')
+    print(f'✅ Success! Drip Manager: {data.drip_manager}, Drip Transit: {data.drip_transit}, Drip Configurator:{data.drip_configurator}')
 
-    # drip_manager_ad = data.drip_manager
-    # drip_transit_ad = data.drip_transit
-    # drip_configurator_ad = data.drip_configurator
-
-    # pass_contract = await Contract.from_address(client=admin, address=utils.PASS)
-    # print(f'⌛️ Set Minter to Pass...')
-    # invocation = await pass_contract.functions["setMinter"].invoke(
-    #     utils.MINTER,
-    #     max_fee=int(1e16)
-    # )
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! Minter Set')
+    drip_manager_ad = data.drip_manager
+    drip_transit_ad = data.drip_transit
+    drip_configurator_ad = data.drip_configurator
 
     # pass_contract = await Contract.from_address(client=admin, address=utils.PASS)
     # print(f'⌛️ Set Minter to Pass...')
@@ -178,15 +169,64 @@ async def deploy():
     # await invocation.wait_for_acceptance()
     # print(f'✅ Success! Minter Set')
 
-    # morphine_pass_instance.addDripTransit(drip_transit_);
+
+    # drip_configurator_contract = await Contract.from_address(client=admin, address=drip_configurator_ad)
+    # print(f'⌛️ set Expiration Date...')
+    # invocation = await drip_configurator_contract.functions["setExpirationDate"].invoke(
+    #     1672997793,
+    #     max_fee=int(1e16)
+    # )
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! New expiration Date Set')
+
+    # print(f'⌛️ set MaxEnabled Tokens...')
+    # invocation = await drip_configurator_contract.functions["setMaxEnabledTokens"].invoke(
+    #     {"low":7 ,"high":0},
+    #     max_fee=int(1e16)
+    # )
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! New max enable tokens Set')
+
+    # print(f'⌛️ Saving Drip Manager to registery...')
+    # registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
+    # invocation = await registery_contract.functions["addDripManager"].invoke(drip_manager_ad, max_fee=int(1e16))
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! Drip Manager Saved!')
 
 
-    # setMaxEnabledTokens
-    # drip_configurator_instance.setExpirationDate(5000);
+    # pass_contract = await Contract.from_address(client=admin, address=utils.DAI_PASS)
+    # print(f'⌛️ Set Minter to Pass...')
+    # invocation = await pass_contract.functions["setMinter"].invoke(
+    #     utils.MINTER,
+    #     max_fee=int(1e16)
+    # )
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! Minter Set')
+
+
+    # print(f'⌛️ Add drip transit to Pass...')
+    # invocation = await pass_contract.functions["addDripTransit"].invoke(
+    #     drip_transit_ad,
+    #     max_fee=int(1e16)
+    # )
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! Drip Transit set to pass')
+
+
+    # pool_contract = await Contract.from_address(client=admin, address=utils.POOL_DAI)
+    # print(f'⌛️ Connect drip manager to Pool...')
+    # invocation = await pool_contract.functions["connectDripManager"].invoke(
+    #     drip_manager_ad,
+    #     max_fee=int(1e16)
+    # )
+    # await invocation.wait_for_acceptance()
+    # print(f'✅ Success! drip manager connected')
+
+
+
 
 
     # pool_instance.connectDripManager(drip_manager_)
-    # registery_instance.addDripManager(drip_manager_)
 
     # allowContract yearn
 

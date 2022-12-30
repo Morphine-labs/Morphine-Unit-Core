@@ -20,5 +20,8 @@ pool BTC Added to registery
 pool drip infra deployed + pass & minter
 
 minter set to pass
+minter drip dripTransit
 
+drip config set expiration date and max enabled tokens
+registery saved drip manager
 
