@@ -344,33 +344,20 @@ func safeTransferFrom{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_chec
 func mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _to: felt, _amount: Uint256
 ) {
-    assert_only_minter();
-    let (balance_before_) = balanceOf(_to);
-    recursive_mint(_to, _amount, Uint256(0,0),balance_before_);
-    return ();
-}
-
-// @notice: recursive mint NFT
-// @param: _to The address you want to mint the NFT to
-// @param: _amount The amount of NFT you want to mint
-// @param: _index The index of the NFT you want to mint
-// @param: _balance_before The balance of the NFT before minting
-func recursive_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-    _to: felt, _amount: Uint256, _index: Uint256,_balance_before_: Uint256
-) {
     alloc_locals;
-    let (is_eq_) = uint256_eq(_index, _amount);
-    if(is_eq_ == 1){
-        return();
+    assert_only_minter();
+    let (is_correct_amount_) = uint256_eq(Uint256(1,0), _amount);
+    with_attr error_message("only one mint allowed") {
+        assert is_correct_amount_ = 1;
     }
-    let (address_uint256_) = felt_to_uint256(_to);
-    let (two_pow_40_) = uint256_pow2(Uint256(40,0));
-    let (mul_) = SafeUint256.mul(address_uint256_, two_pow_40_);
-    let (add_) = SafeUint256.add(mul_, _index);
-    let (token_id_) = SafeUint256.add(add_, _balance_before_);
+    let (user_balance_) = balanceOf(_to);
+    let (is_user_balance_nul_) = uint256_eq(Uint256(0,0), user_balance_);
+    with_attr error_message("already minted") {
+        assert is_user_balance_nul_ = 1;
+    }
+    let (token_id_) = totalSupply();
     ERC721Enumerable._mint(_to, token_id_);
-    let (new_index_) = SafeUint256.add(_index, Uint256(1,0));
-    return recursive_mint(_to, _amount, new_index_, _balance_before_);
+    return ();
 }
 
 // @notice: burn NFT
@@ -378,38 +365,16 @@ func recursive_mint{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_
 // @param: _amount The amount of NFT you want to burn
 @external
 func burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(_from: felt, _amount: Uint256) {
+    alloc_locals;
     assert_only_owner_or_drip_transit();
     let (user_balance_) = balanceOf(_from);
     let (is_lt_) = uint256_lt(user_balance_, _amount);
     with_attr error_message("insufficient balance") {
         assert is_lt_ = 0;
     }
-    recursive_burn(_from, _amount, Uint256(0,0), user_balance_);
-    return ();
-}
-
-// @notice: recursive burn NFT
-// @param: _from The address you want to burn the NFT from
-// @param: _amount The amount of NFT you want to burn
-// @param: _index The index of the NFT you want to burn
-// @param: _balance_before The balance of the NFT before burning
-func recursive_burn{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-    _from: felt, _amount: Uint256, _index: Uint256,_user_balance: Uint256
-) {
-    alloc_locals;
-    let (is_eq_) = uint256_eq(_index, _amount);
-    if(is_eq_ == 1){
-        return();
-    }
-    let (address_uint256_) = felt_to_uint256(_from);
-    let (two_pow_40_) = uint256_pow2(Uint256(40,0));
-    let (mul_) = SafeUint256.mul(address_uint256_, two_pow_40_);
-    let (add_) = SafeUint256.add(mul_, _user_balance);
-    let (sub_) = SafeUint256.sub_le(add_, _index);
-    let (token_id_) = SafeUint256.sub_le(sub_, Uint256(1,0));
+    let (token_id_) = tokenOfOwnerByIndex(_from, Uint256(0,0));
     ERC721Enumerable._burn(token_id_);
-    let (new_index_) = SafeUint256.add(_index, Uint256(1,0));
-    return recursive_burn(_from, _amount, new_index_, _user_balance);
+    return ();
 }
 
 // @notice: set Base URI NFT

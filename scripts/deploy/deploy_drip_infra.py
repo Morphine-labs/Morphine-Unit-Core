@@ -114,8 +114,6 @@ async def deploy():
     # await admin.wait_for_tx(resp.transaction_hash)
     # print(f'✅ Success! Pass deployed to {pass_} ')
 
-    pass_ = utils.ETH_PASS
-
     print(f'⌛️ Deploying Minter...')
     deploy_minter_call, minter_ = deployer.create_deployment_call(
     class_hash=utils.MINTER_HASH,
