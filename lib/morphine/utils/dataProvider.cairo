@@ -206,7 +206,7 @@ func recursive_nft_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     let (state_) = uint256_le(Uint256(1,0), user_balance_);
 
     if(state_ == 1){
-        assert has_nft[0].token_address = 1;
+        assert has_nft[0].token_address = nft_array[0];
         assert has_nft[0].has_token = 1;
         assert has_nft[0].uri = uri_;
         return recursive_nft_info(_user, nft_array_len - 1, nft_array + 1, has_nft_len + 1, has_nft + NftInfo.SIZE,);
