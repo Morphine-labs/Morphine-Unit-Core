@@ -284,6 +284,7 @@ func recursive_drip_list_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     } else {
         let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
         let (nft_) = IDripTransit.getNft(drip_transit_);
+        assert drip_list_info[0].pool_address = pool_;
         assert drip_list_info[0].token_address = asset_;
         assert drip_list_info[0].nft = nft_;
         assert drip_list_info[0].borrow_rate = borrow_rate_;
@@ -489,5 +490,17 @@ func expirationFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
                 return(1, 0);
             }
         }
+    }
+}
+
+@view
+func userDripFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool: felt, _user: felt) -> (drip: felt) {
+    alloc_locals;
+    let (drip_manager_) = IPool.connectedDripManager(_pool);
+    if(drip_manager_ == 0){
+        return(0,);
+    } else {
+        let (drip_) = IDripManager.getDrip(drip_manager_, _user);
+        return(drip_,);
     }
 }

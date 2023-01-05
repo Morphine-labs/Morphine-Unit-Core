@@ -43,6 +43,7 @@ struct DripMiniInfo {
 }
 
 struct DripListInfo {
+    pool_address: felt,
     token_address: felt,
     nft: felt,  
     borrow_rate: Uint256,  
