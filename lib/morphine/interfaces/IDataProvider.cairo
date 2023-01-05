@@ -50,6 +50,10 @@ struct DripListInfo {
     pool_liq_usd: Uint256,
 }
 
+struct LimitInfo {
+    minimum_borrowed_amount: Uint256,  
+    maximum_borrowed_amount: Uint256,
+}
 
 struct FeesInfo {
     fee_interest: Uint256,  

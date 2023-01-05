@@ -4,11 +4,11 @@ lib-path = "lib"
 cairo-path = ["lib"] 
 
 [contracts]
+data_provider = ["lib/morphine/utils/dataProvider.cairo"]
 
 erc20 = ["lib/openzeppelin/token/erc20/presets/ERC20Mintable.cairo"]
 erc4626 = ["tests/mocks/erc4626.cairo"]
 faucet = ["lib/utils/faucet.cairo"]
-data_provider = ["lib/morphine/utils/dataProvider.cairo"]
 oracle_transit = ["lib/morphine/oracle/oracleTransit.cairo"]
 registery = ["lib/morphine/registery.cairo"]
 drip_factory = ["lib/morphine/drip/dripFactory.cairo"]

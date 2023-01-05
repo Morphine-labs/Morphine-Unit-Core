@@ -17,7 +17,7 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
-from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo
+from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo, LimitInfo
 from morphine.interfaces.IMorphinePass import IMorphinePass
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMinter import IMinter
@@ -370,7 +370,7 @@ func allowedContractsFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         return(0, allowed_contracts);
     } else {
         let (drip_configurator_) = IDripManager.dripConfigurator(drip_manager_);
-        let (allowed_contract_length_) = IDripConfigurator.allowedContractsLength(drip_manager_);
+        let (allowed_contract_length_) = IDripConfigurator.allowedContractsLength(drip_configurator_);
         recursive_contracts(drip_configurator_, allowed_contract_length_, 0, allowed_contracts);
         return(allowed_contract_length_, allowed_contracts);
     }
@@ -428,6 +428,21 @@ func feesFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         let (liquidation_discount_) = IDripManager.liquidationDiscount(drip_manager_);
         let (liquidation_discount_expired_) = IDripManager.liquidationDiscountExpired(drip_manager_);
         return(FeesInfo(fee_interest_, fee_liqudidation_, fee_liqudidation_expired_, liquidation_discount_, liquidation_discount_expired_),);
+    }
+}
+
+@view
+func limitFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool: felt) -> (
+    limit_info: LimitInfo
+) {
+    alloc_locals;
+    let (drip_manager_) = IPool.connectedDripManager(_pool);
+    if(drip_manager_ == 0){
+        return(LimitInfo(Uint256(0,0), Uint256(0,0)),);
+    } else {
+        let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
+        let (minimum_borrowed_amount_, max_borrowed_amount_) = IDripTransit.limits(drip_transit_);
+        return(LimitInfo(minimum_borrowed_amount_, max_borrowed_amount_),);
     }
 }
 
