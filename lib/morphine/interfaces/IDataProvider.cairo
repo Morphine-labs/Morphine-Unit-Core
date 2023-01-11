@@ -22,6 +22,14 @@ struct TokenInfo {
     value: Uint256,
 }
 
+struct UserTokenCollateral {
+    token_address: felt,  
+    lt: Uint256,
+    user_balance: Uint256,  
+    value: Uint256,
+}
+
+
 struct PoolTokenInfo {
     token_address: felt,  
     user_balance: Uint256,  

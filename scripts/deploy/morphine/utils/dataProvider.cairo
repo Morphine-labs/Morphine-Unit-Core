@@ -17,7 +17,7 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
-from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo, LimitInfo
+from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo, LimitInfo, UserTokenCollateral
 from morphine.interfaces.IMorphinePass import IMorphinePass
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMinter import IMinter
@@ -294,7 +294,6 @@ func recursive_drip_list_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     }
 }
 
-
 @view
 func poolListInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) -> (
     pool_info_len: felt, pool_info: PoolInfo*
@@ -403,6 +402,7 @@ func allowedAssetsFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
     }
 }
 
+
 func recursive_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_manager: felt, _allowed_tokens_length: felt, _index: felt,  allowed_assets: AllowedToken*) {
     alloc_locals;
     if(_index == _allowed_tokens_length){
@@ -413,6 +413,43 @@ func recursive_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     assert allowed_assets[_index] = AllowedToken(asset_, lt_);
     return recursive_tokens(_drip_manager, _allowed_tokens_length, _index + 1, allowed_assets);
 }
+
+@view
+func allowedAssetsUserCollateralFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool: felt, _user: felt, _registery: felt) -> (
+    allowed_assets_collateral_len: felt, allowed_assets_collateral: UserTokenCollateral*
+) {
+    alloc_locals;
+    let (drip_manager_) = IPool.connectedDripManager(_pool);
+    let (allowed_assets_collateral: UserTokenCollateral*) = alloc();
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
+    if(drip_manager_ == 0){
+        return(0, allowed_assets_collateral);
+    } else {
+        let (allowed_assets_collateral_len) = IDripManager.allowedTokensLength(drip_manager_);
+        recursive_tokens_user_collateral(drip_manager_, oracle_transit_, _user, allowed_assets_collateral_len, allowed_assets_collateral);
+        return(allowed_assets_collateral_len, allowed_assets_collateral,);
+    }
+}
+
+func recursive_tokens_user_collateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_manager: felt,  _oracle_transit: felt, _user: felt, allowed_assets_collateral_len: felt, allowed_assets_collateral: UserTokenCollateral*) {
+    alloc_locals;
+    if(allowed_assets_collateral_len == 0){
+        return();
+    }
+    let (asset_) = IDripManager.tokenById(_drip_manager, allowed_assets_collateral_len - 1);
+    let (lt_) = IDripManager.liquidationThreshold(_drip_manager, asset_);
+    let (user_balance_) = IERC20.balanceOf(asset_, _user);
+    let (decimals_) = IERC20.decimals(asset_);
+    let (one_unit_) = pow(10, decimals_);
+    let (token_value_) = IOracleTransit.convertToUSD(_oracle_transit, Uint256(one_unit_, 0), asset_);
+    assert allowed_assets_collateral[0].token_address = asset_;
+    assert allowed_assets_collateral[0].lt = lt_;
+    assert allowed_assets_collateral[0].user_balance = user_balance_;
+    assert allowed_assets_collateral[0].value = token_value_;
+    return recursive_tokens_user_collateral(_drip_manager, _oracle_transit, _user, allowed_assets_collateral_len - 1, allowed_assets_collateral + UserTokenCollateral.SIZE,);
+}
+
+
 
 @view
 func feesFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_pool: felt) -> (
