@@ -15,14 +15,8 @@ import utils
 import json
 
 ## ERC20
-TOKEN_ADDRESS = utils.VMETH
-MIN = {"low": 100000000, "high": 0}
-MAX = {"low": 30000000000, "high": 0}
-
-# MINIMUM_BORROWED_AMOUNT_LO = 100000000
-# MINIMUM_BORROWED_AMOUNT_HI = 0
-# MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000
-# MAXIMUM_BORROWED_AMOUNT_HI = 0
+MIN = {"low": 500000000000000000, "high": 0}
+MAX = {"low": 100000000000000000000, "high": 0}
 
 class _StarknetChainId(Enum):
     MAINNET = from_bytes(b"SN_MAIN")
@@ -50,7 +44,7 @@ async def call():
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
     print(f'⌛️ update Limits...')
-    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_CONFIGURATOR)
+    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.ETH_DRIP_CONFIGURATOR)
     invocation = await drip_configurator_contract.functions["setLimits"].invoke(MIN, MAX, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
