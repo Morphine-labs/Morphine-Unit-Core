@@ -1,0 +1,118 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "members": [
+            {
+                "name": "address",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "liquidation_threshold",
+                "offset": 1,
+                "type": "Uint256"
+            }
+        ],
+        "name": "AllowedToken",
+        "size": 3,
+        "type": "struct"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_manager_hash",
+                "type": "felt"
+            },
+            {
+                "name": "_drip_transit_hash",
+                "type": "felt"
+            },
+            {
+                "name": "_drip_configurator_hash",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_infra_factory",
+                "type": "felt"
+            },
+            {
+                "name": "_pool",
+                "type": "felt"
+            },
+            {
+                "name": "_nft",
+                "type": "felt"
+            },
+            {
+                "name": "_expirable",
+                "type": "felt"
+            },
+            {
+                "name": "_minimum_borrowed_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_maximum_borrowed_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_allowed_tokens_len",
+                "type": "felt"
+            },
+            {
+                "name": "_allowed_tokens",
+                "type": "AllowedToken*"
+            },
+            {
+                "name": "_salt",
+                "type": "felt"
+            }
+        ],
+        "name": "deployDripInfra",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getDripInfraAddresses",
+        "outputs": [
+            {
+                "name": "drip_manager",
+                "type": "felt"
+            },
+            {
+                "name": "drip_transit",
+                "type": "felt"
+            },
+            {
+                "name": "drip_configurator",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

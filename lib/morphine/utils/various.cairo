@@ -35,10 +35,13 @@ const DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM = 4*10**16;
 const DEFAULT_FEE_LIQUIDATION_EXPIRED = 2*10**16;
 
 // MAX
+
 // const MAX_WITHDRAW_FEE = ;
 const DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER = 5;
 
-// CONVERSION
+// AMMM
+const MAX_PATH_LEN = 5;
+
 
 // @notice: Uint256 to permillion in order to have better precision
 // @param: x is a Uint256 (Uint256)

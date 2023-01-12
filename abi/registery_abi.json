@@ -1,0 +1,269 @@
+[
+    {
+        "data": [
+            {
+                "name": "previousOwner",
+                "type": "felt"
+            },
+            {
+                "name": "newOwner",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "OwnershipTransferred",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "felt"
+            },
+            {
+                "name": "_treasury",
+                "type": "felt"
+            },
+            {
+                "name": "_oracle_transit",
+                "type": "felt"
+            },
+            {
+                "name": "_drip_hash",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "getTreasury",
+        "outputs": [
+            {
+                "name": "treasury",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripFactory",
+        "outputs": [
+            {
+                "name": "drip_factory",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripHash",
+        "outputs": [
+            {
+                "name": "drip_hash",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "name": "owner",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "oracleTransit",
+        "outputs": [
+            {
+                "name": "oracle",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "felt"
+            }
+        ],
+        "name": "isPool",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_manager",
+                "type": "felt"
+            }
+        ],
+        "name": "isDripManager",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "idToPool",
+        "outputs": [
+            {
+                "name": "pool",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "idToDripManager",
+        "outputs": [
+            {
+                "name": "dripManager",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "poolsLength",
+        "outputs": [
+            {
+                "name": "poolsLength",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripManagerLength",
+        "outputs": [
+            {
+                "name": "dripManagerLength",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_owner",
+                "type": "felt"
+            }
+        ],
+        "name": "setOwner",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_treasury",
+                "type": "felt"
+            }
+        ],
+        "name": "setTreasury",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_factory",
+                "type": "felt"
+            }
+        ],
+        "name": "setDripFactory",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_oracle_transit",
+                "type": "felt"
+            }
+        ],
+        "name": "setOracleTransit",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_drip_hash",
+                "type": "felt"
+            }
+        ],
+        "name": "setDripHash",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "felt"
+            }
+        ],
+        "name": "addPool",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_manager",
+                "type": "felt"
+            }
+        ],
+        "name": "addDripManager",
+        "outputs": [],
+        "type": "function"
+    }
+]

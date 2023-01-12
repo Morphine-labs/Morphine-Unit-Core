@@ -1,0 +1,28 @@
+[
+    {
+        "data": [
+            {
+                "name": "referral_address",
+                "type": "felt"
+            },
+            {
+                "name": "caller",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "newReferral",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "referral_address",
+                "type": "felt"
+            }
+        ],
+        "name": "addReferral",
+        "outputs": [],
+        "type": "function"
+    }
+]
