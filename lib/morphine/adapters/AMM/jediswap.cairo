@@ -293,7 +293,7 @@ func add_liquidity_max_token_a{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 // @notice: Add  Liq for exact tokens
 // @return: amount of tokens deposited
 @external 
-func remove_liquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(token_a: felt, token_b: felt, _liquidity: Uint256, amount_a_min: Uint256, amount_b_min: Uint256, to: felt, deadline: felt) -> (retdata_len: felt, retdata: felt*) {
+func remove_liquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_a: felt, _token_b: felt, _liquidity: Uint256, _amount_a_min: Uint256, _amount_b_min: Uint256, to: felt, deadline: felt) -> (retdata_len: felt, retdata: felt*) {
     alloc_locals;
     ReentrancyGuard.start();
     let (drip_manager_) = dripManager();
@@ -309,8 +309,8 @@ func remove_liquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     assert token_in[0] = token_in_;
     
     let (token_out) = alloc();
-    assert token_out[0] = token_a;
-    assert token_out[1] = token_b;
+    assert token_out[0] = _token_b;
+    assert token_out[1] = _token_b;
 
     let (disable_token_in) = alloc();
     assert disable_token_in[0] = 0;
@@ -327,11 +327,58 @@ func remove_liquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     assert calldata[8] = drip_;
     assert calldata[9] = deadline_;
 
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 2, token_in, 1, token_out, 1, 2, disable_token_in, REMOVE_LIQUIDITY_SELECTOR, 12, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 2, token_out, 1, 1, disable_token_in, REMOVE_LIQUIDITY_SELECTOR, 10, calldata);
     ReentrancyGuard.end();
     return (retdata_len, retdata,);
 }
 
+// @notice: Add  Liq for exact tokens
+// @return: amount of tokens deposited
+@external 
+func remove_all_liquidity{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token_a: felt, _token_b: felt, _amount_a_rate: Uint256, _amount_b_rate: Uint256, to: felt, deadline: felt) -> (retdata_len: felt, retdata: felt*) {
+    alloc_locals;
+    ReentrancyGuard.start();
+    let (drip_manager_) = dripManager();
+    let (caller_) = get_caller_address();
+    let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
+    let (deadline_) = get_block_timestamp();
+
+    let (rooter_) = target.read();
+    let (factory_) = IRouter.factory(rooter_);
+    let (token_in_) = IFactory.get_pair(factory_, _token_a, _token_b);
+
+    let (token_in) = alloc();
+    assert token_in[0] = token_in_;
+    
+    let (token_out) = alloc();
+    assert token_out[0] = _token_a;
+    assert token_out[1] = _token_b;
+
+    let (disable_token_in) = alloc();
+    assert disable_token_in[0] = 1;
+
+    let (liquidity_) = IERC20.balanceOf(token_in_, drip_);
+    let (step1_) = SafeUint256.mul(liquidity_, _amount_a_rate);
+    let (amount_a_min_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+    let (step1_) = SafeUint256.mul(liquidity_, _amount_b_rate);
+    let (amount_b_min_,_) = SafeUint256.div_rem(step1_, Uint256(PRECISION, 0));
+
+    let (calldata) = alloc();
+    assert calldata[0] = _token_a;
+    assert calldata[1] = _token_b;
+    assert calldata[2] = liquidity_.low;
+    assert calldata[3] = liquidity_.high;
+    assert calldata[4] = amount_a_min_.low;
+    assert calldata[5] = amount_a_min_.high;
+    assert calldata[6] = amount_b_min_.low;
+    assert calldata[7] = amount_b_min_.high;
+    assert calldata[8] = drip_;
+    assert calldata[9] = deadline_;
+
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 2, token_out, 1, 1, disable_token_in, REMOVE_LIQUIDITY_SELECTOR, 10, calldata);
+    ReentrancyGuard.end();
+    return (retdata_len, retdata,);
+}
 
 func check_path_and_get_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(path_len: felt, path: felt*) -> (token_in: felt, token_out: felt) {
     alloc_locals;
