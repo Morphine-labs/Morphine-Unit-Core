@@ -179,11 +179,17 @@ func _deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     alloc_locals;
     let (token_in_) = token.read();
     let (token_out_) = targetContract();
+    let (tokens_in) = alloc();
+    let (tokens_out) = alloc();
+    assert tokens_in[0] = token_in_;
+    assert tokens_out[0] = token_out_;
+    let (disable_token_in) = alloc();
+    assert disable_token_in[0] = _disable_token_in;
     let (calldata) = alloc();
     assert calldata[0] = _amount.low;
     assert calldata[1] = _amount.high;
     assert calldata[2] = _drip;
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(_drip, token_in_, token_out_, 1, _disable_token_in, DEPOSIT_SELECTOR, 3, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(_drip, 1, tokens_in, 1, tokens_out, 1, 1, disable_token_in, DEPOSIT_SELECTOR, 3, calldata);
     return (Uint256(retdata[0], retdata[1]),);
 }
 
@@ -197,12 +203,18 @@ func _redeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_d
     alloc_locals;
     let (token_out_) = token.read();
     let (token_in_) = targetContract();
+    let (tokens_in) = alloc();
+    let (tokens_out) = alloc();
+    assert tokens_in[0] = token_in_;
+    assert tokens_out[0] = token_out_;
+    let (disable_token_in) = alloc();
+    assert disable_token_in[0] = _disable_token_in;
     let (calldata) = alloc();
     assert calldata[0] = _amount.low;
     assert calldata[1] = _amount.high;
     assert calldata[2] = _drip;
     assert calldata[3] = _drip;
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(_drip, token_in_, token_out_, 1, _disable_token_in, REDEEM_SELECTOR, 4, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(_drip, 1, tokens_in, 1, tokens_out, 1, 1, disable_token_in, REDEEM_SELECTOR, 4, calldata);
     return (Uint256(retdata[0], retdata[1]),);
 }
 
