@@ -326,26 +326,28 @@ func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
                 let (token1_) = IJediSwapPair.token1(_token);
                 let (decimals_token0_) = IERC20.decimals(token0_);
                 let (decimals_token1_) = IERC20.decimals(token1_);
-                let (total_supply_) = IERC20.totalSupply(_token);
-                let (reserve0_decimals_, reserve1_decimals_, _) = IJediSwapPair.get_reserves(_token);
-                let (reserve0_precision_) = SafeUint256.mul(reserve1_decimals_, Uint256(PRECISION, 0));
-                let (reserve0_, _) = SafeUint256.div_rem(reserve0_precision_, Uint256(decimals_token0_, 0));
-                let (reserve1_precision_) = SafeUint256.mul(reserve1_decimals_, Uint256(PRECISION, 0));
-                let (reserve1_, _) = SafeUint256.div_rem(reserve1_precision_, Uint256(decimals_token1_, 0));
-                let (total_reserve_) = SafeUint256.add(reserve0_,reserve1_);
                 let (one_unit_token0_) = pow(10, decimals_token0_);
                 let (one_unit_token1_) = pow(10, decimals_token1_);
+                let (total_supply_) = IERC20.totalSupply(_token);
+                let (reserve0_decimals_, reserve1_decimals_, _) = IJediSwapPair.get_reserves(_token);
+                
+                let (reserve0_precision_) = SafeUint256.mul(reserve0_decimals_, Uint256(PRECISION, 0));
+                let (reserve0_, _) = SafeUint256.div_rem(reserve0_precision_, Uint256(one_unit_token0_, 0));
+                let (reserve1_precision_) = SafeUint256.mul(reserve1_decimals_, Uint256(PRECISION, 0));
+                let (reserve1_, _) = SafeUint256.div_rem(reserve1_precision_, Uint256(one_unit_token1_, 0));
+                let (total_reserve_) = SafeUint256.mul(reserve0_,reserve1_);
+                let reserve_sqrt_low_ =  sqrt(total_reserve_.low);
+                
                 let (price_primitive_0_) = convertToUSD(Uint256(one_unit_token0_, 0), token0_);
                 let (price_primitive_1_) = convertToUSD(Uint256(one_unit_token1_, 0), token1_);
-                let (price_product_) = SafeUint256.mul(price_primitive_0_, price_primitive_1_);
-                let reserve_sqrt_low_ =  sqrt(total_reserve_.low);
-                let product_sqrt_low = sqrt(price_product_.low);
+                let (total_price_) = SafeUint256.mul(price_primitive_0_, price_primitive_1_);
+                let product_sqrt_low = sqrt(total_price_.low);
+
                 let (step1_) = SafeUint256.mul(Uint256(reserve_sqrt_low_, 0), Uint256(product_sqrt_low, 0));
                 let (num_) = SafeUint256.mul(step1_, Uint256(2,0));
                 let (lp_price_usd_, _) = SafeUint256.div_rem(num_, total_supply_);
                 return (lp_price_usd_,);
             }
-
         } else {
             let (price_, _, _, _) = IEmpiricOracle.get_spot_median(oracle_,pair_id_);
             with_attr error_message("zero price") {

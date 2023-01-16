@@ -1,7 +1,6 @@
 
 %lang starknet
 
-
 @contract_interface
 namespace IFactory{
     func get_pair(token0: felt, token1: felt) -> (pair: felt){
