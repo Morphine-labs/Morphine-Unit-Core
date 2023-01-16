@@ -43,6 +43,7 @@ from morphine.interfaces.IDerivativePriceFeed import IDerivativePriceFeed
 from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IJediSwapPair import IJediSwapPair
 from morphine.utils.utils import pow
+from morphine.utils.various import PRECISION
 
 
 /// @title Oracle Transit
@@ -314,11 +315,12 @@ func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     if (derivative_to_price_feed_ == 0) {
         let (pair_id_) = pair_id.read(_token);
         if(pair_id_ == 0){
-            let (is_lp_) = is_lp.read();
+            let (is_lp_) = is_lp.read(_token);
             if(is_lp_ == 0){
-            with_attr error_message("token not supported") {
-                assert 1 = 0;
-            } 
+                with_attr error_message("token not supported") {
+                    assert 1 = 0;
+                } 
+                return (Uint256(0,0),);
             } else {
                 let (token0_) = IJediSwapPair.token0(_token);
                 let (token1_) = IJediSwapPair.token1(_token);
@@ -333,16 +335,17 @@ func get_price{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
                 let (total_reserve_) = SafeUint256.add(reserve0_,reserve1_);
                 let (one_unit_token0_) = pow(10, decimals_token0_);
                 let (one_unit_token1_) = pow(10, decimals_token1_);
-                let (price_primitive_0_) = convertToUSD(one_unit_token0_, token0_);
-                let (price_primitive_1_) = convertToUSD(one_unit_token1_, token1_);
+                let (price_primitive_0_) = convertToUSD(Uint256(one_unit_token0_, 0), token0_);
+                let (price_primitive_1_) = convertToUSD(Uint256(one_unit_token1_, 0), token1_);
                 let (price_product_) = SafeUint256.mul(price_primitive_0_, price_primitive_1_);
-                let (reserve_sqrt_low) =  sqrt(total_reserve_.low);
-                let (product_sqrt_low) = sqrt(price_product_.low);
-                let (step1_) = SafeUint256.mul(Uint256(reserve_sqrt_low, 0), Uint256(price_product_precision_, 0));
+                let reserve_sqrt_low_ =  sqrt(total_reserve_.low);
+                let product_sqrt_low = sqrt(price_product_.low);
+                let (step1_) = SafeUint256.mul(Uint256(reserve_sqrt_low_, 0), Uint256(product_sqrt_low, 0));
                 let (num_) = SafeUint256.mul(step1_, Uint256(2,0));
-                let (lp_price_usd_) = SafeUint256.div_rem(num_, total_supply_);
+                let (lp_price_usd_, _) = SafeUint256.div_rem(num_, total_supply_);
                 return (lp_price_usd_,);
             }
+
         } else {
             let (price_, _, _, _) = IEmpiricOracle.get_spot_median(oracle_,pair_id_);
             with_attr error_message("zero price") {

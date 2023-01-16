@@ -90,17 +90,20 @@ namespace BaseAdapter {
     // @return: retdata The return data of the function call.
     // @return: retdata_len The length of the return data.
     func execute_max_allowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _token_in: felt,
-            _token_out: felt, 
+            token_in_len: felt,
+            token_in: felt*, 
+            token_out_len: felt,
+            token_out: felt*, 
             _allow_token_in: felt,
-            _disable_token_in: felt,
+            disable_token_in_len: felt,
+            disable_token_in: felt*,
             _selector: felt,
             _calldata_len: felt, 
             _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-        let (retdata_len: felt, retdata: felt*) = execute_max_allowance_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
+        let (retdata_len: felt, retdata: felt*) = execute_max_allowance_drip(drip_, token_in_len, token_in, token_out_len, token_out, _allow_token_in, disable_token_in_len, disable_token_in, _selector, _calldata_len, _calldata);
         return (retdata_len, retdata,);
     }
 
@@ -117,16 +120,19 @@ namespace BaseAdapter {
     // @return: retdata_len The length of the return data.
     func execute_max_allowance_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt,
-            _token_in: felt,
-            _token_out: felt, 
+            token_in_len: felt,
+            token_in: felt*, 
+            token_out_len: felt,
+            token_out: felt*, 
             _allow_token_in: felt,
-            _disable_token_in: felt,
+            disable_token_in_len: felt,
+            disable_token_in: felt*,
             _selector: felt,
             _calldata_len: felt, 
             _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         alloc_locals;
         if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
+            approve_token_list(token_in_len, token_in, Uint256(ALL_ONES, ALL_ONES));
             tempvar syscall_ptr = syscall_ptr;
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
@@ -137,7 +143,7 @@ namespace BaseAdapter {
         }
         let (retdata_len: felt, retdata: felt*) = execute(_selector, _calldata_len, _calldata);
         if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
+            approve_token_list(token_in_len, token_in, Uint256(ALL_ONES, ALL_ONES));
             tempvar syscall_ptr = syscall_ptr;
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
@@ -146,7 +152,7 @@ namespace BaseAdapter {
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
         }
-        full_check(_drip, _token_in, _token_out, _disable_token_in);
+        full_check(_drip, token_in_len, token_in, token_out_len, token_out, disable_token_in_len, disable_token_in);
         return (retdata_len, retdata,);
     }
 
@@ -161,17 +167,20 @@ namespace BaseAdapter {
     // @return: retdata The return data of the function call.
     // @return: retdata_len The length of the return data.
     func safe_execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-            _token_in: felt,
-            _token_out: felt, 
+            token_in_len: felt,
+            token_in: felt*, 
+            token_out_len: felt,
+            token_out: felt*, 
             _allow_token_in: felt,
-            _disable_token_in: felt,
+            disable_token_in_len: felt,
+            disable_token_in: felt*,
             _selector: felt,
             _calldata_len: felt, 
             _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (drip_) = IDripManager.getDripOrRevert(drip_manager_, caller_);
-        let (retdata_len: felt, retdata: felt*) = safe_execute_drip(drip_, _token_in, _token_out, _allow_token_in, _disable_token_in, _selector, _calldata_len, _calldata);
+        let (retdata_len: felt, retdata: felt*) = safe_execute_drip(drip_, token_in_len, token_in, token_out_len, token_out, _allow_token_in, disable_token_in_len, disable_token_in, _selector, _calldata_len, _calldata);
         return (retdata_len, retdata,);
     }
 
@@ -187,17 +196,19 @@ namespace BaseAdapter {
     // @return: retdata_len The length of the return data.
     func safe_execute_drip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt,
-            _token_in: felt,
-            _token_out: felt, 
+            token_in_len: felt,
+            token_in: felt*, 
+            token_out_len: felt,
+            token_out: felt*, 
             _allow_token_in: felt,
-            _disable_token_in: felt,
+            disable_token_in_len: felt,
+            disable_token_in: felt*,
             _selector: felt,
             _calldata_len: felt, 
             _calldata: felt*) -> (retdata_len: felt, retdata: felt*) {
         alloc_locals;
-
         if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(ALL_ONES, ALL_ONES));
+            approve_token_list(token_in_len, token_in, Uint256(ALL_ONES, ALL_ONES));
             tempvar syscall_ptr = syscall_ptr;
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
@@ -210,7 +221,7 @@ namespace BaseAdapter {
         let (retdata_len: felt, retdata: felt*) = execute(_selector, _calldata_len, _calldata);
 
         if(_allow_token_in == 1){
-            approve_token(_token_in, Uint256(0, 0));
+            approve_token_list(token_in_len, token_in, Uint256(0, 0));
             tempvar syscall_ptr = syscall_ptr;
             tempvar pedersen_ptr = pedersen_ptr;
             tempvar range_check_ptr = range_check_ptr;
@@ -220,7 +231,7 @@ namespace BaseAdapter {
             tempvar range_check_ptr = range_check_ptr;
         }
 
-        full_check(_drip, _token_in, _token_out, _disable_token_in);
+        full_check(_drip, token_in_len, token_in, token_out_len, token_out, disable_token_in_len, disable_token_in);
         return (retdata_len, retdata,);
     }
 
@@ -231,24 +242,19 @@ namespace BaseAdapter {
     // @param: _disable_token_in
     func full_check{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
             _drip: felt, 
-            _token_in: felt,
-            _token_out: felt,
-            _disable_token_in: felt) {
+            token_in_len: felt,
+            token_in: felt*, 
+            token_out_len: felt,
+            token_out: felt*, 
+            disable_token_in_len: felt,
+            disable_token_in: felt*) {
         alloc_locals;
         let (drip_manager_) = drip_manager.read();
         let (caller_) = get_caller_address();
         let (drip_transit_) = drip_transit.read();
-        IDripManager.checkAndEnableToken(drip_manager_, _drip, _token_out);
-        if(_disable_token_in == 1){
-            IDripManager.disableToken(drip_manager_, _drip, _token_in);
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        } else {
-            tempvar syscall_ptr = syscall_ptr;
-            tempvar pedersen_ptr = pedersen_ptr;
-            tempvar range_check_ptr = range_check_ptr;
-        }
+        check_and_enable_token_list(token_out_len, token_out, drip_manager_, _drip);
+        disable_token_list(token_in_len, token_in, disable_token_in_len, disable_token_in, drip_manager_, _drip);
+
         // If caller is drip transit, it is a multicall 
         if(caller_ == drip_transit_){
            return();
@@ -271,6 +277,40 @@ namespace BaseAdapter {
         } else {
             IDripManager.checkAndOptimizeEnabledTokens(drip_manager_, _drip);
             return();
+        }
+    }
+
+    func approve_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            tokens_len: felt, tokens: felt*, amount: Uint256) {
+        alloc_locals;
+        if(tokens_len == 0){
+            return();
+        }
+        approve_token(tokens[0], amount);
+        return approve_token_list(tokens_len - 1, tokens + 1, amount,);
+    }
+
+    func check_and_enable_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            tokens_len: felt, tokens: felt*, _drip_manager: felt, _drip: felt) {
+        alloc_locals;
+        if(tokens_len == 0){
+            return();
+        }
+        IDripManager.checkAndEnableToken(_drip_manager, _drip, tokens[0]);
+        return check_and_enable_token_list(tokens_len - 1, tokens + 1, _drip_manager, _drip,);
+    }
+
+    func disable_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+            tokens_len: felt, tokens: felt*, is_disable_len: felt, is_disable: felt*, _drip_manager: felt, _drip: felt) {
+        alloc_locals;
+        if(tokens_len == 0){
+            return();
+        }
+        if(is_disable[0] == 0){
+            return disable_token_list(tokens_len - 1, tokens + 1, is_disable_len - 1, is_disable + 1, _drip_manager, _drip,);
+        } else {
+            IDripManager.disableToken(_drip_manager, _drip, tokens[0]);
+            return disable_token_list(tokens_len - 1, tokens + 1, is_disable_len - 1, is_disable + 1, _drip_manager, _drip,);
         }
     }
 
