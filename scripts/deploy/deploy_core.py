@@ -66,13 +66,13 @@ async def deploy():
     # drip_factory_class_hash = resp.class_hash
     # print(f'✅ Success! Class Hash: {drip_factory_class_hash} ')
 
-    print(f'⌛️ Declaring ORACLE_TRANSIT...')
-    declare_transaction_oracle_transit = await admin.sign_declare_transaction(
-    compilation_source=Path(utils.ORACLE_TRANSIT_SOURCE_CODE).read_text(), max_fee=int(1e16))
-    resp = await admin.declare(transaction=declare_transaction_oracle_transit)
-    await admin.wait_for_tx(resp.transaction_hash)
-    oracle_transit_class_hash = resp.class_hash
-    print(f'✅ Success! Class Hash: {oracle_transit_class_hash} ')
+    # print(f'⌛️ Declaring ORACLE_TRANSIT...')
+    # declare_transaction_oracle_transit = await admin.sign_declare_transaction(
+    # compilation_source=Path(utils.ORACLE_TRANSIT_SOURCE_CODE).read_text(), max_fee=int(1e16))
+    # resp = await admin.declare(transaction=declare_transaction_oracle_transit)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # oracle_transit_class_hash = resp.class_hash
+    # print(f'✅ Success! Class Hash: {oracle_transit_class_hash} ')
     
 
     # print(f'⌛️ Deploying registery...')
@@ -97,17 +97,17 @@ async def deploy():
     # await admin.wait_for_tx(resp.transaction_hash)
     # print(f'✅ Success! Drip Factory deployed to {drip_factory} ')
 
-    print(f'⌛️ Deploying oracle transit...')
-    deploy_oracle_transit_call, oracle_transit = deployer.create_deployment_call(
-    class_hash=oracle_transit_class_hash,
-    abi=json.loads(Path(utils.ORACLE_TRANSIT_ABI).read_text()),
-    calldata={
-        "_oracle": utils.EMPIRIC,
-        "_registery": utils.REGISTERY
-    })
-    resp = await admin.execute(deploy_oracle_transit_call, max_fee=int(1e16))
-    await admin.wait_for_tx(resp.transaction_hash)
-    print(f'✅ Success! oracle transit deployed to {oracle_transit} ')
+    # print(f'⌛️ Deploying oracle transit...')
+    # deploy_oracle_transit_call, oracle_transit = deployer.create_deployment_call(
+    # class_hash=oracle_transit_class_hash,
+    # abi=json.loads(Path(utils.ORACLE_TRANSIT_ABI).read_text()),
+    # calldata={
+    #     "_oracle": utils.EMPIRIC,
+    #     "_registery": utils.REGISTERY
+    # })
+    # resp = await admin.execute(deploy_oracle_transit_call, max_fee=int(1e16))
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # print(f'✅ Success! oracle transit deployed to {oracle_transit} ')
 
 
     # registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
