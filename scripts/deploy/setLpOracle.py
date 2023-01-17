@@ -47,7 +47,7 @@ async def call():
 
     print(f'⌛️ Setting LP...')
     oracle_transit_contract = await Contract.from_address(client=admin, address=utils.ORACLE_TRANSIT)
-    invocation = await oracle_transit_contract.functions["addLiquidityToken"].invoke(utils.METH_MBTC_LP, max_fee=int(1e16))
+    invocation = await oracle_transit_contract.functions["addLiquidityToken"].invoke(utils.METH_MDAI_LP, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
 

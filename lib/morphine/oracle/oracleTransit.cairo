@@ -282,26 +282,7 @@ func convert{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     return (price_,);
 }
 
-// @notice: Fast Check
-// @dev Used to check price of incoming and leaving asset, to control loss
-// @param: _amount_from Amount of token from (Uint256)
-// @param: _token_from  Token from (felt)
-// @param: _amount_to Amount of token to (Uint256)
-// @param: _token_to  Token to (felt)
-// @return: collateralFrom  Collateral From (Uint256)
-// @return: collateralTo   Collateral To (Uint256)
-@view
-func fastCheck{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
-    _amount_from: Uint256, _token_from: felt, _amount_to: Uint256, _token_to: felt
-) -> (collateralFrom: Uint256, collateralTo: Uint256) {
-    alloc_locals;
-    let (collateral_from_) = convertToUSD(_amount_from, _token_from);
-    let (collateral_to_) = convertToUSD(_amount_to, _token_to);
-    return (collateral_from_, collateral_to_,);
-}
-
 // Internals
-
 
 // @notice: get_price
 // @param: _token  Token to get price (felt)
