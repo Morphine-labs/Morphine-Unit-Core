@@ -231,6 +231,17 @@ func derivativePriceFeed{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_c
     return (price_feed_,);
 }
 
+// @notice: Check if the token is registred LP token
+// @param: _token Token to check (felt)
+// @return: is_lp 1 is registred lp, 0 not registred (felt)
+@view
+func isLiquidityToken{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
+    _token: felt
+) -> (is_lp: felt) {
+    let (is_lp_: felt) = is_lp.read(_derivative);
+    return (is_lp_,);
+}
+
 // @notice: convert To USD
 // @dev decimals token are managed and the output is 8 decimals
 // @param: _amount amount of token (Uint256)

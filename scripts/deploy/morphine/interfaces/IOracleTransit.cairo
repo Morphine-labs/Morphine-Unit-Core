@@ -15,7 +15,7 @@ namespace IOracleTransit {
     func primitivePairId(primitive: felt) -> (pair_id: felt) {
     }
 
-    func fastCheck(amount_from: Uint256, token_from: felt, amount_to: Uint256, token_to: felt) -> (collateralFrom: Uint256, collateralTo: Uint256) {
+    func isLiquidityToken(token: felt) -> (is_lp: felt) {
     }
 
     func derivativePriceFeed(derivative: felt) -> (price_feed: felt) {
