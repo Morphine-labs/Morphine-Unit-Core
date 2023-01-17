@@ -14,10 +14,6 @@ import settings
 import utils
 import json
 
-## ERC20
-DECIMALS = 8
-NUM_SOURCE = 0
-LAST_UP = 0
 
 
 class _StarknetChainId(Enum):
@@ -25,11 +21,9 @@ class _StarknetChainId(Enum):
     TESTNET = from_bytes(b"SN_GOERLI")
     TESTNET_2 = from_bytes(b"SN_GOERLI2")
 
-
 StarknetChainId = as_our_module(_StarknetChainId)
 
-
-async def call():
+async def deploy():
     goerli2_client = GatewayClient(net=settings.NET)
     key_pair = KeyPair(private_key=int(settings.PRIVATE_KEY,16), public_key=int(settings.PUBLIC_KEY,16))
     signer = StarkCurveSigner(settings.ADMIN, key_pair, StarknetChainId.TESTNET_2)
@@ -45,12 +39,30 @@ async def call():
     balance = await admin.get_balance(utils.ETH)
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
-    print(f'⌛️ Setting Derivative...')
-    oracle_transit_contract = await Contract.from_address(client=admin, address=utils.ORACLE_TRANSIT)
-    invocation = await oracle_transit_contract.functions["addDerivative"].invoke(utils.VMETH, utils.ERC4626_PRICE_FEED, max_fee=int(1e16))
-    await invocation.wait_for_acceptance()
-    print(f'✅ Success! ')
+    deployer = Deployer(deployer_address=utils.UD, account_address=admin.address)
+
+    # print(f'⌛️ Declaring erc4626 adapter...')
+    # declare_transaction_erc4626_adapter = await admin.sign_declare_transaction(
+    # compilation_source=Path(utils.ERC4626_ADAPTER_SOURCE_CODE).read_text(), max_fee=int(1e16)
+    # )
+
+    # resp = await admin.declare(transaction=declare_transaction_erc4626_adapter)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # erc4626_adapter_class_hash = resp.class_hash
+    # print(f'✅ Success! Class Hash: {erc4626_adapter_class_hash} ')
+    
+
+    print(f'⌛️ Deploying erc4626 adapter...')
+    deploy_erc4626_adapter_call, erc4626_adapter = deployer.create_deployment_call(
+    class_hash=utils.ERC4626_ADAPTER_HASH,calldata={
+        "_drip_manager": utils.DAI_DRIP_MANAGER,
+        "_target": utils.VMETH}, abi=json.loads(Path(utils.ERC4626_ADAPTER_ABI).read_text()))
+    resp = await admin.execute(deploy_erc4626_adapter_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! ERC4626 ADAPTER deployed to {erc4626_adapter} ')
+
+   
 
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(call())
+loop.run_until_complete(deploy())

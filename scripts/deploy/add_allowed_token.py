@@ -15,9 +15,9 @@ import utils
 import json
 
 ## ERC20
-DECIMALS = 8
-NUM_SOURCE = 0
-LAST_UP = 0
+TOKEN_ADDRESS = utils.VMETH
+LT_TOKEN = {"low": utils.VMETH_TOKEN_LT_POOL_DAI, "high": 0}
+
 
 
 class _StarknetChainId(Enum):
@@ -45,9 +45,9 @@ async def call():
     balance = await admin.get_balance(utils.ETH)
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
-    print(f'⌛️ Setting Derivative...')
-    oracle_transit_contract = await Contract.from_address(client=admin, address=utils.ORACLE_TRANSIT)
-    invocation = await oracle_transit_contract.functions["addDerivative"].invoke(utils.VMETH, utils.ERC4626_PRICE_FEED, max_fee=int(1e16))
+    print(f'⌛️ add token ...')
+    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_CONFIGURATOR)
+    invocation = await drip_configurator_contract.functions["addToken"].invoke(TOKEN_ADDRESS, LT_TOKEN, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
 
