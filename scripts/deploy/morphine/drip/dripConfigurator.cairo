@@ -598,8 +598,9 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (oracle_transit_) = IDripManager.oracleTransit(drip_manager_);
     let (derivative_price_feed_) = IOracleTransit.derivativePriceFeed(oracle_transit_, _token);
     let (pair_id_) = IOracleTransit.primitivePairId(oracle_transit_, _token);
+    let (is_lp_) = IOracleTransit.isLiquidityToken(oracle_transit_, _token);
     with_attr error_message("no price feed for token"){
-        assert_not_zero(derivative_price_feed_ + pair_id_);
+        assert_not_zero(derivative_price_feed_ + pair_id_ + is_lp_);
     }
     IDripManager.addToken(drip_manager_, _token);
     TokenAllowed.emit(_token);

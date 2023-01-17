@@ -25,7 +25,10 @@ from morphine.interfaces.IAdapter import IAdapter
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IOracleTransit import IOracleTransit
 
-
+/// @title Drip Configurator
+/// @author Graff Sacha (0xSacha)
+/// @dev Contract Used to Manage Drip Infrastructure parameters
+/// @custom:experimental This is an experimental contract.
 
 // Events
 
@@ -133,6 +136,8 @@ func underlying() -> (underlying : felt){
 
 //Constructor
 
+// @notice: Constructor will be called when the contract is deployed
+// @param drip_manager: Address of the DripManager contract
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _drip_manager: felt) {
@@ -148,6 +153,9 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 
 // TOKEN MANAGEMENT
 
+// @notice: Set the maximum number of tokens that can be allowed
+// @param _new_max_enabled_tokens: Maximum number of tokens that can be allowed (Uint256)
+// @dev: Should not execeed 256
 @external
 func setMaxEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_max_enabled_tokens: Uint256){
     RegisteryAccess.assert_only_owner();
@@ -161,6 +169,8 @@ func setMaxEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
+// @notice: Allow a token to be used 
+// @param token_address: Address of the token to be allowed (felt)
 @external
 func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
     RegisteryAccess.assert_only_owner();
@@ -169,6 +179,9 @@ func addToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_
     return();
 }
 
+// @notice: Set the liquidation threshold for a token
+// @param token_address: Address of the token (felt)
+// @param _liquidation_threshold: Liquidation threshold for the token (Uint256)
 @external
 func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
     RegisteryAccess.assert_only_owner();
@@ -176,6 +189,8 @@ func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     return();
 }
 
+// @notice: Allow new tokens to be used
+// @param: _token Address of the token to be allowed (felt)
 @external
 func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
@@ -204,6 +219,8 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,
     return();
 }
 
+// @notice: Forbid a token to be used
+// @param: _token Address of the token to be forbidden (felt)
 @external
 func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
@@ -235,6 +252,9 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
  // CONTRACTS & ADAPTERS MANAGEMENT
 
+// @notice: Allow a new contract
+// @param _contract: Address of the contract to be allowed (felt)
+// @param _adapter: Type of the contract to be allowed (Uint256)
 @external
 func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt, _adapter: felt){
     alloc_locals;
@@ -262,16 +282,28 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     
     IDripManager.changeContractAllowance(drip_manager_, _adapter, _contract);
 
-
-    let (allowed_contract_length_) = allowed_contract_length.read();
-    id_to_allowed_contract.write(allowed_contract_length_, _contract);
-    allowed_contract_to_id.write(_contract, allowed_contract_length_);
-    allowed_contract_length.write(allowed_contract_length_ + 1);
-    is_allowed_contract.write(_contract, 1);
+    let (is_allowed_contract_) = is_allowed_contract.read(_contract);
+    
+    if(is_allowed_contract_ == 0) {
+        let (allowed_contract_length_) = allowed_contract_length.read();
+        id_to_allowed_contract.write(allowed_contract_length_, _contract);
+        allowed_contract_to_id.write(_contract, allowed_contract_length_);
+        allowed_contract_length.write(allowed_contract_length_ + 1);
+        is_allowed_contract.write(_contract, 1);
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar syscall_ptr = syscall_ptr;
+        tempvar pedersen_ptr = pedersen_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }
     ContractAllowed.emit(_contract, _adapter);
     return();
 }
 
+// @notice: Forbid a contract
+// @param _contract: Address of the contract to be forbidden (felt)
 @external
 func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt){
     alloc_locals;
@@ -301,6 +333,9 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     return();
 }
 
+// @notice: Set Limit (minimum and maximum that can be borrowed)
+// @param: _minimum_borrowed_amount: Minimum amount that can be borrowed (Uint256)
+// @param: _maximum_borrowed_amount: Maximum amount that can be borrowed (Uint256)
 @external
 func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
@@ -309,6 +344,12 @@ func setLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return();
 }
 
+// @notice: Set Fees
+// @param: _fee_interested: Fee for the interest (Uint256)
+// @param: _fee_liquidation: the fee for the liquidation (Uint256)
+// @param: _liquidation_premium: Premium for the liquidation (Uint256)
+// @param: _liquidation_fee_expired: Fee for the expired liquidation (Uint256)
+// @param: _liquidation_premium_expired: Premium for the expired liquidation (Uint256)
 @external
 func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_fee_interest: Uint256, _fee_liquidation: Uint256, _liquidation_premium: Uint256, _fee_liquidation_expired: Uint256, _liquidation_premium_expired: Uint256){
     alloc_locals;
@@ -327,6 +368,8 @@ func setFees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_f
     return();
 }
 
+// @notice: Set Increase Forbidden Debt
+// @dev: Freeze borrow more and open credit account
 @external
 func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
     alloc_locals;
@@ -335,6 +378,8 @@ func setIncreaseDebtForbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
     return();
 }
 
+// @notice: Set max Borrowed Amount per block
+// @param: _new_limit: New limit (Uint256)
 @external
 func setLimitPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_limit: Uint256){
     alloc_locals;
@@ -343,6 +388,8 @@ func setLimitPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return();
 }
 
+// @notice: Set Drip Expiration Date
+// @param: _new_date: New expiration date
 @external
 func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
     alloc_locals;
@@ -351,6 +398,8 @@ func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return();
 }
 
+// @notice: Emergency liquidation in case 
+// @param: _liquidator Address of the liquidator
 @external
 func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
     alloc_locals;
@@ -361,6 +410,8 @@ func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     return();
 }
 
+// @notice: Remove emergency liquidator
+// @param: _liquidator Address of the liquidator
 @external
 func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
     alloc_locals;
@@ -371,7 +422,7 @@ func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return();
 }
 
-
+// @notice: Upgrade Oracle transit
 @external
 func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     alloc_locals;
@@ -384,6 +435,9 @@ func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
     return();
 }
 
+// @notice: Upgrade Drip Transit
+// @param: _drip_transit 
+// @param: _migrate_parameters
 @external
 func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_transit: felt, _migrate_parameters: felt){
     alloc_locals;
@@ -427,6 +481,8 @@ func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     return();
 }
 
+// @notice: Upgrade Drip Configurator
+// @param: _drip_configurator
 @external
 func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_configurator: felt){
     alloc_locals;
@@ -444,20 +500,26 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
+// @notice: get allowed contract length
+// @return: allowed contract length
 @view
-func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContractsLength: felt){
+func allowedContractsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (allowedContractsLength: felt){
     alloc_locals;
     let (allowed_contract_length_) = allowed_contract_length.read();
     return(allowed_contract_length_,);
 }
 
+// @notice: get id to allowed contract
+// @return: allowed contract
 @view
-func idToAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(id: felt) -> (allowedContract: felt){
+func idToAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_id: felt) -> (allowedContract: felt){
     alloc_locals;
-    let (allowed_contract_) = id_to_allowed_contract.read(id);
+    let (allowed_contract_) = id_to_allowed_contract.read(_id);
     return(allowed_contract_,);
 }
 
+// @notice: get allowed contract to id
+// @return: allowed contract id
 @view
 func allowedContractToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_allowed_contract: felt) -> (id: felt){
     alloc_locals;
@@ -465,6 +527,8 @@ func allowedContractToId{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return(id_,);
 }
 
+// @notice: check if a contract is allowed
+// @return: state True if allowed
 @view
 func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_contract: felt) -> (state: felt){
     alloc_locals;
@@ -472,6 +536,8 @@ func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return(state_,);
 }
 
+// @notice: get Drip manager address
+// @return: Drip manager address
 @view
 func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
     alloc_locals;
@@ -480,6 +546,11 @@ func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 // Internals
+
+// @notice: list of allowed token
+// @custom: internal function
+// @param: _allowed_token (AllowedToken*)
+// @param: _allowed_token_len (felt)
 func allow_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_allowed_tokens_len: felt, _allowed_tokens: AllowedToken*){
     alloc_locals;
     if(_allowed_tokens_len == 0){
@@ -490,6 +561,9 @@ func allow_token_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return allow_token_list(_allowed_tokens_len - 1, _allowed_tokens + AllowedToken.SIZE);
 }
 
+// @notice : add token
+// @custom: internal function
+// @param: _token (felt)
 func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt){
     
     with_attr error_message("zero address for token"){
@@ -503,14 +577,19 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (oracle_transit_) = IDripManager.oracleTransit(drip_manager_);
     let (derivative_price_feed_) = IOracleTransit.derivativePriceFeed(oracle_transit_, _token);
     let (pair_id_) = IOracleTransit.primitivePairId(oracle_transit_, _token);
+    let (is_lp_) = IOracleTransit.isLiquidityToken(oracle_transit_, _token);
     with_attr error_message("no price feed for token"){
-        assert_not_zero(derivative_price_feed_ + pair_id_);
+        assert_not_zero(derivative_price_feed_ + pair_id_ + is_lp_);
     }
     IDripManager.addToken(drip_manager_, _token);
     TokenAllowed.emit(_token);
     return();
 }
 
+// @notice: set liquidation threshold
+// @custom: internal function
+// @param: _token token address
+// @param: _liquidation_threshold liquidation threshold (Uint256)
 func set_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_token: felt, _liquidation_threshold: Uint256){
     let (underlying_) = underlying.read();
     with_attr error_message("underlying is token"){
@@ -530,6 +609,8 @@ func set_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
     return();
 }
 
+// @notice: set limit per block
+// @param: _new_limit_per_block limit per block (Uint256)
 func set_limit_per_block{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_limit_per_block: Uint256){
     let (drip_manager_) = drip_manager.read();
     let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
@@ -544,6 +625,10 @@ func set_limit_per_block{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
+// @notice: set limits
+// @custom: internal function
+// @param: _new_min_borrowed_amount min borrowed amount (Uint256)
+// @param: _new_max_borrowed_amount max borrowed amount (Uint256)
 func set_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     let (drip_manager_) = drip_manager.read();
     let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
@@ -558,6 +643,9 @@ func set_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return();
 }
 
+// @notice: set increase debt forbidden
+// @custom: internal function
+// @param: _state state
 func set_increase_debt_forbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -567,6 +655,9 @@ func set_increase_debt_forbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*,
     return();
 }
 
+// @notice: set expiration date for drip
+// @custom: internal function
+// @param: _new_expiration_date expiration date 
 func set_expiration_date{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
     alloc_locals;
     let (drip_manager_) = drip_manager.read();
@@ -583,6 +674,13 @@ func set_expiration_date{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     return();
 }
 
+// @notice: set fees
+// @custom: internal function
+// @param: _fee_interest fee interest (Uint256)
+// @param: _fee_liquidation fee liquidation (Uint256)
+// @param: _liquidation_discount liquidation discount (Uint256)
+// @param: _fee_liquidation_expired fee liquidation expired (Uint256)
+// @param: _liquidation_discount_expired liquidation discount expired (Uint256)
 func set_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _fee_interest: Uint256,
         _fee_liquidation: Uint256,
@@ -611,6 +709,9 @@ func set_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return();
 }
 
+// @notice: Update liquidation threshold
+// @custom: internal function
+// @param: _lt_underlying new liquidation threshold (Uint256)
 func update_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_lt_underlying: Uint256){
     let (underlying_) = underlying.read();
     let (drip_manager_) = drip_manager.read();
@@ -620,6 +721,11 @@ func update_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
     return();
 }
 
+// @notice: loop for update liquidation threshold
+// @custom: internal function
+// @param: _length length of allowed tokens
+// @param: _drip_manager drip manager
+// @param: _lt_underlying new liquidation threshold (Uint256)
 func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_len: felt, _drip_manager: felt,_lt_underlying: Uint256){
     // we din't need to set the underlying lt directly
     if(_len == 1){
