@@ -50,6 +50,22 @@ struct DripMiniInfo {
     health_factor: Uint256,
 }
 
+struct DripFullInfo {
+    user_balance: Uint256,  
+    total_balance: Uint256,  
+    total_weighted_balance: Uint256,  
+    debt: Uint256,
+    health_factor: Uint256,
+    drip_address: felt,
+}
+
+struct DripTokens {
+    token_address: felt,  
+    lt: Uint256,
+    drip_balance: Uint256,  
+    value: Uint256,
+}
+
 struct DripListInfo {
     pool_address: felt,
     token_address: felt,

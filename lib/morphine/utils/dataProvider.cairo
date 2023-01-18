@@ -1,11 +1,12 @@
 // Declare this file as a StarkNet contract.
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, uint256_pow2
 from starkware.starknet.common.syscalls import get_caller_address, get_block_timestamp
 from openzeppelin.security.safemath.library import SafeUint256
 from openzeppelin.access.ownable.library import Ownable
@@ -17,7 +18,7 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IDripConfigurator import IDripConfigurator
 from morphine.interfaces.IDripTransit import IDripTransit
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
-from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo, LimitInfo, UserTokenCollateral
+from morphine.interfaces.IDataProvider import IDataProvider, PoolInfo, FaucetInfo, AllowedToken, FeesInfo, TokenInfo, PoolTokenInfo, NftInfo, DripMiniInfo, DripListInfo, MinterInfo, LimitInfo, UserTokenCollateral, DripFullInfo, DripTokens
 from morphine.interfaces.IMorphinePass import IMorphinePass
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMinter import IMinter
@@ -255,6 +256,64 @@ func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         }
     }
 }
+
+
+@view
+func getUserDripInfoFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, _pool: felt) -> (
+    DripFullInfo: DripFullInfo
+) {
+    alloc_locals;
+    let (drip_manager_) = IPool.connectedDripManager(_pool);
+    let (drip_) = IDripManager.getDrip(drip_manager_, _user);
+    let (_, _, due_amount_) = IDripManager.calcDripAccruedInterest(drip_manager_, drip_);
+    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
+    let (total_, twv_ )  = IDripTransit.calcTotalValue(drip_transit_, drip_);
+    let (hf_ )  = IDripTransit.calcDripHealthFactor(drip_transit_, drip_);
+    let (remaining_) = SafeUint256.sub_le(total_, due_amount_);
+    return (DripFullInfo(remaining_, total_, twv_, due_amount_, hf_, drip_),);
+}
+
+@view
+func getUserDripTokensFromPool{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_registery: felt, _user: felt, _pool: felt) -> (
+    DripTokens_len: felt, DripTokens: DripTokens*
+) {
+    alloc_locals;
+    let (drip_tokens: DripTokens*) = alloc();
+    let (drip_manager_) = IPool.connectedDripManager(_pool);
+    let (drip_) = IDripManager.getDrip(drip_manager_, _user);
+    let (enabled_tokens_map_) = IDripManager.enabledTokensMap(drip_manager_, drip_);
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
+    let (drip_tokens_len) = recursive_drip_tokens_list(oracle_transit_, drip_manager_, drip_, 0, 255, enabled_tokens_map_, 0, drip_tokens);
+    return (drip_tokens_len, drip_tokens,);
+}
+
+
+// @notice: recursive pool_token
+func recursive_drip_tokens_list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(_oracle_transit: felt, _drip_manager: felt, _drip: felt,_index: felt, _max_index: felt, enabled_tokens_map_: Uint256, current_len: felt, drip_tokens: DripTokens*) ->(len: felt) {
+    alloc_locals;
+    if(_index == _max_index){
+        return(current_len,);
+    }
+    let (token_mask_) = uint256_pow2(Uint256(_index,0));
+    let (low_) = bitwise_and(enabled_tokens_map_.low, token_mask_.low);
+    let (high_) = bitwise_and(enabled_tokens_map_.high, token_mask_.high);
+    let (is_lt_) = uint256_lt(Uint256(0, 0), Uint256(low_, high_));
+    if(is_lt_ == 1){
+        let (token_) = IDripManager.tokenById(_drip_manager, _index);
+        let (lt_) = IDripManager.liquidationThreshold(_drip_manager, token_);
+        let (drip_balance_) = IERC20.balanceOf(token_, _drip);
+        let (value_) = IOracleTransit.convertToUSD(_oracle_transit, drip_balance_, token_);
+        assert drip_tokens[0].token_address = token_;
+        assert drip_tokens[0].lt = lt_;
+        assert drip_tokens[0].drip_balance = drip_balance_;
+        assert drip_tokens[0].value = value_;
+        return recursive_drip_tokens_list(_oracle_transit, _drip_manager, _drip, _index + 1, _max_index, enabled_tokens_map_, current_len + 1, drip_tokens + DripTokens.SIZE);
+    } else {
+        return recursive_drip_tokens_list(_oracle_transit, _drip_manager, _drip, _index + 1, _max_index, enabled_tokens_map_, current_len, drip_tokens);
+    }
+}
+
+
 
 @view
 func dripListInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt) -> (
