@@ -238,7 +238,7 @@ func derivativePriceFeed{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_c
 func isLiquidityToken{pedersen_ptr: HashBuiltin*, syscall_ptr: felt*, range_check_ptr}(
     _token: felt
 ) -> (is_lp: felt) {
-    let (is_lp_: felt) = is_lp.read(_derivative);
+    let (is_lp_: felt) = is_lp.read(_token);
     return (is_lp_,);
 }
 

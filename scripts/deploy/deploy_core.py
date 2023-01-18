@@ -110,12 +110,12 @@ async def deploy():
     # print(f'✅ Success! oracle transit deployed to {oracle_transit} ')
 
 
-    # registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
+    registery_contract = await Contract.from_address(client=admin, address=utils.REGISTERY)
 
-    # print(f'⌛️ Setting Oracle Transit for Regsitery...')
-    # invocation = await registery_contract.functions["setOracleTransit"].invoke(utils.ORACLE_TRANSIT, max_fee=int(1e16))
-    # await invocation.wait_for_acceptance()
-    # print(f'✅ Success! ')
+    print(f'⌛️ Setting Oracle Transit for Regsitery...')
+    invocation = await registery_contract.functions["setOracleTransit"].invoke(utils.ORACLE_TRANSIT, max_fee=int(1e16))
+    await invocation.wait_for_acceptance()
+    print(f'✅ Success! ')
 
     # print(f'⌛️ Setting Drip Factory for Regsitery...')
     # invocation = await registery_contract.functions["setDripFactory"].invoke(utils.DRIP_FACTORY, max_fee=int(1e16))

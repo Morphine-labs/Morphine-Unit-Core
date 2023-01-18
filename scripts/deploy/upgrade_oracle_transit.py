@@ -46,7 +46,7 @@ async def call():
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
     print(f'⌛️ upgrading oracle transit ...')
-    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.ETH_DRIP_CONFIGURATOR)
+    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_CONFIGURATOR)
     invocation = await drip_configurator_contract.functions["upgradeOracleTransit"].invoke(max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')
