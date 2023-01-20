@@ -4,6 +4,7 @@ lib-path = "lib"
 cairo-path = ["lib"] 
 
 [contracts]
+router = ["lib/utils/router.cairo"]
 base_adapter = ["lib/morphine/adapters/baseAdapter.cairo"]
 erc4626_adapter = ["lib/morphine/adapters/ERC4626/ERC4626.cairo"]
 jediswap_adapter = ["lib/morphine/adapters/AMM/jediswap.cairo"]

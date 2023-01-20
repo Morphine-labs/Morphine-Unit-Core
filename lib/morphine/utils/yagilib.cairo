@@ -17,7 +17,6 @@ from morphine.utils.fixedpointmathlib import mul_div_up, mul_div_down
 // @description An ERC4626-style vault implementation.
 //              Adapted from the solmate implementation: https://github.com/Rari-Capital/solmate/blob/main/src/mixins/ERC4626.sol
 // @author Peteris <github.com/Pet3ris>
-// @dev: Comment added by Morphine team
 
 //
 // EVENTS
