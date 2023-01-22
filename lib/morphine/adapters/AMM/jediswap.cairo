@@ -106,10 +106,10 @@ func swap_exact_tokens_for_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
     assert calldata[3] = _amount_out_min.low;
     assert calldata[4] = path_len;
     memcpy(calldata + 5, path, path_len);
-    assert calldata[4 + path_len] = drip_;
-    assert calldata[4 + path_len + 1] = deadline_;
+    assert calldata[5 + path_len] = drip_;
+    assert calldata[5 + path_len + 1] = deadline_;
 
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_EXACT_TOKENS_FOR_TOKENS_SELECTOR, 4 + path_len + 2, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_EXACT_TOKENS_FOR_TOKENS_SELECTOR, 5 + path_len + 2, calldata);
     ReentrancyGuard.end();
     return (retdata_len, retdata,);
 }
@@ -140,10 +140,10 @@ func swap_tokens_for_exact_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
     assert calldata[3] = _amount_in_min.low;
     assert calldata[4] = path_len;
     memcpy(calldata + 5, path, path_len);
-    assert calldata[4 + path_len] = drip_;
-    assert calldata[4 + path_len + 1] = deadline_;
+    assert calldata[5 + path_len] = drip_;
+    assert calldata[5 + path_len + 1] = deadline_;
 
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_TOKENS_FOR_EXACT_TOKENS_SELECTOR, 4 + path_len + 2, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_TOKENS_FOR_EXACT_TOKENS_SELECTOR, 5 + path_len + 2, calldata);
     ReentrancyGuard.end();
     return (retdata_len, retdata,);
 }
@@ -178,10 +178,10 @@ func swap_all_tokens_for_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
     assert calldata[3] = amount_out_min_.low;
     assert calldata[4] = path_len;
     memcpy(calldata + 5, path, path_len);
-    assert calldata[4 + path_len] = drip_;
-    assert calldata[4 + path_len + 1] = deadline_;
+    assert calldata[5 + path_len] = drip_;
+    assert calldata[5 + path_len + 1] = deadline_;
 
-    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_EXACT_TOKENS_FOR_TOKENS_SELECTOR, 4 + path_len + 2, calldata);
+    let (retdata_len: felt, retdata: felt*) = BaseAdapter.safe_execute_drip(drip_, 1, token_in, 1, token_out, 1, 1, disable_token_in, SWAP_EXACT_TOKENS_FOR_TOKENS_SELECTOR, 5 + path_len + 2, calldata);
     ReentrancyGuard.end();
     return (retdata_len, retdata,);
 }
