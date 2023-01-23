@@ -15,8 +15,8 @@ import utils
 import json
 
 ## ERC20
-TOKEN_ADDRESS = utils.VMETH
-LT_TOKEN = {"low": utils.VMETH_TOKEN_LT_POOL_DAI, "high": 0}
+TOKEN_ADDRESS = utils.MDAI_MBTC_LP
+LT_TOKEN = {"low": utils.BTC_DAI_LP_LT_POOL_DAI, "high": 0}
 
 
 
