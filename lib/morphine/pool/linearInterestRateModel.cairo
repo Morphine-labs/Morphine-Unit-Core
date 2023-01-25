@@ -11,7 +11,7 @@ from starkware.cairo.common.uint256 import (
 from morphine.utils.various import PRECISION
 
 /// @title Linear Interest rate model
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Used to calculate borrow rate, respecting the linear interest rate model
 /// @custom:experimental This is an experimental contract.
 

@@ -7,7 +7,7 @@ from starkware.cairo.common.alloc import alloc
 from morphine.interfaces.IERC4626 import IERC4626
 
 /// @title ERC4626 PriceFeed
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev To get ERC4626 underlying values
 /// @custom:experimental This is an experimental contract. 
 

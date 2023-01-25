@@ -38,7 +38,7 @@ from morphine.interfaces.IDrip import IDrip
 from morphine.interfaces.IRegistery import IRegistery
 
 /// @title Drip Factory
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Contract Factory with recycling mechanisms
 /// @custom:experimental This is an experimental contract.
 

@@ -26,7 +26,7 @@ from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IOracleTransit import IOracleTransit
 
 /// @title Drip Configurator
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Used to Manage Drip Infrastructure parameters
 /// @custom:experimental This is an experimental contract.
 

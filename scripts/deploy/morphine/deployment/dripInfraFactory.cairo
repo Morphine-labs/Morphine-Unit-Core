@@ -25,7 +25,7 @@ from morphine.interfaces.IDripManager import IDripManager
 
 
 /// @title: dripInfraFactory
-/// @author: Graff Sacha (0xSacha)
+/// @author: 
 /// @dev: Helper contract to deploy interdependent contracts
 /// @custom: experimental This is an experimental contract.
 

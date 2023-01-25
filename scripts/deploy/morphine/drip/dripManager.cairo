@@ -43,7 +43,7 @@ from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import PRECISION
 
 /// @title Drip Manager
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Contract Managing Drip Infrastructure
 /// @custom:experimental This is an experimental contract.
 

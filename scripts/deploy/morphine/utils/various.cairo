@@ -5,7 +5,7 @@ from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
 /// @title: Various
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: this contract is like a bagppack you can put all constant you needed inside
 /// @custom: experimental This is an experimental contract.
 

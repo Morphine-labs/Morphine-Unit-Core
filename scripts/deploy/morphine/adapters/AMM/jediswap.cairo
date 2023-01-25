@@ -22,7 +22,7 @@ from morphine.interfaces.IRouter import IRouter
 from morphine.utils.various import SWAP_TOKENS_FOR_EXACT_TOKENS_SELECTOR, SWAP_EXACT_TOKENS_FOR_TOKENS_SELECTOR, MAX_PATH_LEN, ADD_LIQUIDITY_SELECTOR, REMOVE_LIQUIDITY_SELECTOR, PRECISION
 
 /// @title: Jediswap adapter
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: Contract that contains all method to interact with Jediswap AMM
 /// @custom: experimental This is an experimental contract.
 

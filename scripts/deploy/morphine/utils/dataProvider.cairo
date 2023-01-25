@@ -29,7 +29,7 @@ from morphine.utils.various import PRECISION, DEFAULT_FEE_INTEREST
 from morphine.utils.utils import pow
 
 /// @title: Data Provider
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: Helper conract to get useful data from Morphine
 /// @custom:experimental This is an experimental contract
 

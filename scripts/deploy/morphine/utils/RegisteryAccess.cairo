@@ -11,7 +11,7 @@ from morphine.interfaces.IRegistery import IRegistery
 
 
 /// @title: Registery Access
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: Modified Ownable 
 /// @custom: experimental This is an experimental contract.
 

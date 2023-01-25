@@ -20,7 +20,7 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.utils.various import DEPOSIT_SELECTOR, REDEEM_SELECTOR
 
 /// @title: ERC4626 adapter
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: Contract that contains all method to interact with ERC4626
 /// @custom: experimental This is an experimental contract.
 

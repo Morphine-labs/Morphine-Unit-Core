@@ -12,7 +12,7 @@ from morphine.interfaces.IDripManager import IDripManager
 
 
 /// @title: BaseAdapter
-/// @author: Graff Sacha (0xSacha)
+/// @author: 0xSacha
 /// @dev: Contract that contains all method needed for future protocol integraton
 /// @custom: experimental This is an experimental contract.
 

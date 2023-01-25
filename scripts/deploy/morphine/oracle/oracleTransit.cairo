@@ -47,7 +47,7 @@ from morphine.utils.various import PRECISION
 
 
 /// @title Oracle Transit
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Modular and Intelligent Oracle contract
 /// @custom:experimental This is an experimental contract. LP Pricing to think.
 

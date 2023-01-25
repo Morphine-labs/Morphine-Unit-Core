@@ -31,7 +31,7 @@ from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
 /// @title Pool
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Pool contract, respecting ERC4626 implementation
 /// @custom:experimental This is an experimental contract.
 

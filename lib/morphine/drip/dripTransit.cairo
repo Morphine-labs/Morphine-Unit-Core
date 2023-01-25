@@ -28,7 +28,7 @@ from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
 /// @title Drip Transit
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Used to interact with the Drip Infrastructure
 /// @custom:experimental This is an experimental contract.
 

@@ -13,7 +13,7 @@ from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.utils.safeerc20 import SafeERC20
 
 /// @title Drip
-/// @author Graff Sacha (0xSacha)
+/// @author 0xSacha
 /// @dev Contract Isolated Smart contract holding funds and borrow parameters
 /// @custom:experimental This is an experimental contract.
 
