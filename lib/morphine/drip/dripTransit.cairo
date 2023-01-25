@@ -920,7 +920,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             tempvar range_check_ptr = range_check_ptr;
             tempvar bitwise_ptr = bitwise_ptr;
         }
-        let (is_increase_debt_was_called_, expected_balances_len, expected_balances) = call_drip_facade(_call[0], _drip_manager, _borrower, _drip, _is_increase_debt_was_called, _expected_balances_len, _expected_balances);
+        let (is_increase_debt_was_called_, expected_balances_len, expected_balances) = call_drip_transit(_call[0], _drip_manager, _borrower, _drip, _is_increase_debt_was_called, _expected_balances_len, _expected_balances);
         return recursive_multicall(_call_len - 1, _call + Call.SIZE, _borrower, _drip, _is_closure, is_increase_debt_was_called_, _this, _drip_manager, expected_balances_len, expected_balances);
     } else {
         let (contract_) = IDripManager.adapterToContract(_drip_manager, _call[0].to);
@@ -933,7 +933,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     }
 }
 
-// @notice: call_drip_facade
+// @notice: call_drip_transit
 // @dev: Called if a call in the multicall concerns drip transit
 // @param: _call Call (Call)
 // @param: _borrower Borrower (felt)
@@ -944,7 +944,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 // @return: is_increase_debt_was_called 1 If Increase Debt Was Called (felt)
 // @return: expected_balances_len Expected Balances Length (felt)
 // @return: expected_balances Expected Balances (tokenAndBalance*)
-func call_drip_facade{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+func call_drip_transit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         _call: Call,
         _drip_manager: felt,
         _borrower: felt,
