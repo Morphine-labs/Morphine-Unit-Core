@@ -326,7 +326,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     let type_ = _type*(1 - is_paused_) + 3 * is_paused_;
 
     let (drip_) = getDripOrRevert(_borrower);
-    borrower_to_drip.write(drip_, 0);
+    borrower_to_drip.write(_borrower, 0);
 
     let (borrowed_amount_, borrowed_amount_with_interests_,_) = calcDripAccruedInterest(drip_);
     let (amount_to_pool_, remaining_funds_, profit_, loss_) = calcClosePayments(_total_value, type_, borrowed_amount_, borrowed_amount_with_interests_);

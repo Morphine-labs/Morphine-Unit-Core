@@ -19,7 +19,7 @@ from openzeppelin.security.safemath.library import SafeUint256
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
 /// @title Minter method for Morphine pass
-/// @author Graff Sacha (0xSacha)
+/// @author  (0xSacha)
 /// @dev Contract that contains all the method needed for NFT mint
 /// @custom:experimental This is an experimental contract.
 

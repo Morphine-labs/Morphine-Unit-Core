@@ -13,7 +13,7 @@ from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.utils.safeerc20 import SafeERC20
 
 /// @title referral
-/// @author Graff Sacha (0xSacha)
+/// @author  (0xSacha)
 /// @dev referral contract 
 /// @custom:experimental This is an experimental contract.
 
