@@ -15,7 +15,7 @@ import utils
 import json
 
 ## ERC20
-WL_ADDRESSES = [1900385951641909016294557771160805230279974852683230073741824079343062515185]
+WL_ADDRESSES = [1900385951641909016294557771160805230279974852683230073741824079343062515185, 1346467854455685460098999325011621961504244848751031854889451399430175951183, 1935063120963007651720444207357493815736729447667659013124670965324844680863, 2846417304015367565224703477906543256941037536794629011019627518135445046171]
 
 
 class _StarknetChainId(Enum):
@@ -44,7 +44,7 @@ async def call():
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
     print(f'⌛️ adding WL...')
-    minter_contract = await Contract.from_address(client=admin, address=utils.DAI_MINTER)
+    minter_contract = await Contract.from_address(client=admin, address=utils.ETH_MINTER)
     invocation = await minter_contract.functions["setWhitelist"].invoke(WL_ADDRESSES, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! ')

@@ -17,16 +17,16 @@ import json
 
 # NFT
 PASS_TOKEN_NAME = 'MorphinePassEth'
-PASS_TOKEN_SYMBOL = 'PETH'
+PASS_TOKEN_SYMBOL = 'PEth'
 
 # MINIMUM_BORROWED_AMOUNT_LO = 100000000
 # MINIMUM_BORROWED_AMOUNT_HI = 0
-# MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000
+# MAXIMUM_BORROWED_AMOUNT_LO = 30000000000
 # MAXIMUM_BORROWED_AMOUNT_HI = 0
 
 MINIMUM_BORROWED_AMOUNT_LO = 500000000000000000
 MINIMUM_BORROWED_AMOUNT_HI = 0
-MAXIMUM_BORROWED_AMOUNT_LO = 1000000000000000000000
+MAXIMUM_BORROWED_AMOUNT_LO = 100000000000000000000
 MAXIMUM_BORROWED_AMOUNT_HI = 0
 
 class _StarknetChainId(Enum):
@@ -102,17 +102,18 @@ async def deploy():
     # drip_infra_factory_class_hash = resp.class_hash
     # print(f'✅ Success! Class Hash: {drip_infra_factory_class_hash} ')
 
-    # print(f'⌛️ Deploying Pass...')
-    # deploy_pass_call, pass_ = deployer.create_deployment_call(
-    # class_hash=utils.PASS_HASH,
-    # abi=json.loads(Path(utils.PASS_ABI).read_text()),
-    # calldata={
-    #     "_name": PASS_TOKEN_NAME,
-    #     "_symbol": PASS_TOKEN_SYMBOL,
-    #     "_registery": utils.REGISTERY})
-    # resp = await admin.execute(deploy_pass_call, max_fee=int(1e16))
-    # await admin.wait_for_tx(resp.transaction_hash)
-    # print(f'✅ Success! Pass deployed to {pass_} ')
+
+    print(f'⌛️ Deploying Pass...')
+    deploy_pass_call, pass_ = deployer.create_deployment_call(
+    class_hash=utils.PASS_HASH,
+    abi=json.loads(Path(utils.PASS_ABI).read_text()),
+    calldata={
+        "_name": PASS_TOKEN_NAME,
+        "_symbol": PASS_TOKEN_SYMBOL,
+        "_registery": utils.REGISTERY})
+    resp = await admin.execute(deploy_pass_call, max_fee=int(1e16))
+    await admin.wait_for_tx(resp.transaction_hash)
+    print(f'✅ Success! Pass deployed to {pass_} ')
 
     print(f'⌛️ Deploying Minter...')
     deploy_minter_call, minter_ = deployer.create_deployment_call(
@@ -125,7 +126,7 @@ async def deploy():
 
     # print(f'⌛️ Deploying Drip Infra Factory...')
     # deploy_drip_infra_factory_call, drip_infra_factory = deployer.create_deployment_call(
-    # class_hash=drip_infra_factory_class_hash,
+    # class_hash=utils.DRIP_INFRA_FACTORY_HASH,
     # abi=json.loads(Path(utils.DRIP_INFRA_FACTORY_ABI).read_text()),
     # calldata={"_drip_manager_hash": utils.DRIP_MANAGER_HASH,
     #         "_drip_transit_hash": utils.DRIP_TRANSIT_HASH,
@@ -134,14 +135,14 @@ async def deploy():
     # await admin.wait_for_tx(resp.transaction_hash)
     # print(f'✅ Success! Drip Infra Factory deployed to {drip_infra_factory} ')
 
-    drip_infra_factory_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_INFRA_FACTORY)
+    drip_infra_factory_contract = await Contract.from_address(client=admin, address=utils.DRIP_INFRA_FACTORY)
 
 
     print(f'⌛️ Deploying Drip Manager, Drip Transit and Drip Configurator...')
     invocation = await drip_infra_factory_contract.functions["deployDripInfra"].invoke(
-        utils.DAI_DRIP_INFRA_FACTORY, 
+        utils.DRIP_INFRA_FACTORY, 
         utils.POOL_ETH,
-        utils.ETH_PASS, 
+        pass_, 
         1,
         {"low": MINIMUM_BORROWED_AMOUNT_LO, "high": MINIMUM_BORROWED_AMOUNT_HI},
         {"low": MAXIMUM_BORROWED_AMOUNT_LO, "high": MAXIMUM_BORROWED_AMOUNT_HI},
@@ -149,6 +150,12 @@ async def deploy():
         {"address": utils.MDAI_TOKEN, "liquidation_threshold": {"low": utils.MDAI_TOKEN_LT_POOL_ETH, "high": 0}},
         {"address": utils.MBTC_TOKEN, "liquidation_threshold": {"low": utils.MBTC_TOKEN_LT_POOL_ETH, "high": 0}},
         {"address": utils.VMETH, "liquidation_threshold": {"low": utils.VMETH_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.POOL_DAI, "liquidation_threshold": {"low": utils.MDAI_POOL_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.POOL_ETH, "liquidation_threshold": {"low": utils.METH_POOL_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.POOL_BTC, "liquidation_threshold": {"low": utils.MBTC_POOL_TOKEN_LT_POOL_ETH, "high": 0}},
+        {"address": utils.MDAI_MBTC_LP, "liquidation_threshold": {"low": utils.BTC_DAI_LP_LT_POOL_ETH, "high": 0}},
+        {"address": utils.METH_MBTC_LP, "liquidation_threshold": {"low": utils.ETH_BTC_LP_LT_POOL_ETH, "high": 0}},
+        {"address": utils.METH_MDAI_LP, "liquidation_threshold": {"low": utils.ETH_DAI_LP_LT_POOL_ETH, "high": 0}},
         ],
         1,
         max_fee=int(1e17)
@@ -167,15 +174,16 @@ async def deploy():
     drip_configurator_contract = await Contract.from_address(client=admin, address=drip_configurator_ad)
     print(f'⌛️ set Expiration Date...')
     invocation = await drip_configurator_contract.functions["setExpirationDate"].invoke(
-        1673997793,
+        1675997793,
         max_fee=int(1e16)
     )
+
     await invocation.wait_for_acceptance()
     print(f'✅ Success! New expiration Date Set')
 
     print(f'⌛️ set MaxEnabled Tokens...')
     invocation = await drip_configurator_contract.functions["setMaxEnabledTokens"].invoke(
-        {"low":8 ,"high":0},
+        {"low":10 ,"high":0},
         max_fee=int(1e16)
     )
     await invocation.wait_for_acceptance()
@@ -186,8 +194,6 @@ async def deploy():
     invocation = await registery_contract.functions["addDripManager"].invoke(drip_manager_ad, max_fee=int(1e16))
     await invocation.wait_for_acceptance()
     print(f'✅ Success! Drip Manager Saved!')
-
-
 
 
     pass_contract = await Contract.from_address(client=admin, address=pass_)

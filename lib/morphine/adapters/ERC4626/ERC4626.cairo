@@ -15,7 +15,7 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.adapters.baseAdapter import BaseAdapter, drip_manager, drip_transit, target
-from morphine.integrations.ERC4626.IERC4626 import IERC4626
+from morphine.interfaces.IERC4626 import IERC4626
 from morphine.interfaces.IDripManager import IDripManager
 from morphine.utils.various import DEPOSIT_SELECTOR, REDEEM_SELECTOR
 

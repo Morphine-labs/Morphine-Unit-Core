@@ -46,20 +46,29 @@ async def deploy():
     compilation_source=Path(utils.JEDISWAP_ADAPTER_SOURCE_CODE).read_text(), max_fee=int(1e16)
     )
 
-    resp = await admin.declare(transaction=declare_transaction_jediswap_adapter)
-    await admin.wait_for_tx(resp.transaction_hash)
-    jediswap_adapter_class_hash = resp.class_hash
-    print(f'✅ Success! Class Hash: {jediswap_adapter_class_hash} ')
+    # resp = await admin.declare(transaction=declare_transaction_jediswap_adapter)
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # jediswap_adapter_class_hash = resp.class_hash
+    # print(f'✅ Success! Class Hash: {jediswap_adapter_class_hash} ')
     
 
     print(f'⌛️ Deploying jediswap adapter...')
     deploy_jediswap_adapter_call, jediswap_adapter = deployer.create_deployment_call(
-    class_hash=jediswap_adapter_class_hash,calldata={
-        "_drip_manager": utils.DAI_DRIP_MANAGER,
+    class_hash=utils.JEDISWAP_ADAPTER_HASH,calldata={
+        "_drip_manager": utils.ETH_DRIP_MANAGER,
         "_target": utils.ROOTER_JEDISWAP}, abi=json.loads(Path(utils.JEDISWAP_ADAPTER_ABI).read_text()))
     resp = await admin.execute(deploy_jediswap_adapter_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
     print(f'✅ Success! JEDISWAP ADAPTER deployed to {jediswap_adapter} ')
+
+    # print(f'⌛️ Deploying jediswap adapter...')
+    # deploy_jediswap_adapter_call, jediswap_adapter = deployer.create_deployment_call(
+    # class_hash=jediswap_adapter_class_hash,calldata={
+    #     "_drip_manager": utils.DAI_DRIP_MANAGER,
+    #     "_target": utils.ROOTER_JEDISWAP}, abi=json.loads(Path(utils.JEDISWAP_ADAPTER_ABI).read_text()))
+    # resp = await admin.execute(deploy_jediswap_adapter_call, max_fee=int(1e16))
+    # await admin.wait_for_tx(resp.transaction_hash)
+    # print(f'✅ Success! JEDISWAP ADAPTER deployed to {jediswap_adapter} ')
 
    
 
