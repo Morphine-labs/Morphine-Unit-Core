@@ -55,7 +55,7 @@ async def deploy():
     print(f'⌛️ Deploying erc4626 adapter for VMETH...')
     deploy_erc4626_adapter_call, erc4626_adapter = deployer.create_deployment_call(
     class_hash=utils.ERC4626_ADAPTER_HASH,calldata={
-        "_drip_manager": utils.ETH_DRIP_MANAGER,
+        "_drip_manager": utils.DAI_DRIP_MANAGER,
         "_target": utils.VMETH}, abi=json.loads(Path(utils.ERC4626_ADAPTER_ABI).read_text()))
     resp = await admin.execute(deploy_erc4626_adapter_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
@@ -64,7 +64,7 @@ async def deploy():
     print(f'⌛️ Deploying erc4626 adapter for Pool BTC...')
     deploy_erc4626_adapter_call, erc4626_adapter = deployer.create_deployment_call(
     class_hash=utils.ERC4626_ADAPTER_HASH,calldata={
-        "_drip_manager": utils.ETH_DRIP_MANAGER,
+        "_drip_manager": utils.DAI_DRIP_MANAGER,
         "_target": utils.POOL_BTC}, abi=json.loads(Path(utils.ERC4626_ADAPTER_ABI).read_text()))
     resp = await admin.execute(deploy_erc4626_adapter_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
@@ -73,7 +73,7 @@ async def deploy():
     print(f'⌛️ Deploying erc4626 adapter for Pool DAI...')
     deploy_erc4626_adapter_call, erc4626_adapter = deployer.create_deployment_call(
     class_hash=utils.ERC4626_ADAPTER_HASH,calldata={
-        "_drip_manager": utils.ETH_DRIP_MANAGER,
+        "_drip_manager": utils.DAI_DRIP_MANAGER,
         "_target": utils.POOL_DAI}, abi=json.loads(Path(utils.ERC4626_ADAPTER_ABI).read_text()))
     resp = await admin.execute(deploy_erc4626_adapter_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)
@@ -82,7 +82,7 @@ async def deploy():
     print(f'⌛️ Deploying erc4626 adapter for Pool ETH ...')
     deploy_erc4626_adapter_call, erc4626_adapter = deployer.create_deployment_call(
     class_hash=utils.ERC4626_ADAPTER_HASH,calldata={
-        "_drip_manager": utils.ETH_DRIP_MANAGER,
+        "_drip_manager": utils.DAI_DRIP_MANAGER,
         "_target": utils.POOL_ETH}, abi=json.loads(Path(utils.ERC4626_ADAPTER_ABI).read_text()))
     resp = await admin.execute(deploy_erc4626_adapter_call, max_fee=int(1e16))
     await admin.wait_for_tx(resp.transaction_hash)

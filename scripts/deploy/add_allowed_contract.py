@@ -15,20 +15,20 @@ import utils
 import json
 
 ## ERC20
-TARGET_1 = utils.ROOTER_JEDISWAP
-ADAPTER_1 = utils.ETH_JEDISWAP_ADAPTER
+# TARGET_1 = utils.ROOTER_JEDISWAP
+# ADAPTER_1 = utils.ETH_JEDISWAP_ADAPTER
 
 TARGET_2 = utils.VMETH
-ADAPTER_2 = utils.ETH_ERC4626_ADAPTER
+ADAPTER_2 = utils.DAI_ERC4626_ADAPTER
 
 TARGET_3 = utils.POOL_BTC
-ADAPTER_3 = utils.ETH_ERC4626_BTC_ADAPTER
+ADAPTER_3 = utils.DAI_ERC4626_BTC_ADAPTER
 
 TARGET_4 = utils.POOL_DAI
-ADAPTER_4 = utils.ETH_ERC4626_DAI_ADAPTER
+ADAPTER_4 = utils.DAI_ERC4626_DAI_ADAPTER
 
 TARGET_5 = utils.POOL_ETH
-ADAPTER_5 = utils.ETH_ERC4626_ETH_ADAPTER
+ADAPTER_5 = utils.DAI_ERC4626_ETH_ADAPTER
 
 
 
@@ -59,7 +59,8 @@ async def call():
     print(f'💰 User balance: {balance/(10**18)} ETH')
 
     # print(f'⌛️ Add allowed contract...')
-    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.ETH_DRIP_CONFIGURATOR)
+    drip_configurator_contract = await Contract.from_address(client=admin, address=utils.DAI_DRIP_CONFIGURATOR)
+
     # invocation = await drip_configurator_contract.functions["allowContract"].invoke(TARGET_1, ADAPTER_1, max_fee=int(1e16))
     # await invocation.wait_for_acceptance()
     # print(f'✅ Success! ')
