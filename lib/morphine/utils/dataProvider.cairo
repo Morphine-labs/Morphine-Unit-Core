@@ -221,26 +221,30 @@ func getUserDripsInfo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     dripInfo_len: felt, dripInfo: DripMiniInfo*
 ) {
     alloc_locals;
+    let (oracle_transit_) = IRegistery.oracleTransit(_registery);
     let (drip_info: DripMiniInfo*) = alloc();
     let (pool_info_len:felt) = IRegistery.poolsLength(_registery);
-    let (drip_info_len: felt) = recursive_drip_info(_registery, _user, pool_info_len, 0, 0, drip_info);
+    let (drip_info_len: felt) = recursive_drip_info(_registery, oracle_transit_, _user, pool_info_len, 0, 0, drip_info);
     return (drip_info_len, drip_info,);
 }
 
-func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _user: felt, pool_info_len: felt, _index: felt, drip_info_len: felt, drip_info: DripMiniInfo*) -> (drip_info_len: felt) {
+func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_registery: felt, _oracle_transit: felt, _user: felt, pool_info_len: felt, _index: felt, drip_info_len: felt, drip_info: DripMiniInfo*) -> (drip_info_len: felt) {
     alloc_locals;
     if(_index == pool_info_len){
         return(drip_info_len,);
     }
     let (pool_) = IRegistery.idToPool(_registery, _index);
     let (asset_) = IPool.asset(pool_);
+    let (decimals_) = IERC20.decimals(asset_);
+    let (one_unit_) = pow(10, decimals_);
+    let (token_value_) = IOracleTransit.convertToUSD(_oracle_transit, Uint256(one_unit_, 0), asset_);
     let (drip_manager_) = IPool.connectedDripManager(pool_);
     if(drip_manager_ == 0) {
-        return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+        return recursive_drip_info(_registery, _oracle_transit, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
     } else {
         let (drip_) = IDripManager.getDrip(drip_manager_, _user);
         if(drip_ == 0){
-            return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+            return recursive_drip_info(_registery, _oracle_transit, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
         } else {    
             let (_, _, due_amount_) = IDripManager.calcDripAccruedInterest(drip_manager_, drip_);
             let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
@@ -250,8 +254,9 @@ func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
             assert drip_info[0].token_address = asset_;
             assert drip_info[0].total_balance = total_;
             assert drip_info[0].user_balance = remaining_;
+            assert drip_info[0].token_value = token_value_;
             assert drip_info[0].health_factor = hf_;
-            return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len + 1, drip_info + DripMiniInfo.SIZE);
+            return recursive_drip_info(_registery, _oracle_transit, _user, pool_info_len, _index + 1, drip_info_len + 1, drip_info + DripMiniInfo.SIZE);
             
         }
     }

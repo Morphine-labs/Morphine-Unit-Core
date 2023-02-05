@@ -46,6 +46,7 @@ struct NftInfo {
 struct DripMiniInfo {
     token_address: felt,
     total_balance: Uint256,  
+    token_value: Uint256,
     user_balance: Uint256,  
     health_factor: Uint256,
 }
