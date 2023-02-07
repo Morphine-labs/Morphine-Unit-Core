@@ -367,9 +367,6 @@ func test_convert{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     let (btc_to_veth_) = oracle_transit_instance.convert(Uint256(4000000000000000000,0), btc_, veth_);
     assert btc_to_veth_ = Uint256(25000000000000000000,0);
 
-    let (col_from_, col_to_) = oracle_transit_instance.fastCheck(Uint256(2000000000000000000,0), eth_, Uint256(2000000000000000000,0), btc_);
-    assert col_from_ = Uint256(400000000000,0);
-    assert col_to_ = Uint256(5000000000000,0);
 
     return ();
 }
@@ -482,13 +479,6 @@ namespace oracle_transit_instance{
         %{ ids.oracle_transit = context.oracle_transit %}
         let (derivative_price_feed_) = IOracleTransit.derivativePriceFeed(oracle_transit, derivative);
         return (derivative_price_feed_,);
-    }
-
-    func fastCheck{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(amount_from: Uint256, token_from: felt, amount_to: Uint256, token_to: felt) -> (collateralFrom: Uint256, collateralTo: Uint256) {
-        tempvar oracle_transit;
-        %{ ids.oracle_transit = context.oracle_transit %}
-        let (collateral_from_, collateral_to_) = IOracleTransit.fastCheck(oracle_transit, amount_from, token_from, amount_to, token_to);
-        return (collateral_from_, collateral_to_,);
     }
 
     func convertFromUSD{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(amount: Uint256, token: felt) -> (token_price: Uint256){
