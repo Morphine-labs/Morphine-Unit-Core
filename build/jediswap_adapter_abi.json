@@ -1,0 +1,342 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_manager",
+                "type": "felt"
+            },
+            {
+                "name": "_target",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "dripManager",
+        "outputs": [
+            {
+                "name": "dripManager",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripTransit",
+        "outputs": [
+            {
+                "name": "dripTransit",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "targetContract",
+        "outputs": [
+            {
+                "name": "target",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_amount_in",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_out_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "path_len",
+                "type": "felt"
+            },
+            {
+                "name": "path",
+                "type": "felt*"
+            },
+            {
+                "name": "_to",
+                "type": "felt"
+            },
+            {
+                "name": "_deadline",
+                "type": "felt"
+            }
+        ],
+        "name": "swap_exact_tokens_for_tokens",
+        "outputs": [
+            {
+                "name": "amounts_len",
+                "type": "felt"
+            },
+            {
+                "name": "amounts",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_amount_out",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_in_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "path_len",
+                "type": "felt"
+            },
+            {
+                "name": "path",
+                "type": "felt*"
+            },
+            {
+                "name": "_to",
+                "type": "felt"
+            },
+            {
+                "name": "_deadline",
+                "type": "felt"
+            }
+        ],
+        "name": "swap_tokens_for_exact_tokens",
+        "outputs": [
+            {
+                "name": "amounts_len",
+                "type": "felt"
+            },
+            {
+                "name": "amounts",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "rate_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "path_len",
+                "type": "felt"
+            },
+            {
+                "name": "path",
+                "type": "felt*"
+            }
+        ],
+        "name": "swap_all_tokens_for_tokens",
+        "outputs": [
+            {
+                "name": "amounts_len",
+                "type": "felt"
+            },
+            {
+                "name": "amounts",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_a",
+                "type": "felt"
+            },
+            {
+                "name": "_token_b",
+                "type": "felt"
+            },
+            {
+                "name": "_amount_a_desired",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_b_desired",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_a_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_b_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "deadline",
+                "type": "felt"
+            }
+        ],
+        "name": "add_liquidity",
+        "outputs": [
+            {
+                "name": "retdata_len",
+                "type": "felt"
+            },
+            {
+                "name": "retdata",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_a",
+                "type": "felt"
+            },
+            {
+                "name": "_token_b",
+                "type": "felt"
+            },
+            {
+                "name": "_rate_b",
+                "type": "Uint256"
+            },
+            {
+                "name": "_slippage",
+                "type": "Uint256"
+            }
+        ],
+        "name": "add_liquidity_max_token_a",
+        "outputs": [
+            {
+                "name": "retdata_len",
+                "type": "felt"
+            },
+            {
+                "name": "retdata",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_a",
+                "type": "felt"
+            },
+            {
+                "name": "_token_b",
+                "type": "felt"
+            },
+            {
+                "name": "_liquidity",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_a_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_b_min",
+                "type": "Uint256"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "deadline",
+                "type": "felt"
+            }
+        ],
+        "name": "remove_liquidity",
+        "outputs": [
+            {
+                "name": "retdata_len",
+                "type": "felt"
+            },
+            {
+                "name": "retdata",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_a",
+                "type": "felt"
+            },
+            {
+                "name": "_token_b",
+                "type": "felt"
+            },
+            {
+                "name": "_amount_a_rate",
+                "type": "Uint256"
+            },
+            {
+                "name": "_amount_b_rate",
+                "type": "Uint256"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "deadline",
+                "type": "felt"
+            }
+        ],
+        "name": "remove_all_liquidity",
+        "outputs": [
+            {
+                "name": "retdata_len",
+                "type": "felt"
+            },
+            {
+                "name": "retdata",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    }
+]

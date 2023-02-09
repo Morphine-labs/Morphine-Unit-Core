@@ -1,0 +1,960 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "data": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "Paused",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "Unpaused",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "pause",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "unpause",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_caller",
+                "type": "felt"
+            },
+            {
+                "name": "_state",
+                "type": "felt"
+            }
+        ],
+        "name": "checkEmergencyPausable",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrowed_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_on_belhalf_of",
+                "type": "felt"
+            }
+        ],
+        "name": "openDrip",
+        "outputs": [
+            {
+                "name": "drip",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrower",
+                "type": "felt"
+            },
+            {
+                "name": "_type",
+                "type": "felt"
+            },
+            {
+                "name": "_total_value",
+                "type": "Uint256"
+            },
+            {
+                "name": "_payer",
+                "type": "felt"
+            },
+            {
+                "name": "_to",
+                "type": "felt"
+            }
+        ],
+        "name": "closeDrip",
+        "outputs": [
+            {
+                "name": "remainingFunds",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_payer",
+                "type": "felt"
+            },
+            {
+                "name": "_drip",
+                "type": "felt"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            },
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            }
+        ],
+        "name": "addCollateral",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            },
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_increase",
+                "type": "felt"
+            }
+        ],
+        "name": "manageDebt",
+        "outputs": [
+            {
+                "name": "newBorrowedAmount",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrower",
+                "type": "felt"
+            },
+            {
+                "name": "_target",
+                "type": "felt"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            },
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            }
+        ],
+        "name": "approveDrip",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrower",
+                "type": "felt"
+            },
+            {
+                "name": "_to",
+                "type": "felt"
+            },
+            {
+                "name": "_selector",
+                "type": "felt"
+            },
+            {
+                "name": "_calldata_len",
+                "type": "felt"
+            },
+            {
+                "name": "_calldata",
+                "type": "felt*"
+            }
+        ],
+        "name": "executeOrder",
+        "outputs": [
+            {
+                "name": "retdata_len",
+                "type": "felt"
+            },
+            {
+                "name": "retdata",
+                "type": "felt*"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "checkAndEnableToken",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "disableToken",
+        "outputs": [
+            {
+                "name": "wasChanged",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "felt"
+            },
+            {
+                "name": "_to",
+                "type": "felt"
+            }
+        ],
+        "name": "transferDripOwnership",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            }
+        ],
+        "name": "fullCollateralCheck",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            }
+        ],
+        "name": "checkAndOptimizeEnabledTokens",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "addToken",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_fee_interest",
+                "type": "Uint256"
+            },
+            {
+                "name": "_fee_liquidation",
+                "type": "Uint256"
+            },
+            {
+                "name": "_liquidation_discount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_fee_liquidation_expired",
+                "type": "Uint256"
+            },
+            {
+                "name": "_liquidation_discount_expired",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setFees",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            },
+            {
+                "name": "_liquidation_threshold",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setLiquidationThreshold",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_fobid_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setForbidMask",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_max_enabled_tokens",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setMaxEnabledTokens",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_adapter",
+                "type": "felt"
+            },
+            {
+                "name": "_target",
+                "type": "felt"
+            }
+        ],
+        "name": "changeContractAllowance",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_oracle_transit",
+                "type": "felt"
+            }
+        ],
+        "name": "upgradeOracleTransit",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_transit",
+                "type": "felt"
+            }
+        ],
+        "name": "upgradeDripTransit",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip_configurator",
+                "type": "felt"
+            }
+        ],
+        "name": "setConfigurator",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_liquidator",
+                "type": "felt"
+            }
+        ],
+        "name": "addEmergencyLiquidator",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_liquidator",
+                "type": "felt"
+            }
+        ],
+        "name": "removeEmergencyLiquidator",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "isPaused",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "underlying",
+        "outputs": [
+            {
+                "name": "underlying",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "allowedTokensLength",
+        "outputs": [
+            {
+                "name": "tokenLength",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "maxAllowedTokensLength",
+        "outputs": [
+            {
+                "name": "maxAllowedTokenLength",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "tokenMask",
+        "outputs": [
+            {
+                "name": "tokenMask",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            }
+        ],
+        "name": "enabledTokensMap",
+        "outputs": [
+            {
+                "name": "enabledTokens",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "forbiddenTokenMask",
+        "outputs": [
+            {
+                "name": "forbiddenTokenMask",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "tokenByMask",
+        "outputs": [
+            {
+                "name": "token",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "tokenById",
+        "outputs": [
+            {
+                "name": "token",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "liquidationThreshold",
+        "outputs": [
+            {
+                "name": "LiquidationThreshold",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "liquidationThresholdByMask",
+        "outputs": [
+            {
+                "name": "LiquidationThreshold",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "liquidationThresholdById",
+        "outputs": [
+            {
+                "name": "LiquidationThreshold",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_adapter",
+                "type": "felt"
+            }
+        ],
+        "name": "adapterToContract",
+        "outputs": [
+            {
+                "name": "contract",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_contract",
+                "type": "felt"
+            }
+        ],
+        "name": "contractToAdapter",
+        "outputs": [
+            {
+                "name": "adapter",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feeInterest",
+        "outputs": [
+            {
+                "name": "feeInterest",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feeLiquidation",
+        "outputs": [
+            {
+                "name": "feeLiquidation",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feeLiquidationExpired",
+        "outputs": [
+            {
+                "name": "feeLiquidationExpired",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "liquidationDiscount",
+        "outputs": [
+            {
+                "name": "liquidationDiscount",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "liquidationDiscountExpired",
+        "outputs": [
+            {
+                "name": "liquidationDiscountExpired",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_liquidator",
+                "type": "felt"
+            }
+        ],
+        "name": "canLiquidateWhilePaused",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getPool",
+        "outputs": [
+            {
+                "name": "pool",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripTransit",
+        "outputs": [
+            {
+                "name": "dripTransit",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "dripConfigurator",
+        "outputs": [
+            {
+                "name": "dripConfigurator",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "oracleTransit",
+        "outputs": [
+            {
+                "name": "oracleTransit",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrower",
+                "type": "felt"
+            }
+        ],
+        "name": "getDrip",
+        "outputs": [
+            {
+                "name": "drip",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrower",
+                "type": "felt"
+            }
+        ],
+        "name": "getDripOrRevert",
+        "outputs": [
+            {
+                "name": "drip",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            }
+        ],
+        "name": "dripParameters",
+        "outputs": [
+            {
+                "name": "borrowedAmount",
+                "type": "Uint256"
+            },
+            {
+                "name": "cumulativeIndex",
+                "type": "Uint256"
+            },
+            {
+                "name": "currentCumulativeIndex",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_drip",
+                "type": "felt"
+            }
+        ],
+        "name": "calcDripAccruedInterest",
+        "outputs": [
+            {
+                "name": "borrowedAmount",
+                "type": "Uint256"
+            },
+            {
+                "name": "borrowedAmountWithInterest",
+                "type": "Uint256"
+            },
+            {
+                "name": "borrowedAmountWithInterestAndFees",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_total_value",
+                "type": "Uint256"
+            },
+            {
+                "name": "_type",
+                "type": "felt"
+            },
+            {
+                "name": "_borrowed_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_borrowed_amount_with_interests",
+                "type": "Uint256"
+            }
+        ],
+        "name": "calcClosePayments",
+        "outputs": [
+            {
+                "name": "amountToPool",
+                "type": "Uint256"
+            },
+            {
+                "name": "remainingFunds",
+                "type": "Uint256"
+            },
+            {
+                "name": "profit",
+                "type": "Uint256"
+            },
+            {
+                "name": "loss",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "get_max_index",
+        "outputs": [
+            {
+                "name": "max_index",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_enabled_tokens",
+                "type": "Uint256"
+            },
+            {
+                "name": "_cum_total_tokens_enabled",
+                "type": "Uint256"
+            }
+        ],
+        "name": "calc_enabled_tokens",
+        "outputs": [
+            {
+                "name": "total_tokens_enabled",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
