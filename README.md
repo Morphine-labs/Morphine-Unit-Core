@@ -1,4 +1,4 @@
-# Morphine Protocol v0.1
+# Morphine Core v0.1
 This repository contains the smart contracts source code. We are using Protostar as development environment for compilation, testing and Starknet Py for deployment and contract interaction tasks.
 
   ## What is Morphine
