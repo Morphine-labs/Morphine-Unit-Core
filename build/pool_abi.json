@@ -606,7 +606,7 @@
     {
         "inputs": [
             {
-                "name": "caller",
+                "name": "_from",
                 "type": "felt"
             }
         ],

@@ -32,7 +32,7 @@ from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
 /// @title Pool
 /// @author 0xSacha
-/// @dev Pool contract, respecting ERC4626 implementation
+/// @dev Pool contract, respecting ERC4626 implementation from yagi
 /// @custom:experimental This is an experimental contract.
 
 // Events
@@ -143,7 +143,7 @@ func repay_frozen() -> (res: felt) {
 
 // Protectors
 
-// @notice Initialize the contract
+// @notice Assert caller is 
 // @dev: assert caller is drip manager
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (caller_) = get_caller_address();
@@ -421,6 +421,8 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (step1_) = SafeUint256.mul(_assets, Uint256(PRECISION,0));
     let (step2_) = SafeUint256.sub_lt(Uint256(PRECISION,0), withdraw_fee_);
     let(assets_required_,_) = SafeUint256.div_rem(step1_, step2_);
+
+
     let (supply_) = ERC20.total_supply();
     let (supply_is_zero) = uint256_eq(supply_, Uint256(0, 0));
     let (all_assets_) = totalAssets();
@@ -725,17 +727,24 @@ func maxWithdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // @param caller caller address
 // @return maxShares the maximum amount of assets you can redeem
 @view
-func maxRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(caller: felt) -> (
+func maxRedeem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_from: felt) -> (
     maxShares: Uint256
 ) {
     alloc_locals;
-    let (max_assets_fee_) = maxWithdraw(caller);
-    let (step1_) = SafeUint256.mul(max_assets_fee_, Uint256(PRECISION,0));
+    let (balance_) = ERC20.balance_of(_from);
     let (withdraw_fee_) = withdrawFee();
-    let (step2_) = SafeUint256.sub_lt(Uint256(PRECISION,0), withdraw_fee_);
-    let (max_assets_, _) = SafeUint256.div_rem(step1_, step2_);
-    let (max_reedem_) = convertToShares(max_assets_);
-    return (max_reedem_,);
+    let (available_liquidity_) = availableLiquidity();
+    let (available_liquidity_share_) = convertToShares(available_liquidity_);
+    let (is_enough_liquidity_) = uint256_le(balance_, available_liquidity_share_);
+    if (is_enough_liquidity_ == 1) {
+        let (treasury_fee_) = mul_div_up(balance_, withdraw_fee_, Uint256(PRECISION,0));
+        let(new_max_shares_) = SafeUint256.sub_le(balance_, treasury_fee_);
+        return (new_max_shares_,);
+    } else {
+        let (treasury_fee_) = mul_div_up(available_liquidity_share_, withdraw_fee_, Uint256(PRECISION,0));
+        let(new_max_shares_) = SafeUint256.sub_le(available_liquidity_, treasury_fee_);
+        return (new_max_shares_,);
+    }
 }
 
 // @notice max redeem authorized 
@@ -858,7 +867,6 @@ func convertToAssets{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     _shares: Uint256
 ) -> (assets: Uint256) {
     alloc_locals;
-
     let (supply_) = ERC20.total_supply();
     let (all_assets_) = totalAssets();
     let (supply_is_zero) = uint256_eq(supply_, Uint256(0, 0));
