@@ -32,7 +32,7 @@ from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
 /// @title Pool
 /// @author 0xSacha
-/// @dev Pool contract, respecting ERC4626 implementation from yagi
+/// @dev Pool contract, respecting ERC4626 implementation from yagi.
 /// @custom:experimental This is an experimental contract.
 
 // Events
@@ -143,7 +143,7 @@ func repay_frozen() -> (res: felt) {
 
 // Protectors
 
-// @notice Assert caller is 
+// @notice Assert caller is drip l
 // @dev: assert caller is drip manager
 func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         let (caller_) = get_caller_address();
@@ -357,7 +357,7 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (shares_,);
 }
 
-// @notice mint LP 
+// @notice mint pool tokens 
 // @param _shares amount of shares you want to mint
 // @param _receiver address who will receive the LP token
 // @returns assets the number of assets you receive
@@ -764,16 +764,10 @@ func previewDeposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 func previewMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _shares: Uint256
 ) -> (assets: Uint256) {
-    alloc_locals;
-    let (supply_) = ERC20.total_supply();
-    let (all_assets_) = totalAssets();
-    let (supply_is_zero) = uint256_eq(supply_, Uint256(0, 0));
-    if(supply_is_zero == 1){
-        return (_shares,);
-    }
-    let (assets_) = mul_div_up(_shares, all_assets_, supply_);
-    return (assets_,);
+    return convertToAssets(_shares);
 }
+
+
 
 // @notice give you preview of amount shares you will have if you withdraw your assets
 // @param _assets number of assets
