@@ -29,7 +29,7 @@ Morphine offers powerful and versatile tools to build, scale, manage and monetiz
 
   
 
-- [cairo-lang](https://www.cairo-lang.org/docs/quickstart.html) - Setup cairo environnement
+- [cairo-lang](https://www.cairo-lang.org/docs/quickstart.html) - Setup cairo environment
 
 - [starknet-py](https://github.com/software-mansion/starknet.py) - For any kind of scripts
 
