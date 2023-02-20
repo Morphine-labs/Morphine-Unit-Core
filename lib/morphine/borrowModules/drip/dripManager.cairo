@@ -47,6 +47,8 @@ from morphine.utils.various import PRECISION
 /// @dev Contract Contract Managing Drip Infrastructure
 /// @custom:experimental This is an experimental contract.
 
+
+
 // Storage
 @storage_var
 func emergency_liquidation() -> (state: felt) {
@@ -137,10 +139,6 @@ func adapter_to_contract(adapter: felt) -> (contract: felt) {
 
 @storage_var
 func contract_to_adapter(adapter: felt) -> (contract: felt) {
-}
-
-@storage_var
-func cumulative_drop(drip: felt) -> (cumulative_drop: Uint256) {
 }
 
 @storage_var

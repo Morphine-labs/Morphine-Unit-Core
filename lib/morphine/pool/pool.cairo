@@ -78,7 +78,7 @@ func NewExpectedLiquidityLimit(value: Uint256) {
 }
 
 @event
-func NewDripManagerConnected(drip: felt) {
+func NewBorrowModuleConnected(borrow_module: felt) {
 }
 
 @event
@@ -92,9 +92,20 @@ func NewInterestRateModel(interest_rate_model: felt) {
 
 // Storage
 
+@storage_var
+func borrow_module_from_mask(borrow_module_mask: Uint256) -> (token: felt) {
+}
 
 @storage_var
-func drip_manager() -> (res: felt) {
+func borrow_module_length() -> (length: felt) {
+}
+
+@storage_var
+func borrow_module_mask(borrow_module: felt) -> (mask: Uint256) {
+}
+
+@storage_var
+func forbidden_borrow_module_mask() -> (mask: Uint256) {
 }
 
 @storage_var
@@ -154,6 +165,16 @@ func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         return ();
     }
 
+// @notice Assert caller is drip l
+// @dev: assert caller is drip manager
+// func assert_only_borrow_module{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+//         let (caller_) = get_caller_address();
+//         let (drip_manager_) = drip_manager.read();
+//         with_attr error_message("caller not authorized") {
+//             assert caller_ = drip_manager_;
+//         }
+//         return ();
+//     }
 
 
 // Constructor
@@ -291,25 +312,45 @@ func updateInterestRateModel{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     return ();
 }
 
-// @notice connect a new drip manager to a pool
-// @param _drip_manager drip manager address
+// @notice connect a new borrow module to the pool
+// @param _borrow_module borrow module manager address
+
 @external
-func connectDripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip_manager: felt
+func connectBorrowModule{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    _borrow_module: felt
 ) {
     alloc_locals;
     RegisteryAccess.assert_only_owner();
     let (this_) = get_contract_address();
-    let (wanted_pool_) = IDripManager.getPool(_drip_manager);
-
-    with_attr error_message("incompatible pool for drip manager") {
+    let (wanted_pool_) = IBorrowModule.getPool(_borrow_module);
+    with_attr error_message("incompatible pool for borrow module") {
         assert this_ = wanted_pool_;
     }
 
-    drip_manager.write(_drip_manager);
-    NewDripManagerConnected.emit(_drip_manager);
+    let (borrow_module_mask_) = borrow_module_mask.read(_borrow_module);
+    let (is_lt_) = uint256_lt(Uint256(0, 0), borrow_module_mask_);
+    with_attr error_message("Borrow module already added") {
+        assert is_lt_ = 0;
+    }
+
+    let (borrow_module_length_) = borrow_module_length.read();
+    let (is_le_) = uint256_le(Uint256(256, 0), Uint256(borrow_module_length_, 0));
+    with_attr error_message("too much borrow modules") {
+        assert is_le_ = 0;
+    }
+
+    let (borrow_module_mask_) = uint256_pow2(Uint256(borrow_module_length_, 0));
+
+    borrow_module_mask.write(_borrow_module, borrow_module_mask_)
+    borrow_module_from_mask.write(borrow_module_mask_, _borrow_module);
+    borrow_module_length.write(borrow_module_length_ + 1);
+    NewBorrowModuleConnected.emit(_borrow_module);
     return ();
 }
+
+
+
+  
 
 // Lender stuff
 
