@@ -107,9 +107,7 @@ func EmergencyLiquidatorRemoved(liquidator: felt){
 func drip_manager() -> (address : felt) {
 }
 
-@storage_var
-func liquidation_threshold(token_address : felt) -> (res: felt) {
-}
+
 
 @storage_var
 func id_to_allowed_contract(id : felt) -> (contract: felt) {

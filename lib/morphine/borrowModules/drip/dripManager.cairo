@@ -33,10 +33,10 @@ from openzeppelin.security.safemath.library import SafeUint256
 from starkware.cairo.common.math import assert_not_zero
 from openzeppelin.security.pausable.library import Pausable
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
-from morphine.interfaces.IDrip import IDrip
 from morphine.interfaces.IRegistery import IRegistery
 from morphine.interfaces.IPool import IPool
-from morphine.interfaces.IDripFactory import IDripFactory
+from morphine.interfaces.IContainerFactory import IContainerFactory
+from morphine.interfaces.IContainer import IContainer
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20
@@ -59,7 +59,7 @@ func max_allowed_enabled_tokens_length() -> (max_allowed_enabled_tokens_length: 
 }
 
 @storage_var
-func drip_factory() -> (drip_factory: felt) {
+func container_factory() -> (container_factory: felt) {
 }
 
 @storage_var
@@ -219,8 +219,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     let (oracle_transit_) = IRegistery.oracleTransit(registery_);
     oracle_transit.write(oracle_transit_);
 
-    let (drip_factory_) = IRegistery.dripFactory(registery_);
-    drip_factory.write(drip_factory_);
+    let (container_factory_) = IRegistery.containerFactory(registery_);
+    container_factory.write(container_factory_);
 
     let (drip_configurator_) = get_caller_address();
     drip_configurator.write(drip_configurator_);
@@ -280,8 +280,8 @@ func openDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     assert_only_drip_transit();
     let (pool_) = pool.read();
     let (cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
-    let (drip_factory_) = drip_factory.read();
-    let (drip_) = IDripFactory.takeDrip(drip_factory_, _borrowed_amount, cumulative_index_);
+    let (container_factory_) = container_factory.read();
+    let (drip_) = IContainerFactory.takeContainer(container_factory_, _borrowed_amount, cumulative_index_);
     IPool.borrow(pool_, _borrowed_amount, drip_);
     safe_drip_set(_on_belhalf_of, drip_);
     enabled_tokens.write(drip_, Uint256(1, 0));
@@ -335,7 +335,7 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     
     if (is_surplus_ == 1) {
         let (surplus_) = SafeUint256.sub_lt(underlying_balance_, stack_);
-        IDrip.safeTransfer(drip_, underlying_, _to, surplus_);
+        IContainer.safeTransfer(drip_, underlying_, _to, surplus_);
         tempvar syscall_ptr = syscall_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
@@ -348,13 +348,13 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
     }
 
     let (pool_) = pool.read();
-    IDrip.safeTransfer(drip_, underlying_, pool_, amount_to_pool_);
-    IPool.repayDripDebt(pool_, borrowed_amount_, profit_, loss_);
+    IContainer.safeTransfer(drip_, underlying_, pool_, amount_to_pool_);
+    IPool.repayContainerDebt(pool_, borrowed_amount_, profit_, loss_);
 
     // transfer remaining funds to borrower [Liquidation case only]
     let (is_remaining_funds_) = uint256_lt(Uint256(0, 0), remaining_funds_);
     if (is_remaining_funds_ == 1) {
-        IDrip.safeTransfer(drip_, underlying_, _borrower, remaining_funds_);
+        IContainer.safeTransfer(drip_, underlying_, _borrower, remaining_funds_);
         tempvar syscall_ptr = syscall_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
@@ -364,8 +364,8 @@ func closeDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, 
         tempvar range_check_ptr = range_check_ptr;
     }   
     transfer_assets_to(drip_, _to);
-    let (drip_factory_) = drip_factory.read();
-    IDripFactory.returnDrip(drip_factory_, drip_);
+    let (container_factory_) = container_factory.read();
+    IContainerFactory.returnContainer(container_factory_, drip_);
     ReentrancyGuard.end();
     return (remaining_funds_,);
 }
@@ -409,7 +409,7 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         let (new_borrowed_amount_) = SafeUint256.add(borrowed_amount_, _amount);
         let (cumulative_index_at_borrow_more_) = calc_new_cumulative_index(borrowed_amount_, _amount, current_cumulative_index_, cumulative_index_, 1);
         IPool.borrow(pool_, _amount, _drip);
-        IDrip.updateParameters(_drip, new_borrowed_amount_, cumulative_index_at_borrow_more_);
+        IContainer.updateParameters(_drip, new_borrowed_amount_, cumulative_index_at_borrow_more_);
         ReentrancyGuard.end();
         return (new_borrowed_amount_,);
     } else {
@@ -424,11 +424,11 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
         if (is_le_ == 1){
             let (step1_) = SafeUint256.add(borrowed_amount_, interest_and_fees_);
             let (new_borrowed_amount_) = SafeUint256.sub_le(step1_, _amount);
-            IDrip.safeTransfer(_drip, underlying_, pool_, _amount);
+            IContainer.safeTransfer(_drip, underlying_, pool_, _amount);
             let (to_repay_) = SafeUint256.sub_le(_amount, interest_and_fees_);
-            IPool.repayDripDebt(pool_, to_repay_, profit_, Uint256(0, 0));
+            IPool.repayContainerDebt(pool_, to_repay_, profit_, Uint256(0, 0));
             let (new_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
-            IDrip.updateParameters(_drip, new_borrowed_amount_, new_cumulative_index_);
+            IContainer.updateParameters(_drip, new_borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard.end();
             return(new_borrowed_amount_,);
         } else {
@@ -436,10 +436,10 @@ func manageDebt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
             let (step2_) = SafeUint256.add(Uint256(PRECISION,0), fee_interest_);
             let (amount_to_interest_,_) = SafeUint256.div_rem(step1_, step2_);
             let (amount_to_fees_) = SafeUint256.sub_le(_amount, amount_to_interest_);
-            IDrip.safeTransfer(_drip, underlying_, pool_, _amount);
-            IPool.repayDripDebt(pool_, Uint256(0,0), amount_to_fees_, Uint256(0, 0));
+            IContainer.safeTransfer(_drip, underlying_, pool_, _amount);
+            IPool.repayContainerDebt(pool_, Uint256(0,0), amount_to_fees_, Uint256(0, 0));
             let (new_cumulative_index_) = calc_new_cumulative_index(borrowed_amount_, amount_to_interest_, current_cumulative_index_, cumulative_index_, 0);
-            IDrip.updateParameters(_drip, borrowed_amount_, new_cumulative_index_);
+            IContainer.updateParameters(_drip, borrowed_amount_, new_cumulative_index_);
             ReentrancyGuard.end();
             return(borrowed_amount_,);
         }
@@ -482,7 +482,7 @@ func approveDrip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         assert is_nul_ = 0;
     }
     let (drip_) = getDripOrRevert(_borrower);
-    IDrip.approveToken(drip_, _token, _target, _amount);
+    IContainer.approveToken(drip_, _token, _target, _amount);
     ReentrancyGuard.end();
     return ();
 }
@@ -509,7 +509,7 @@ func executeOrder{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
         assert_not_zero(_to * is_target_);
     }
     let (drip_) = getDripOrRevert(_borrower);
-    let (retdata_len: felt, retdata: felt*) = IDrip.execute(
+    let (retdata_len: felt, retdata: felt*) = IContainer.execute(
         drip_, _to, _selector, _calldata_len, _calldata
     );
     ReentrancyGuard.end();
@@ -1022,8 +1022,8 @@ func getDripOrRevert{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 func dripParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _drip: felt
 ) -> (borrowedAmount: Uint256, cumulativeIndex: Uint256, currentCumulativeIndex: Uint256) {
-    let (borrowed_amount_) = IDrip.borrowedAmount(_drip);
-    let (cumulative_index_) = IDrip.cumulativeIndex(_drip);
+    let (borrowed_amount_) = IContainer.borrowedAmount(_drip);
+    let (cumulative_index_) = IContainer.cumulativeIndex(_drip);
     let (pool_) = pool.read();
     let (current_cumulative_index_) = IPool.calcLinearCumulativeIndex(pool_);
     return (borrowed_amount_, cumulative_index_, current_cumulative_index_,);
@@ -1261,7 +1261,7 @@ func recursive_transfer_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ra
         let (balance_) = IERC20.balanceOf(token_, _drip);
         let (has_token_) = uint256_lt(Uint256(1, 0), balance_);
         if (has_token_ == 1) {
-            IDrip.safeTransfer(_drip, token_, _to, balance_);
+            IContainer.safeTransfer(_drip, token_, _to, balance_);
             tempvar syscall_ptr = syscall_ptr;
             tempvar range_check_ptr = range_check_ptr;
             tempvar pedersen_ptr = pedersen_ptr;

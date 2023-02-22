@@ -59497,6 +59497,18 @@
                 "type": "const",
                 "value": 1307730684388977109649524593492043083703013045633289330664425380824804018030
             },
+            "morphine.interfaces.IPool.IPool.BORROWMODULEBYID_SELECTOR": {
+                "type": "const",
+                "value": 1526885397950292068918372917764960712002144081414623337127055846056391851723
+            },
+            "morphine.interfaces.IPool.IPool.BORROWMODULEBYMASK_SELECTOR": {
+                "type": "const",
+                "value": 407625799321498840410205639863828126028681122634484119758977574559558035626
+            },
+            "morphine.interfaces.IPool.IPool.BORROWMODULEMASK_SELECTOR": {
+                "type": "const",
+                "value": 1177758510697410603941442310637678179854604451514792920978492306683621590761
+            },
             "morphine.interfaces.IPool.IPool.BORROWRATE_SELECTOR": {
                 "type": "const",
                 "value": 802265051843823840993873148058532271398737073432586747195741424982095538580
@@ -59509,13 +59521,9 @@
                 "type": "const",
                 "value": 752172297182381018963999775557096289046349414772102058345121372450836892355
             },
-            "morphine.interfaces.IPool.IPool.CONNECTDRIPMANAGER_SELECTOR": {
+            "morphine.interfaces.IPool.IPool.CONNECTBORROWMODULE_SELECTOR": {
                 "type": "const",
-                "value": 1072765513558079120535969143285362999722685831828090868003055616083915247005
-            },
-            "morphine.interfaces.IPool.IPool.CONNECTEDDRIPMANAGER_SELECTOR": {
-                "type": "const",
-                "value": 433410703943580500270383103450639159851224946214167990200316638639912411341
+                "value": 1214580310297374124698735336862196304721467026550335414405935446791221837769
             },
             "morphine.interfaces.IPool.IPool.CONVERTTOASSETS_SELECTOR": {
                 "type": "const",
@@ -59549,13 +59557,13 @@
                 "type": "const",
                 "value": 980162890975804239530383268962442953251806814182190357217589729745180875373
             },
+            "morphine.interfaces.IPool.IPool.FORBIDDENMASK_SELECTOR": {
+                "type": "const",
+                "value": 1391533423682748427181744059845540621586531203183139795388473935208070619109
+            },
             "morphine.interfaces.IPool.IPool.FREEZEBORROW_SELECTOR": {
                 "type": "const",
                 "value": 809075793465661798452556694102833188092442805936704364280378330100051863497
-            },
-            "morphine.interfaces.IPool.IPool.FREEZEREPAY_SELECTOR": {
-                "type": "const",
-                "value": 1610180259499021983140060655969864428639224131848242877726225710598355546467
             },
             "morphine.interfaces.IPool.IPool.GETREGISTERY_SELECTOR": {
                 "type": "const",
@@ -59573,13 +59581,13 @@
                 "type": "const",
                 "value": 1720824416047966017889557481363802672325723294232019253733468002760382649718
             },
+            "morphine.interfaces.IPool.IPool.ISBORROWMODULEALLOWED_SELECTOR": {
+                "type": "const",
+                "value": 1673228919118046841818196771380087536761411360636658758859477925955434026514
+            },
             "morphine.interfaces.IPool.IPool.ISPAUSED_SELECTOR": {
                 "type": "const",
                 "value": 482561513441603965719559071316254543123796207867770341477569082982624126578
-            },
-            "morphine.interfaces.IPool.IPool.ISREPAYFROZEN_SELECTOR": {
-                "type": "const",
-                "value": 1525316481493707235996454810740760789863303417011691222489465037539670588362
             },
             "morphine.interfaces.IPool.IPool.ImplicitArgs": {
                 "full_name": "morphine.interfaces.IPool.IPool.ImplicitArgs",
@@ -59619,6 +59627,10 @@
                 "type": "const",
                 "value": 1791751627143111403081714187534653215500924002095976728725139879597825648416
             },
+            "morphine.interfaces.IPool.IPool.POOLCONFIGURATOR_SELECTOR": {
+                "type": "const",
+                "value": 1433638755861177184114182508567288192821856476813206558875657770983868501881
+            },
             "morphine.interfaces.IPool.IPool.PREVIEWDEPOSIT_SELECTOR": {
                 "type": "const",
                 "value": 1397383642547949310078342361466173323076803655380545748871164620875564023691
@@ -59639,17 +59651,25 @@
                 "type": "const",
                 "value": 1326975239452520649139862114866922847703907595552193666703522601892858398217
             },
-            "morphine.interfaces.IPool.IPool.REPAYDRIPDEBT_SELECTOR": {
+            "morphine.interfaces.IPool.IPool.REPAYCONTAINERDEBT_SELECTOR": {
                 "type": "const",
-                "value": 1221400659600208413637399400381219764002536579658432400862169157490976015573
+                "value": 1485669998844425069438509350173081742981899560986185601152941843501791824112
             },
             "morphine.interfaces.IPool.IPool.Return": {
                 "cairo_type": "()",
                 "type": "type_definition"
             },
+            "morphine.interfaces.IPool.IPool.SETCONFIGURATOR_SELECTOR": {
+                "type": "const",
+                "value": 1201912273427992384568229941343833491767744788495219575980389850726172659804
+            },
             "morphine.interfaces.IPool.IPool.SETEXPECTEDLIQUIDITYLIMIT_SELECTOR": {
                 "type": "const",
                 "value": 823866078673122735612683703431821665004966828954737260132292049356302007158
+            },
+            "morphine.interfaces.IPool.IPool.SETFORBIDMASK_SELECTOR": {
+                "type": "const",
+                "value": 294797806772038079100927172996228603161326380027429071263838168222475763209
             },
             "morphine.interfaces.IPool.IPool.SETWITHDRAWFEE_SELECTOR": {
                 "type": "const",
@@ -59687,13 +59707,13 @@
                 "type": "const",
                 "value": 797832475709320730207206220249035380026712049355227012026853019646863111395
             },
-            "morphine.interfaces.IPool.IPool.UNFREEZEREPAY_SELECTOR": {
-                "type": "const",
-                "value": 1203282315399176263319766725659934698412121314169814634690556562723874689152
-            },
             "morphine.interfaces.IPool.IPool.UNPAUSE_SELECTOR": {
                 "type": "const",
                 "value": 341504860156543700586110501988137465316340573584130591116179057006159502080
+            },
+            "morphine.interfaces.IPool.IPool.UPDATEINTERESTRATEMODEL_SELECTOR": {
+                "type": "const",
+                "value": 820052543447678523036746801653897732344199855597120870208056842205565101288
             },
             "morphine.interfaces.IPool.IPool.WITHDRAWFEE_SELECTOR": {
                 "type": "const",

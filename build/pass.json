@@ -3056,7 +3056,7 @@
             "0x480a7ffa7fff8000",
             "0x480a7ffc7fff8000",
             "0x480680017fff8000",
-            "0x6959ccda52fda9d8f84fc44453ce7e9f7fbf748f832ade0395f372791f6da7",
+            "0xb39e489d44b2425424536864d6281c89a0c20c48917759ba8cb8faddbe9d38",
             "0x4828800080007ffc",
             "0x480a80007fff8000",
             "0x1104800180018000",
@@ -21567,10 +21567,6 @@
             "morphine.interfaces.IRegistery.IRegistery": {
                 "type": "namespace"
             },
-            "morphine.interfaces.IRegistery.IRegistery.ADDDRIPMANAGER_SELECTOR": {
-                "type": "const",
-                "value": 1578613553274508889371551623138963673335613492332710831317811438913232737495
-            },
             "morphine.interfaces.IRegistery.IRegistery.ADDPOOL_SELECTOR": {
                 "type": "const",
                 "value": 284899106038893136930882815545230770131273869709053929870126745847798958766
@@ -21581,33 +21577,25 @@
                 "size": 0,
                 "type": "struct"
             },
-            "morphine.interfaces.IRegistery.IRegistery.DRIPFACTORY_SELECTOR": {
+            "morphine.interfaces.IRegistery.IRegistery.CONTAINERFACTORY_SELECTOR": {
                 "type": "const",
-                "value": 1209834491402419183244452065121802737469768773278195444551214105316340298268
+                "value": 1131906488601042042931539583966264512484610355076159241593980792882992558101
             },
-            "morphine.interfaces.IRegistery.IRegistery.DRIPHASH_SELECTOR": {
+            "morphine.interfaces.IRegistery.IRegistery.CONTAINERHASH_SELECTOR": {
                 "type": "const",
-                "value": 733482392344155332183673796633989107665203903676581608346706325785552816967
-            },
-            "morphine.interfaces.IRegistery.IRegistery.DRIPMANAGERLENGTH_SELECTOR": {
-                "type": "const",
-                "value": 1719420288370321572227927493520787678465148754961068169870112362399093910591
+                "value": 665462836098315783012496344055629402075556075842316254671957102933736005248
             },
             "morphine.interfaces.IRegistery.IRegistery.GETTREASURY_SELECTOR": {
                 "type": "const",
                 "value": 1150271341886636885267624676054104359883615950010295893888698698910549782063
             },
-            "morphine.interfaces.IRegistery.IRegistery.IDTODRIPMANAGER_SELECTOR": {
-                "type": "const",
-                "value": 690722039449138961440958473463004625056569555079795040051573179174640100008
-            },
             "morphine.interfaces.IRegistery.IRegistery.IDTOPOOL_SELECTOR": {
                 "type": "const",
                 "value": 1346817126073817599047984628419604033632268223867064296557071598578038767281
             },
-            "morphine.interfaces.IRegistery.IRegistery.ISDRIPMANAGER_SELECTOR": {
+            "morphine.interfaces.IRegistery.IRegistery.ISBORROWMANAGER_SELECTOR": {
                 "type": "const",
-                "value": 186138720047934862159876386189342750686747431173455545296653385370194374055
+                "value": 317358058196573559681574938613388250383473044965162694104828690858296384824
             },
             "morphine.interfaces.IRegistery.IRegistery.ISPOOL_SELECTOR": {
                 "type": "const",
@@ -21635,13 +21623,13 @@
                 "cairo_type": "()",
                 "type": "type_definition"
             },
-            "morphine.interfaces.IRegistery.IRegistery.SETDRIPFACTORY_SELECTOR": {
+            "morphine.interfaces.IRegistery.IRegistery.SETCONTAINERFACTORY_SELECTOR": {
                 "type": "const",
-                "value": 1175106427902585799603431671226128279096066541513709514767032464033446754285
+                "value": 1415281699810232411439671241591718929642749387861516567152794819993773356391
             },
-            "morphine.interfaces.IRegistery.IRegistery.SETDRIPHASH_SELECTOR": {
+            "morphine.interfaces.IRegistery.IRegistery.SETCONTAINERHASH_SELECTOR": {
                 "type": "const",
-                "value": 1199520752525258546185476179070217768705655846113104092807890050343484734811
+                "value": 1127085321739413419155035116632239111624312905171389121154821817177939082357
             },
             "morphine.interfaces.IRegistery.IRegistery.SETORACLETRANSIT_SELECTOR": {
                 "type": "const",
@@ -21667,15 +21655,15 @@
                 "destination": "starkware.starknet.common.syscalls.call_contract",
                 "type": "alias"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager": {
                 "decorators": [],
                 "pc": 1763,
                 "type": "function"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.Args": {
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.Args",
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.Args": {
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.Args",
                 "members": {
-                    "_drip_manager": {
+                    "_borrow_manager": {
                         "cairo_type": "felt",
                         "offset": 1
                     },
@@ -21687,8 +21675,8 @@
                 "size": 2,
                 "type": "struct"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.ImplicitArgs": {
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.ImplicitArgs",
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.ImplicitArgs": {
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.ImplicitArgs",
                 "members": {
                     "range_check_ptr": {
                         "cairo_type": "felt",
@@ -21702,17 +21690,17 @@
                 "size": 2,
                 "type": "struct"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.Return": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.Return": {
                 "cairo_type": "(state: felt)",
                 "type": "type_definition"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.SIZEOF_LOCALS": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.SIZEOF_LOCALS": {
                 "type": "const",
                 "value": 1
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__calldata_ptr": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__calldata_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__calldata_ptr",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__calldata_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21733,9 +21721,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_actual_size": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_actual_size": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_actual_size",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_actual_size",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21748,9 +21736,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_arg_state": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_arg_state": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_arg_state",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_arg_state",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21763,9 +21751,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_ptr": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__return_value_ptr",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__return_value_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21786,9 +21774,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__temp59": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__temp59": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__temp59",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__temp59",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21801,9 +21789,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.__temp60": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__temp60": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.__temp60",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.__temp60",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21816,9 +21804,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager._drip_manager": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager._borrow_manager": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager._drip_manager",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager._borrow_manager",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21831,9 +21819,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.calldata_ptr_start": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.calldata_ptr_start": {
                 "cairo_type": "felt*",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.calldata_ptr_start",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.calldata_ptr_start",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21854,9 +21842,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.contract_address": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.contract_address": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.contract_address",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.contract_address",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21869,9 +21857,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.range_check_ptr": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.range_check_ptr": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.range_check_ptr",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.range_check_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21884,9 +21872,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.retdata": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.retdata": {
                 "cairo_type": "felt*",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.retdata",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.retdata",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21899,9 +21887,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.retdata_size": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.retdata_size": {
                 "cairo_type": "felt",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.retdata_size",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.retdata_size",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -21914,9 +21902,9 @@
                 ],
                 "type": "reference"
             },
-            "morphine.interfaces.IRegistery.IRegistery.isDripManager.syscall_ptr": {
+            "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.syscall_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "morphine.interfaces.IRegistery.IRegistery.isDripManager.syscall_ptr",
+                "full_name": "morphine.interfaces.IRegistery.IRegistery.isBorrowManager.syscall_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {

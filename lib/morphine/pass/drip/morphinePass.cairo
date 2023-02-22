@@ -259,7 +259,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     }
     let (drip_manager_) = IDripTransit.dripManager(_drip_transit);
     let (registery_) = registery.read();
-    let (is_drip_manager_) = IRegistery.isDripManager(registery_, drip_manager_);
+    let (is_drip_manager_) = IRegistery.isBorrowManager(registery_, drip_manager_);
 
     let (nft_) = IDripTransit.getNft(_drip_transit);
     let (this_) = get_contract_address();

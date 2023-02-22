@@ -12,9 +12,9 @@ from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.reentrancyguard.library import ReentrancyGuard
 from morphine.utils.safeerc20 import SafeERC20
 
-/// @title Drip
+/// @title Container 
 /// @author 0xSacha
-/// @dev Contract Isolated Smart contract holding funds and borrow parameters
+/// @dev Isolated Smart contract holding collateral (and borrowed amount for container) and borrow parameters
 /// @custom:experimental This is an experimental contract.
 
 
@@ -25,7 +25,7 @@ func factory() -> (address: felt) {
 }
 
 @storage_var
-func drip_manager() -> (drip_manager: felt) {
+func borrow_manager() -> (borrow_manager: felt) {
 }
 
 @storage_var
@@ -33,19 +33,19 @@ func borrowed_amount() -> (borrowed_amount: Uint256) {
 }
 
 @storage_var
-func cumulative_index() -> (borrow_info: Uint256) {
+func cumulative_index() -> (cumulative_index: Uint256) {
 }
 
 @storage_var
 func since() -> (time: felt) {
 }
 
-// @notice: Only drip manager can call this function
-func assert_only_drip_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+// @notice: Only borrow manager can call this function
+func assert_only_borrow_manager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (caller_) = get_caller_address();
-    let (drip_manager_) = drip_manager.read();
-    with_attr error_message("Only drip manager can call this function") {
-        assert caller_ = drip_manager_;
+    let (borrow_manager_) = borrow_manager.read();
+    with_attr error_message("Only borrow manager can call this function") {
+        assert caller_ = borrow_manager_;
     }
     return ();
 }
@@ -91,22 +91,22 @@ func lastUpdate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 
 // External
 
-// @notice: Drip initialize
-// @param: _drip_manager_ Drip manager address
+// @notice: Container initialize
+// @param: _borrow_manager_ Container manager address
 // @param: _borrowed_amount_ Borrowed amount(Uint256)
 // @param: _cumulative_index_ Cumulative index(Uint256)
 @external
 func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    _drip_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256
+    _borrow_manager: felt, _borrowed_amount: Uint256, _cumulative_index: Uint256
 ) {
     let (caller_) = get_caller_address();
     let (factory_) = factory.read();
-    with_attr error_message("Only drip factory can call this function") {
+    with_attr error_message("Only container factory can call this function") {
         assert caller_ = factory_;
     }
     let (block_timestamp_: felt) = get_block_timestamp();
     since.write(block_timestamp_);
-    drip_manager.write(_drip_manager);
+    borrow_manager.write(_borrow_manager);
     borrowed_amount.write(_borrowed_amount);
     cumulative_index.write(_cumulative_index);
     return ();
@@ -119,7 +119,7 @@ func connectTo{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrowed_amount: Uint256, _cumulative_index: Uint256
 ) {
-    assert_only_drip_manager();
+    assert_only_borrow_manager();
     borrowed_amount.write(_borrowed_amount);
     cumulative_index.write(_cumulative_index);
     return ();
@@ -133,7 +133,7 @@ func updateParameters{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
 func approveToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _contract: felt, _amount: Uint256
 ) {
-    assert_only_drip_manager();
+    assert_only_borrow_manager();
     IERC20.approve(_token, _contract, _amount);
     return ();
 }
@@ -145,7 +145,7 @@ func approveToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 func cancelAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _contract: felt
 ) {
-    assert_only_drip_manager();
+    assert_only_borrow_manager();
     IERC20.approve(_token, _contract, Uint256(0, 0));
     return ();
 }
@@ -158,7 +158,7 @@ func cancelAllowance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
 func safeTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _token: felt, _to: felt, _amount: Uint256
 ) {
-    assert_only_drip_manager();
+    assert_only_borrow_manager();
     SafeERC20.transfer(_token, _to, _amount);
     return ();
 }
@@ -174,7 +174,7 @@ func safeTransfer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 func execute{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _to: felt, _selector: felt, _calldata_len: felt, _calldata: felt*
 ) -> (retdata_len: felt, retdata: felt*) {
-    assert_only_drip_manager();
+    assert_only_borrow_manager();
     let (retdata_len: felt, retdata: felt*) = call_contract(
         _to, _selector, _calldata_len, _calldata
     );
