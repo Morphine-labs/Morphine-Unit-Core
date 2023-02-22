@@ -59,4 +59,4 @@ No Audits have been done so far.
 All Contributions for this unit have to be performed via repository issue.
 
 - [Available Tasks ](https://sachas-organization.gitbook.io/morphine-tasks/) 
-- [Contributor guide ](https://sachas-organization.gitbook.io/morphine/) 
+- [Contributor guide ](https://sachas-organization.gitbook.io/morphine/contributors/tasks) 
