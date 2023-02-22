@@ -58,10 +58,5 @@ No Audits have been done so far.
 
 All Contributions for this unit have to be performed via repository issue.
 
-<<<<<<< Updated upstream
 - [Available Tasks ](https://sachas-organization.gitbook.io/morphine/developers/protocol) 
 - [Contributor guide ](https://sachas-organization.gitbook.io/morphine/developers/protocol) 
-=======
-- [Available Tasks ](https://sachas-organization.gitbook.io/morphine-tasks/) 
-- [Contributor guide ](https://sachas-organization.gitbook.io/morphine/contributors/tasks) 
->>>>>>> Stashed changes
