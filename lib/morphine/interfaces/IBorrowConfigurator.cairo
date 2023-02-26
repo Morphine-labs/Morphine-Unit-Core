@@ -8,7 +8,7 @@ struct AllowedToken {
 }
 
 @contract_interface
-namespace IDripConfigurator {
+namespace IBorrowConfigurator {
 
     //
     // externals
@@ -68,10 +68,10 @@ namespace IDripConfigurator {
     func upgradeOracleTransit(){
     }
 
-    func upgradeDripTransit(_drip_transit: felt, _migrate_parameters: felt){
+    func upgradeBorrowTransit(_borrow_transit: felt, _migrate_parameters: felt){
     }
 
-    func upgradeConfigurator(_drip_configurator: felt){
+    func upgradeBorrowConfigurator(_borrow_configurator: felt){
     }
 
 
@@ -95,7 +95,7 @@ namespace IDripConfigurator {
 
     // Dependencies 
 
-    func dripManager() -> (dripManager: felt){
+    func borrowManager() -> (borrowManager: felt){
     }
 
 }

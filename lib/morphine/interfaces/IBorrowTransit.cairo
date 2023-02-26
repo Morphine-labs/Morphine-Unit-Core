@@ -24,7 +24,7 @@ struct tokenAndBalance {
 }
 
 @contract_interface
-namespace IDripTransit {
+namespace IBorrowTransit {
 
 
     // 
@@ -32,24 +32,24 @@ namespace IDripTransit {
     //
 
 
-    // Drip
+    // Container
 
-    func openDrip(_amount: Uint256, _on_belhalf_of: felt, _leverage_factor: Uint256){
+    func openContainer(_amount: Uint256, _on_belhalf_of: felt, _leverage_factor: Uint256){
     }
 
-    func openDripMultiCall(_borrowed_amount: Uint256, _on_belhalf_of: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
+    func openContainerMultiCall(_borrowed_amount: Uint256, _on_belhalf_of: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
     }
 
-    func closeDrip(_to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
+    func closeContainer(_to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
     }
 
-    func liquidateDrip(_borrower: felt, _to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
+    func liquidateContainer(_borrower: felt, _to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
     }
 
-    func liquidateExpiredDrip(_borrower: felt, _to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
+    func liquidateExpiredContainer(_borrower: felt, _to: felt, _call_array_len: felt, _call_array: AccountCallArray*, _calldata_len: felt, _calldata: felt*){
     }
 
-    // Drip Management
+    // Container Management
 
     func increaseDebt(_amount: Uint256){
     }
@@ -69,10 +69,10 @@ namespace IDripTransit {
     func approve(_target: felt, _token: felt, _amount: Uint256){
     }
 
-    func transferDripOwnership(_to: felt){
+    func transferContainerOwnership(_to: felt){
     }
 
-    func approveDripTransfers(_from: felt, _state: felt){
+    func approveContainerTransfers(_from: felt, _state: felt){
     }
 
     // Configurator
@@ -83,7 +83,7 @@ namespace IDripTransit {
     func setMaxBorrowedAmountPerBlock(max_borrowed_amount_per_block: Uint256) {
     }
 
-    func setDripLimits(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256) {
+    func setContainerLimits(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256) {
     }
 
     func setExpirationDate(expiration_date: felt) {
@@ -96,7 +96,7 @@ namespace IDripTransit {
 
     // Dependencies
 
-    func dripManager() -> (drip_manager: felt) {
+    func borrowManager() -> (borrow_manager: felt) {
     }  
 
     func getNft() -> (nft: felt) {
@@ -109,15 +109,15 @@ namespace IDripTransit {
 
     // Calcul
 
-    func calcTotalValue(_drip: felt) -> (total: Uint256, twv: Uint256){
+    func calcTotalValue(_container: felt) -> (total: Uint256, twv: Uint256){
     }
 
-    func calcDripHealthFactor(_drip: felt) -> (health_factor: Uint256){
+    func calcContainerHealthFactor(_container: felt) -> (health_factor: Uint256){
     }
 
     // Control
 
-    func hasOpenedDrip(borrower: felt) -> (state: felt) {
+    func hasOpenedContainer(borrower: felt) -> (state: felt) {
     }  
 
     func isTokenAllowed(token: felt) -> (state: felt) {

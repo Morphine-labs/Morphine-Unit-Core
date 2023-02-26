@@ -1,7 +1,6 @@
 %lang starknet
 
 from starkware.cairo.common.uint256 import Uint256
-
 from morphine.interfaces.IBorrowTransit import Call
 
 @contract_interface
