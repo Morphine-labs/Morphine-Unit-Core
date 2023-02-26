@@ -18,9 +18,9 @@ from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_FEE_LIQUIDATION, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED, PRECISION, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
 
 from morphine.interfaces.IRegistery import IRegistery
-from morphine.interfaces.IDripManager import IDripManager
-from morphine.interfaces.IDripTransit import IDripTransit
-from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
+from morphine.interfaces.IBorrowManager import IBorrowManager
+from morphine.interfaces.IBorrowTransit import IBorrowTransit
+from morphine.interfaces.IBorrowConfigurator import IBorrowConfigurator, AllowedToken
 from morphine.interfaces.IAdapter import IAdapter
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IOracleTransit import IOracleTransit
@@ -61,10 +61,6 @@ func LimitPerBlockUpdated(limit_per_block: Uint256){
 }
 
 @event 
-func FastCheckFeesUpdated(chi_threshold: Uint256, hf_check_interval: Uint256){
-}
-
-@event 
 func FeesUpdated(fee_interest: Uint256, fee_liquidation: Uint256, liquidation_premium: Uint256, fee_liquidation_expired: Uint256, liquidation_premium_expired: Uint256){
 }
 
@@ -73,11 +69,11 @@ func OracleTransitUpgraded(oracle: felt){
 }
 
 @event 
-func DripTransitUpgraded(drip_transit: felt){
+func BorrowTransitUpgraded(borrow_transit: felt){
 }
 
 @event 
-func DripConfiguratorUpgraded(drip_configurator: felt){
+func BorrowConfiguratorUpgraded(borrow_configurator: felt){
 }
 
 @event 
@@ -104,10 +100,8 @@ func EmergencyLiquidatorRemoved(liquidator: felt){
 // Storage
 
 @storage_var
-func drip_manager() -> (address : felt) {
+func borrow_manager() -> (address : felt) {
 }
-
-
 
 @storage_var
 func id_to_allowed_contract(id : felt) -> (contract: felt) {
@@ -135,16 +129,20 @@ func underlying() -> (underlying : felt){
 //Constructor
 
 // @notice: Constructor will be called when the contract is deployed
-// @param drip_manager: Address of the DripManager contract
+// @param _borrow_manager: Address of the Borrow Manager contract
+// @param _borrow_transit: Address of the Borrow Transit contract
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        _drip_manager: felt) {
-    drip_manager.write(_drip_manager);
-    let (pool_) = IDripManager.getPool(_drip_manager);
+        _borrow_manager: felt,
+        _borrow_transit: felt) {
+    alloc_locals;
+    borrow_manager.write(_borrow_manager);
+    let (pool_) = IBorrowManager.getPool(_borrow_manager);
     let (underlying_) = IPool.asset(pool_);
     underlying.write(underlying_);
     let (registery_) = IPool.getRegistery(pool_);
     RegisteryAccess.initializer(registery_);
+
     return();
 }
 
@@ -161,8 +159,8 @@ func setMaxEnabledTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     with_attr error_message("max limit reached"){
         assert is_allowed_ = 1;
     }
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.setMaxEnabledTokens(drip_manager_, _new_max_enabled_tokens);
+    let (borrow_manager_) = borrow_manager.read();
+    IBorrowManager.setMaxEnabledTokens(borrow_manager_, _new_max_enabled_tokens);
     maxEnabledTokensSet.emit(_new_max_enabled_tokens);
     return();
 }
@@ -193,9 +191,9 @@ func setLiquidationThreshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
 func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
-    let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (token_mask_) = IBorrowManager.tokenMask(borrow_manager_, _token);
+    let (fordbidden_token_mask_) = IBorrowManager.forbiddenTokenMask(borrow_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0),token_mask_);
     with_attr error_message("token not allowed"){
         assert is_eq1_ = 0;
@@ -210,7 +208,7 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,
     if (is_bt_ == 1){
         let (low_) = bitwise_xor(fordbidden_token_mask_.low, token_mask_.low);
         let (high_) = bitwise_xor(fordbidden_token_mask_.high, token_mask_.high);
-        IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
+        IBorrowManager.setForbidMask(borrow_manager_, Uint256(low_, high_));
         TokenAllowed.emit(_token);
         return();
     }
@@ -223,9 +221,9 @@ func allowToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr,
 func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_token: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    let (token_mask_) = IDripManager.tokenMask(drip_manager_, _token);
-    let (fordbidden_token_mask_) = IDripManager.forbiddenTokenMask(drip_manager_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (token_mask_) = IBorrowManager.tokenMask(borrow_manager_, _token);
+    let (fordbidden_token_mask_) = IBorrowManager.forbiddenTokenMask(borrow_manager_);
     let (is_eq1_) = uint256_eq(Uint256(0,0),token_mask_);
     with_attr error_message("token not allowed"){
         assert is_eq1_ = 0;
@@ -241,7 +239,7 @@ func forbidToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     if (is_lt_ == 0){
         let (low_) = bitwise_or(fordbidden_token_mask_.low, token_mask_.low);
         let (high_) = bitwise_or(fordbidden_token_mask_.high, token_mask_.high);
-        IDripManager.setForbidMask(drip_manager_, Uint256(low_, high_));
+        IBorrowManager.setForbidMask(borrow_manager_, Uint256(low_, high_));
         TokenForbidden.emit(_token);
         return();
     }
@@ -261,24 +259,24 @@ func allowContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         assert_not_zero(_contract * _adapter);
     }
 
-    let (drip_manager_) = drip_manager.read();
-    let (drip_manager_from_adapter_) = IAdapter.dripManager(_adapter);
-    with_attr error_message("wrong drip manager from adapter"){
-        assert drip_manager_ = drip_manager_from_adapter_;
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_manager_from_adapter_) = IAdapter.borrowManager(_adapter);
+    with_attr error_message("wrong borrow manager from adapter"){
+        assert borrow_manager_ = borrow_manager_from_adapter_;
     }
 
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
 
-    with_attr error_message("drip manager or drip transit exeption"){
-        assert_not_zero((_contract - drip_manager_)*(_contract - drip_transit_)*(_adapter - drip_manager_)*(_adapter - drip_transit_));
+    with_attr error_message("borrow manager or borrow transit exeption"){
+        assert_not_zero((_contract - borrow_manager_)*(_contract - borrow_transit_)*(_adapter - borrow_manager_)*(_adapter - borrow_transit_));
     }
 
-    let (contract_from_adapter_) = IDripManager.adapterToContract(drip_manager_, _adapter);
+    let (contract_from_adapter_) = IBorrowManager.adapterToContract(borrow_manager_, _adapter);
     with_attr error_message("adapter used twice"){
         assert contract_from_adapter_ = 0;
     }
     
-    IDripManager.changeContractAllowance(drip_manager_, _adapter, _contract);
+    IBorrowManager.changeContractAllowance(borrow_manager_, _adapter, _contract);
 
     let (is_allowed_contract_) = is_allowed_contract.read(_contract);
     
@@ -309,14 +307,14 @@ func forbidContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     with_attr error_message("zero address for contract"){
         assert_not_zero(_contract);
     }
-    let (drip_manager_) = drip_manager.read();
-    let (adapter_) = IDripManager.contractToAdapter(drip_manager_, _contract);
+    let (borrow_manager_) = borrow_manager.read();
+    let (adapter_) = IBorrowManager.contractToAdapter(borrow_manager_, _contract);
     with_attr error_message("contract not allowed adapter"){
         assert_not_zero(adapter_);
     }
 
-    IDripManager.changeContractAllowance(drip_manager_, adapter_, 0);
-    IDripManager.changeContractAllowance(drip_manager_, 0, _contract);
+    IBorrowManager.changeContractAllowance(borrow_manager_, adapter_, 0);
+    IBorrowManager.changeContractAllowance(borrow_manager_, 0, _contract);
 
     let (allowed_contract_length_) = allowed_contract_length.read();
     let (id_to_remove_) = allowed_contract_to_id.read(_contract);
@@ -386,7 +384,7 @@ func setLimitPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     return();
 }
 
-// @notice: Set Drip Expiration Date
+// @notice: Set Expiration Date
 // @param: _new_date: New expiration date
 @external
 func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
@@ -402,8 +400,8 @@ func setExpirationDate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
 func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.addEmergencyLiquidator(drip_manager_, _liquidator);
+    let (borrow_manager_) = borrow_manager.read();
+    IBorrowManager.addEmergencyLiquidator(borrow_manager_, _liquidator);
     EmergencyLiquidatorAdded.emit(_liquidator);
     return();
 }
@@ -414,8 +412,8 @@ func addEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_liquidator: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.removeEmergencyLiquidator(drip_manager_, _liquidator);
+    let (borrow_manager_) = borrow_manager.read();
+    IBorrowManager.removeEmergencyLiquidator(borrow_manager_, _liquidator);
     EmergencyLiquidatorRemoved.emit(_liquidator);
     return();
 }
@@ -425,37 +423,37 @@ func removeEmergencyLiquidator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 func upgradeOracleTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
-    let (drip_manager_) = drip_manager.read();
+    let (borrow_manager_) = borrow_manager.read();
     let (registery_) = RegisteryAccess.registery();
     let (oracle_transit_) = IRegistery.oracleTransit(registery_);
-    IDripManager.upgradeOracleTransit(drip_manager_, oracle_transit_);
+    IBorrowManager.upgradeOracleTransit(borrow_manager_, oracle_transit_);
     OracleTransitUpgraded.emit(oracle_transit_);
     return();
 }
 
-// @notice: Upgrade Drip Transit
-// @param: _drip_transit 
+// @notice: Upgrade Borrow Transit
+// @param: _borrow_transit 
 // @param: _migrate_parameters
 @external
-func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_transit: felt, _migrate_parameters: felt){
+func upgradeBorrowTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrow_transit: felt, _migrate_parameters: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address"){
-        assert_not_zero(_drip_transit);
+        assert_not_zero(_borrow_transit);
     }
-    let (drip_manager_) = drip_manager.read();
-    let (drip_manager_from_drip_transit_) = IDripTransit.dripManager(_drip_transit);
-    with_attr error_message("wrong drip manager from drip transit"){
-        assert drip_manager_from_drip_transit_ = drip_manager_;
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_manager_from_borrow_transit_) = IBorrowTransit.borrowManager(_borrow_transit);
+    with_attr error_message("wrong borrow manager from borrow transit"){
+        assert borrow_manager_from_borrow_transit_ = borrow_manager_;
     }
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
-    let (max_borrowed_amount_per_block_) = IDripTransit.maxBorrowedAmountPerBlock(drip_transit_);
-    let (is_increase_debt_forbidden_) = IDripTransit.isIncreaseDebtForbidden(drip_transit_);
-    let (expirable_) = IDripTransit.isExpirable(drip_transit_);
-    let (expiration_date_) = IDripTransit.expirationDate(drip_transit_);
-    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = IDripTransit.limits(drip_transit_);
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
+    let (max_borrowed_amount_per_block_) = IBorrowTransit.maxBorrowedAmountPerBlock(borrow_transit_);
+    let (is_increase_debt_forbidden_) = IBorrowTransit.isIncreaseDebtForbidden(borrow_transit_);
+    let (expirable_) = IBorrowTransit.isExpirable(borrow_transit_);
+    let (expiration_date_) = IBorrowTransit.expirationDate(borrow_transit_);
+    let (minimum_borrowed_amount_, maximum_borrowed_amount_) = IBorrowTransit.limits(borrow_transit_);
 
-    IDripManager.upgradeDripTransit(drip_manager_, _drip_transit);
+    IBorrowManager.upgradeBorrowTransit(borrow_manager_, _borrow_transit);
     if(_migrate_parameters == 1){
         set_limit_per_block(max_borrowed_amount_per_block_);
         set_limits(minimum_borrowed_amount_, maximum_borrowed_amount_);
@@ -475,26 +473,26 @@ func upgradeDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
     }
-    DripTransitUpgraded.emit(_drip_transit);
+    BorrowTransitUpgraded.emit(_borrow_transit);
     return();
 }
 
-// @notice: Upgrade Drip Configurator
-// @param: _drip_configurator
+// @notice: Upgrade Borrow Configurator
+// @param: _borrow_configurator
 @external
-func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_drip_configurator: felt){
+func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_borrow_configurator: felt){
     alloc_locals;
     RegisteryAccess.assert_only_owner();
     with_attr error_message("zero address"){
-        assert_not_zero(_drip_configurator);
+        assert_not_zero(_borrow_configurator);
     }
-    let (drip_manager_) = drip_manager.read();
-    let (drip_manager_from_drip_configurator_) = IDripConfigurator.dripManager(_drip_configurator);
-    with_attr error_message("wrong drip manager from drip configurator"){
-        assert drip_manager_from_drip_configurator_ = drip_manager_;
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_manager_from_borrow_configurator_) = IBorrowConfigurator.borrowManager(_borrow_configurator);
+    with_attr error_message("wrong borrow manager from borrow configurator"){
+        assert borrow_manager_from_borrow_configurator_ = borrow_manager_;
     }
-    IDripManager.setConfigurator(drip_manager_, _drip_configurator);
-    DripConfiguratorUpgraded.emit(_drip_configurator);
+    IBorrowManager.setConfigurator(borrow_manager_, _borrow_configurator);
+    BorrowConfiguratorUpgraded.emit(_borrow_configurator);
     return();
 }
 
@@ -534,13 +532,13 @@ func isAllowedContract{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return(state_,);
 }
 
-// @notice: get Drip manager address
-// @return: Drip manager address
+// @notice: get Borrow manager address
+// @return: Borrow manager address
 @view
-func dripManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (dripManager: felt){
+func borrowManager{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (borrowManager: felt){
     alloc_locals;
-    let (drip_manager_) = drip_manager.read();
-    return(drip_manager_,);
+    let (borrow_manager_) = borrow_manager.read();
+    return(borrow_manager_,);
 }
 
 // Internals
@@ -571,15 +569,15 @@ func add_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     // try call balanceOf ?
     let (_) = IERC20.balanceOf(_token, 22);
 
-    let (drip_manager_)= drip_manager.read();
-    let (oracle_transit_) = IDripManager.oracleTransit(drip_manager_);
+    let (borrow_manager_)= borrow_manager.read();
+    let (oracle_transit_) = IBorrowManager.oracleTransit(borrow_manager_);
     let (derivative_price_feed_) = IOracleTransit.derivativePriceFeed(oracle_transit_, _token);
     let (pair_id_) = IOracleTransit.primitivePairId(oracle_transit_, _token);
     let (is_lp_) = IOracleTransit.isLiquidityToken(oracle_transit_, _token);
     with_attr error_message("no price feed for token"){
         assert_not_zero(derivative_price_feed_ + pair_id_ + is_lp_);
     }
-    IDripManager.addToken(drip_manager_, _token);
+    IBorrowManager.addToken(borrow_manager_, _token);
     TokenAllowed.emit(_token);
     return();
 }
@@ -594,15 +592,15 @@ func set_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
         assert_not_zero(underlying_ - _token);
     }
 
-    let (drip_manager_) = drip_manager.read();
-    let (underlying_liquidation_threshold_) = IDripManager.liquidationThreshold(drip_manager_, underlying_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (underlying_liquidation_threshold_) = IBorrowManager.liquidationThreshold(borrow_manager_, underlying_);
     let (is_lt1_) = uint256_lt(Uint256(0,0), _liquidation_threshold);
     let (is_lt2_) = uint256_lt(_liquidation_threshold, underlying_liquidation_threshold_);
     with_attr error_message("incorrect liquidation threshold"){
         assert_not_zero(is_lt1_ * is_lt2_);
     }
 
-    IDripManager.setLiquidationThreshold(drip_manager_, _token, _liquidation_threshold);
+    IBorrowManager.setLiquidationThreshold(borrow_manager_, _token, _liquidation_threshold);
     TokenLiquidationThresholdUpdated.emit(_token, _liquidation_threshold);
     return();
 }
@@ -610,15 +608,15 @@ func set_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 // @notice: set limit per block
 // @param: _new_limit_per_block limit per block (Uint256)
 func set_limit_per_block{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_limit_per_block: Uint256){
-    let (drip_manager_) = drip_manager.read();
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
-    let (max_borrowed_amount_per_block_) = IDripTransit.maxBorrowedAmountPerBlock(drip_transit_);
-    let (_, max_borrowed_amount_) = IDripTransit.limits(drip_transit_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
+    let (max_borrowed_amount_per_block_) = IBorrowTransit.maxBorrowedAmountPerBlock(borrow_transit_);
+    let (_, max_borrowed_amount_) = IBorrowTransit.limits(borrow_transit_);
     let (is_lt_) = uint256_lt(_new_limit_per_block, max_borrowed_amount_);
     with_attr error_message("incorrect limit"){
         assert is_lt_ = 0;
     }
-    IDripTransit.setMaxBorrowedAmountPerBlock(drip_transit_, _new_limit_per_block);
+    IBorrowTransit.setMaxBorrowedAmountPerBlock(borrow_transit_, _new_limit_per_block);
     LimitPerBlockUpdated.emit(_new_limit_per_block);
     return();
 }
@@ -628,15 +626,15 @@ func set_limit_per_block{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 // @param: _new_min_borrowed_amount min borrowed amount (Uint256)
 // @param: _new_max_borrowed_amount max borrowed amount (Uint256)
 func set_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
-    let (drip_manager_) = drip_manager.read();
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
-    let (max_borrowed_amount_per_block_) = IDripTransit.maxBorrowedAmountPerBlock(drip_transit_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
+    let (max_borrowed_amount_per_block_) = IBorrowTransit.maxBorrowedAmountPerBlock(borrow_transit_);
     let (is_lt_1) = uint256_lt(_minimum_borrowed_amount, _maximum_borrowed_amount);
     let (is_lt_2) = uint256_lt(_maximum_borrowed_amount, max_borrowed_amount_per_block_);
     with_attr error_message("incorrect limit"){
         assert_not_zero(is_lt_1 * is_lt_2);
     }
-    IDripTransit.setDripLimits(drip_transit_, _minimum_borrowed_amount, _maximum_borrowed_amount);
+    IBorrowTransit.setBorrowLimits(borrow_transit_, _minimum_borrowed_amount, _maximum_borrowed_amount);
     LimitsUpdated.emit(_minimum_borrowed_amount, _maximum_borrowed_amount);
     return();
 }
@@ -646,28 +644,28 @@ func set_limits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 // @param: _state state
 func set_increase_debt_forbidden{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_state: felt){
     alloc_locals;
-    let (drip_manager_) = drip_manager.read();
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
-    IDripTransit.setIncreaseDebtForbidden(drip_transit_, _state);
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
+    IBorrowTransit.setIncreaseDebtForbidden(borrow_transit_, _state);
     IncreaseDebtForbiddenStateChanged.emit(_state);
     return();
 }
 
-// @notice: set expiration date for drip
+// @notice: set expiration date 
 // @custom: internal function
 // @param: _new_expiration_date expiration date 
 func set_expiration_date{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_new_expiration_date: felt){
     alloc_locals;
-    let (drip_manager_) = drip_manager.read();
-    let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
-    let (current_expiration_date_) = IDripTransit.expirationDate(drip_transit_);
+    let (borrow_manager_) = borrow_manager.read();
+    let (borrow_transit_) = IBorrowManager.borrowTransit(borrow_manager_);
+    let (current_expiration_date_) = IBorrowTransit.expirationDate(borrow_transit_);
     let (block_timestamp_) = get_block_timestamp();
     let (is_lt_) = uint256_lt(Uint256(block_timestamp_, 0), Uint256(_new_expiration_date,0));
     let (is_le_) = uint256_le(Uint256(current_expiration_date_,0),Uint256(_new_expiration_date,0));
     with_attr error_message("incorrect expiration date"){
         assert_not_zero(is_lt_ * is_le_);
     }
-    IDripTransit.setExpirationDate(drip_transit_, _new_expiration_date);
+    IBorrowTransit.setExpirationDate(borrow_transit_, _new_expiration_date);
     ExpirationDateUpdated.emit(_new_expiration_date);
     return();
 }
@@ -686,9 +684,9 @@ func set_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _fee_liquidation_expired: Uint256,
         _liquidation_discount_expired: Uint256){
     alloc_locals;
-    let (drip_manager_) = drip_manager.read();
+    let (borrow_manager_) = borrow_manager.read();
     let (underlying_) = underlying.read();
-    let (lt_underlying_) = IDripManager.liquidationThreshold(drip_manager_, underlying_);
+    let (lt_underlying_) = IBorrowManager.liquidationThreshold(borrow_manager_, underlying_);
     let (new_lt_underlying_) = SafeUint256.sub_le(_liquidation_discount, _fee_liquidation);
     let (is_eq_) = uint256_eq(lt_underlying_, new_lt_underlying_);
     if(is_eq_ == 0){
@@ -702,7 +700,7 @@ func set_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         tempvar pedersen_ptr= pedersen_ptr;
         tempvar range_check_ptr= range_check_ptr;
     }
-    IDripManager.setFees(drip_manager_, _fee_interest, _fee_liquidation, _liquidation_discount, _fee_liquidation_expired, _liquidation_discount_expired);
+    IBorrowManager.setFees(borrow_manager_, _fee_interest, _fee_liquidation, _liquidation_discount, _fee_liquidation_expired, _liquidation_discount_expired);
     FeesUpdated.emit(_fee_interest, _fee_liquidation, _liquidation_discount, _fee_liquidation_expired, _liquidation_discount_expired);
     return();
 }
@@ -712,28 +710,28 @@ func set_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 // @param: _lt_underlying new liquidation threshold (Uint256)
 func update_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_lt_underlying: Uint256){
     let (underlying_) = underlying.read();
-    let (drip_manager_) = drip_manager.read();
-    IDripManager.setLiquidationThreshold(drip_manager_, underlying_, _lt_underlying);
-    let (length_) = IDripManager.allowedTokensLength(drip_manager_);
-    loop_liquidation_threshold(length_, drip_manager_, _lt_underlying);
+    let (borrow_manager_) = borrow_manager.read();
+    IBorrowManager.setLiquidationThreshold(borrow_manager_, underlying_, _lt_underlying);
+    let (length_) = IBorrowManager.allowedTokensLength(borrow_manager_);
+    loop_liquidation_threshold(length_, borrow_manager_, _lt_underlying);
     return();
 }
 
 // @notice: loop for update liquidation threshold
 // @custom: internal function
 // @param: _length length of allowed tokens
-// @param: _drip_manager drip manager
+// @param: _borrow_manager borrow manager
 // @param: _lt_underlying new liquidation threshold (Uint256)
-func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_len: felt, _drip_manager: felt,_lt_underlying: Uint256){
+func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(_len: felt, _borrow_manager: felt,_lt_underlying: Uint256){
     // we din't need to set the underlying lt directly
     if(_len == 1){
         return();
     }
-    let (token_) = IDripManager.tokenById(_drip_manager, _len - 1);
-    let (lt_token_) = IDripManager.liquidationThreshold(_drip_manager, token_);
+    let (token_) = IBorrowManager.tokenById(_borrow_manager, _len - 1);
+    let (lt_token_) = IBorrowManager.liquidationThreshold(_borrow_manager, token_);
     let (is_lt_) = uint256_lt(_lt_underlying, lt_token_);
     if(is_lt_ == 1){
-        IDripManager.setLiquidationThreshold(_drip_manager, token_, _lt_underlying);
+        IBorrowManager.setLiquidationThreshold(_borrow_manager, token_, _lt_underlying);
         TokenLiquidationThresholdUpdated.emit(token_, _lt_underlying);
         tempvar syscall_ptr = syscall_ptr;
         tempvar pedersen_ptr = pedersen_ptr;
@@ -743,5 +741,5 @@ func loop_liquidation_threshold{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
         tempvar pedersen_ptr = pedersen_ptr;
         tempvar range_check_ptr = range_check_ptr;
     }
-    return loop_liquidation_threshold(_len - 1,  _drip_manager, _lt_underlying);
+    return loop_liquidation_threshold(_len - 1,  _borrow_manager, _lt_underlying);
 }
