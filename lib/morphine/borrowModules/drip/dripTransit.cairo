@@ -489,7 +489,7 @@ func addCollateral{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
 // @param: _call_array_len Call Array Length (felt)
 // @param: _call_array Call Array (AccountCallArray*)
 // @param: _calldata_len Call Data Length (felt)
-// @param: _calldata_len Call Data (felt*)
+// @param: _calldata Call Data (felt*)
 @external
 func multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
         _call_array_len: felt,
@@ -830,7 +830,6 @@ func lastBlockSaved{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 // @notice: Is Transfer Allowed
-// @dev: Used to calculate cumulative borowed amount per block
 // @param: _from User that can potentially transfer container to (felt)
 // @param: _from User that can potentially receive container from (felt)
 // @return: state 1 if transfer allowed,0 else (felt)
@@ -897,8 +896,7 @@ func recursive_multicall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
         _this: felt,
         _borrow_manager: felt,
         _expected_balances_len: felt,
-        _expected_balances: tokenAndBalance*)
-        -> (token_and_balances_len: felt){
+        _expected_balances: tokenAndBalance*) -> (token_and_balances_len: felt){
     alloc_locals;
     if(_call_len == 0){
         return(_expected_balances_len,);

@@ -21,7 +21,7 @@ from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.alloc import alloc
 from starkware.starknet.common.syscalls import deploy
 
-from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IBorrowManager import IBorrowManager
 
 
 /// @title: dripInfraFactory
@@ -120,7 +120,7 @@ func deployDripInfra{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert drip_configurator_calldata_[6] = _allowed_tokens_len;
     memcpy(drip_configurator_calldata_ + 7, _allowed_tokens, _allowed_tokens_len * 3);
     let (drip_configurator_address_) = get_contract_address{hash_ptr= pedersen_ptr}(_salt, drip_configurator_hash_, 7 + _allowed_tokens_len * 3, drip_configurator_calldata_, _drip_infra_factory);
-    IDripManager.setConfigurator(drip_manager_, drip_configurator_address_);
+    IBorrowManager.setConfigurator(drip_manager_, drip_configurator_address_);
     let (drip_configurator_) = deploy(drip_configurator_hash_, _salt, 7 + _allowed_tokens_len*3, drip_configurator_calldata_, 0);
     drip_configurator.write(drip_configurator_);
     return ();
