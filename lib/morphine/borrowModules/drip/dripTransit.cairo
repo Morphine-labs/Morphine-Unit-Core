@@ -192,7 +192,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
 // @param: _on_belhalf_of Open Container On Belhalf Of User (felt)
 // @param: _leverage_factor Leverage Factor Collateral (Uint256)
 @external
-func OpenContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
+func openContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
         _amount: Uint256,
         _on_belhalf_of: felt,
         _leverage_factor: Uint256){
@@ -215,7 +215,7 @@ func OpenContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
         assert is_lt_ = 1;
     }
 
-    let (container_) = IBorrowManager.OpenContainer(borrow_manager_, borrowed_amount_, _on_belhalf_of);
+    let (container_) = IBorrowManager.openContainer(borrow_manager_, borrowed_amount_, _on_belhalf_of);
     OpenContainer.emit(_on_belhalf_of, container_, borrowed_amount_);
     let (underlying_) = underlying.read();
     add_collateral(_on_belhalf_of, container_, underlying_, _amount);
@@ -245,7 +245,7 @@ func openContainerMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
     revert_if_out_borrowed_limits(_borrowed_amount);
     
     let (borrow_manager_) = borrow_manager.read();
-    let (container_) = IBorrowManager.OpenContainer(borrow_manager_, _borrowed_amount, _on_belhalf_of);
+    let (container_) = IBorrowManager.openContainer(borrow_manager_, _borrowed_amount, _on_belhalf_of);
     OpenContainer.emit(_on_belhalf_of, container_, _borrowed_amount);
     
     let is_le_ = is_le(_call_array_len , 0);
@@ -274,7 +274,7 @@ func openContainerMultiCall{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 // @param: _calldata_len Call Data Length (felt)
 // @param: _calldata_len Call Data (felt*)
 @external
-func CloseContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
+func closeContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
         _to: felt,
         _call_array_len: felt,
         _call_array: AccountCallArray*,
@@ -301,7 +301,7 @@ func CloseContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
         tempvar bitwise_ptr = bitwise_ptr;
     }
 
-    IBorrowManager.CloseContainer(borrow_manager_, caller_, 0,  Uint256(0,0),caller_, _to);
+    IBorrowManager.closeContainer(borrow_manager_, caller_, 0,  Uint256(0,0),caller_, _to);
     CloseContainer.emit(caller_, _to);
     ReentrancyGuard.end();
     return();
@@ -365,7 +365,7 @@ func liquidateContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     }
     
     let (caller_) = get_caller_address();
-    let (remaining_funds_) = IBorrowManager.CloseContainer(borrow_manager_, _borrower, 1, total_value_, caller_, _to);
+    let (remaining_funds_) = IBorrowManager.closeContainer(borrow_manager_, _borrower, 1, total_value_, caller_, _to);
     LiquidateContainer.emit(_borrower, caller_, _to, remaining_funds_);
     ReentrancyGuard.end();
     return();
@@ -430,7 +430,7 @@ func liquidateExpiredContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, r
 
     let (_, total_value_) = is_container_liquidatable(container_);
     let (caller_) = get_caller_address();
-    let (remaining_funds_) = IBorrowManager.CloseContainer(borrow_manager_, _borrower, 2, total_value_, caller_, _to);
+    let (remaining_funds_) = IBorrowManager.closeContainer(borrow_manager_, _borrower, 2, total_value_, caller_, _to);
     LiquidateExpiredContainer.emit(_borrower, caller_, _to, remaining_funds_);
     ReentrancyGuard.end();
     return();
@@ -624,7 +624,7 @@ func setMaxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
 // @param: _minimum_borrowed_amount Min Borrowed Amount (Uint256)
 // @param: _maximum_borrowed_amount Max Borrowed Amount (Uint256)
 @external
-func setContainerLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
+func setBorrrowLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
     assert_only_borrow_configurator();
     minimum_borrowed_amount.write(_minimum_borrowed_amount);

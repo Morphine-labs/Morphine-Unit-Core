@@ -29,7 +29,6 @@ from morphine.utils.fixedpointmathlib import mul_div_down, mul_div_up
 from morphine.utils.safeerc20 import SafeERC20
 from morphine.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
 from morphine.interfaces.IRegistery import IRegistery
-from morphine.interfaces.IDripManager import IDripManager
 from morphine.interfaces.IInterestRateModel import IInterestRateModel
 
 /// @title Pool

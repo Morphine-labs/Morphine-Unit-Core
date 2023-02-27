@@ -15,15 +15,9 @@ from openzeppelin.security.safemath.library import SafeUint256
 
 from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20
-from morphine.utils.various import DEFAULT_FEE_INTEREST, DEFAULT_FEE_LIQUIDATION, DEFAULT_LIQUIDATION_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED_PREMIUM, DEFAULT_FEE_LIQUIDATION_EXPIRED, PRECISION, DEFAULT_LIMIT_PER_BLOCK_MULTIPLIER
-
 from morphine.interfaces.IRegistery import IRegistery
-from morphine.interfaces.IDripManager import IDripManager
-from morphine.interfaces.IDripTransit import IDripTransit
-from morphine.interfaces.IDripConfigurator import IDripConfigurator, AllowedToken
-from morphine.interfaces.IAdapter import IAdapter
+from morphine.interfaces.IBorrowManager import IBorrowManager
 from morphine.interfaces.IPool import IPool
-from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IPoolConfigurator import IPoolConfigurator
 
 
@@ -82,12 +76,10 @@ func pool() -> (pool : felt) {
 //Constructor
 
 // @notice: Constructor will be called when the contract is deployed
-// @param drip_manager: Address of the DripManager contract
-// @param drip_transit: Address of the DripTransit contract
-// @param _minimum_borrowed_amount: Minimum amount of tokens that can be borrowed (Uint256)
-// @param _maximum_borrowed_amount: Maximum amount of tokens that can be borrowed (Uint256)
-// @param _allowed_tokens: Array of allowed tokens
-// @param _allowed_tokens_len: Length of the array of allowed tokens (AllowedToken*)
+// @param _pool: Address of the Pool Contract
+// @param _base_withdraw_fee: withdraw fee
+// @param _interest_rate_model: address of interest rate model calculator (felt)
+// @param _expected_liquidity_limit: Maximum amount of tokens that can be supplied in the pool (Uint256)
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         _pool: felt,
@@ -96,8 +88,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
         _expected_liquidity_limit: Uint256) {
     alloc_locals;
     pool.write(_pool);
-    let (pool_) = IDripManager.getPool(_pool);
-    let (registery_) = IPool.getRegistery(pool_);
+    let (registery_) = IPool.getRegistery(_pool);
     RegisteryAccess.initializer(registery_);
 
     setWithdrawFee(_base_withdraw_fee);
@@ -119,7 +110,7 @@ func connectBorrowModule{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     }
 
     let (pool_) = pool.read();
-    let (pool_from_borrow_manager_) = IDripManager.getPool(_borrow_module);
+    let (pool_from_borrow_manager_) = IBorrowManager.getPool(_borrow_module);
     with_attr error_message("incompatible pool for borrow module") {
         assert pool_ = pool_from_borrow_manager_;
     }

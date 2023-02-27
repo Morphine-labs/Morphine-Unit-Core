@@ -459,7 +459,7 @@ func approveContainer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
     let (caller_) = get_caller_address();
     let (adapter_to_contract_) = adapter_to_contract.read(caller_);
     let (borrow_transit_) = borrow_transit.read();
-    let (is_borrow_transit_) = is_equal(caller_, is_borrow_transit_);
+    let (is_borrow_transit_) = is_equal(caller_, borrow_transit_);
     if (is_borrow_transit_ == 0) {
         let (adapter_to_contract_) = adapter_to_contract.read(caller_);
         let (is_target_) = is_equal(adapter_to_contract_,  _target);
@@ -726,7 +726,7 @@ func upgradeBorrowTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_
 // @notice: Upgrade Borrow Configurator
 // @param: _borrow_configurator Borrow Configurator (felt)
 @external
-func setConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func setBorrowConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     _borrow_configurator: felt
 ) {
     assert_only_borrow_configurator();

@@ -18,8 +18,8 @@ from openzeppelin.security.safemath.library import SafeUint256
 from morphine.utils.RegisteryAccess import RegisteryAccess
 
 from morphine.interfaces.IRegistery import IRegistery
-from morphine.interfaces.IDripTransit import IDripTransit
-from morphine.interfaces.IDripManager import IDripManager
+from morphine.interfaces.IBorrowTransit import IBorrowTransit
+from morphine.interfaces.IBorrowManager import IBorrowManager
 
 /// @title: Morphine pass 
 /// @author: Morphine team
@@ -257,15 +257,15 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     with_attr error_message("drip transit already registered") {
         assert is_supported_drip_transit_ = 0;
     }
-    let (drip_manager_) = IDripTransit.dripManager(_drip_transit);
+    let (drip_manager_) = IBorrowTransit.dripManager(_drip_transit);
     let (registery_) = registery.read();
     let (is_drip_manager_) = IRegistery.isBorrowManager(registery_, drip_manager_);
 
-    let (nft_) = IDripTransit.getNft(_drip_transit);
+    let (nft_) = IBorrowTransit.getNft(_drip_transit);
     let (this_) = get_contract_address();
     let (is_right_nft_) = is_equal(nft_, this_);
     
-    let (drip_transit_from_drip_manager_) = IDripManager.dripTransit(drip_manager_);
+    let (drip_transit_from_drip_manager_) = IBorrowManager.dripTransit(drip_manager_);
     let (is_right_drip_transit_) = is_equal(drip_transit_from_drip_manager_, _drip_transit);
 
     with_attr error_message("invalid dependencies") {

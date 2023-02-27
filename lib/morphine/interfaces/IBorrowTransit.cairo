@@ -83,7 +83,7 @@ namespace IBorrowTransit {
     func setMaxBorrowedAmountPerBlock(max_borrowed_amount_per_block: Uint256) {
     }
 
-    func setContainerLimits(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256) {
+    func setBorrrowLimits(minimum_borrowed_amount: Uint256, maximum_borrowed_amount: Uint256) {
     }
 
     func setExpirationDate(expiration_date: felt) {
