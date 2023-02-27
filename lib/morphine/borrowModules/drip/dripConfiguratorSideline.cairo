@@ -491,7 +491,7 @@ func upgradeConfigurator{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     with_attr error_message("wrong borrow manager from borrow configurator"){
         assert borrow_manager_from_borrow_configurator_ = borrow_manager_;
     }
-    IBorrowManager.setConfigurator(borrow_manager_, _borrow_configurator);
+    IBorrowManager.setBorrowConfigurator(borrow_manager_, _borrow_configurator);
     BorrowConfiguratorUpgraded.emit(_borrow_configurator);
     return();
 }

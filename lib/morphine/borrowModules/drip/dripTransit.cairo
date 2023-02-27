@@ -23,7 +23,6 @@ from morphine.utils.various import PRECISION, REVERT_IF_RECEIVED_LESS_THAN_SELEC
 from morphine.interfaces.IBorrowTransit import Call, AccountCallArray,tokenAndBalance
 from morphine.interfaces.IPool import IPool
 from morphine.interfaces.IBorrowManager import IBorrowManager
-from morphine.interfaces.IBorrowConfigurator import IBorrowConfigurator
 from morphine.interfaces.IOracleTransit import IOracleTransit
 from morphine.interfaces.IMorphinePass import IMorphinePass
 
@@ -624,7 +623,7 @@ func setMaxBorrowedAmountPerBlock{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*
 // @param: _minimum_borrowed_amount Min Borrowed Amount (Uint256)
 // @param: _maximum_borrowed_amount Max Borrowed Amount (Uint256)
 @external
-func setBorrrowLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
+func setBorrowLimits{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(_minimum_borrowed_amount: Uint256, _maximum_borrowed_amount: Uint256){
     alloc_locals;
     assert_only_borrow_configurator();
     minimum_borrowed_amount.write(_minimum_borrowed_amount);

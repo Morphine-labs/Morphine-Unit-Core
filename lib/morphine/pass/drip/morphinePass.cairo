@@ -257,7 +257,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     with_attr error_message("drip transit already registered") {
         assert is_supported_drip_transit_ = 0;
     }
-    let (drip_manager_) = IBorrowTransit.dripManager(_drip_transit);
+    let (drip_manager_) = IBorrowTransit.borrowManager(_drip_transit);
     let (registery_) = registery.read();
     let (is_drip_manager_) = IRegistery.isBorrowManager(registery_, drip_manager_);
 
@@ -265,7 +265,7 @@ func addDripTransit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
     let (this_) = get_contract_address();
     let (is_right_nft_) = is_equal(nft_, this_);
     
-    let (drip_transit_from_drip_manager_) = IBorrowManager.dripTransit(drip_manager_);
+    let (drip_transit_from_drip_manager_) = IBorrowManager.borrowTransit(drip_manager_);
     let (is_right_drip_transit_) = is_equal(drip_transit_from_drip_manager_, _drip_transit);
 
     with_attr error_message("invalid dependencies") {

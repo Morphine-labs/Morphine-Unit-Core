@@ -564,7 +564,7 @@
                 "type": "Uint256"
             }
         ],
-        "name": "setBorrrowLimits",
+        "name": "setBorrowLimits",
         "outputs": [],
         "type": "function"
     },

@@ -12,6 +12,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
+from morphine.utils.various import uint256_permillion, PRECISION, SECONDS_PER_YEAR
 
 from morphine.utils.RegisteryAccess import RegisteryAccess
 from morphine.utils.safeerc20 import SafeERC20

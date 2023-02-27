@@ -1,0 +1,1037 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "data": [
+            {
+                "name": "from_",
+                "type": "felt"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "value",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "Transfer",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "owner",
+                "type": "felt"
+            },
+            {
+                "name": "spender",
+                "type": "felt"
+            },
+            {
+                "name": "value",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "Approval",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "Paused",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "Unpaused",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "from_",
+                "type": "felt"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "Deposit",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "from_",
+                "type": "felt"
+            },
+            {
+                "name": "to",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "Withdraw",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "from_",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "Borrow",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "borrowedAmount",
+                "type": "Uint256"
+            },
+            {
+                "name": "profit",
+                "type": "Uint256"
+            },
+            {
+                "name": "loss",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "RepayDebt",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "value",
+                "type": "Uint256"
+            }
+        ],
+        "keys": [],
+        "name": "UncoveredLoss",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_registery",
+                "type": "felt"
+            },
+            {
+                "name": "_asset",
+                "type": "felt"
+            },
+            {
+                "name": "_name",
+                "type": "felt"
+            },
+            {
+                "name": "_symbol",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "pause",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "unpause",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "freezeBorrow",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "unfreezeBorrow",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_base_withdraw_fee",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setWithdrawFee",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_expected_liquidity_limit",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setExpectedLiquidityLimit",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_interest_rate_model",
+                "type": "felt"
+            }
+        ],
+        "name": "updateInterestRateModel",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrow_module",
+                "type": "felt"
+            }
+        ],
+        "name": "connectBorrowModule",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_fobid_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "setForbidMask",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool_configurator",
+                "type": "felt"
+            }
+        ],
+        "name": "setConfigurator",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_assets",
+                "type": "Uint256"
+            },
+            {
+                "name": "_receiver",
+                "type": "felt"
+            }
+        ],
+        "name": "deposit",
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_shares",
+                "type": "Uint256"
+            },
+            {
+                "name": "_receiver",
+                "type": "felt"
+            }
+        ],
+        "name": "mint",
+        "outputs": [
+            {
+                "name": "assets",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_assets",
+                "type": "Uint256"
+            },
+            {
+                "name": "_receiver",
+                "type": "felt"
+            },
+            {
+                "name": "_owner",
+                "type": "felt"
+            }
+        ],
+        "name": "withdraw",
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_shares",
+                "type": "Uint256"
+            },
+            {
+                "name": "_receiver",
+                "type": "felt"
+            },
+            {
+                "name": "_owner",
+                "type": "felt"
+            }
+        ],
+        "name": "redeem",
+        "outputs": [
+            {
+                "name": "assets",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrow_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_container",
+                "type": "felt"
+            }
+        ],
+        "name": "borrow",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrowed_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_profit",
+                "type": "Uint256"
+            },
+            {
+                "name": "_loss",
+                "type": "Uint256"
+            }
+        ],
+        "name": "repayContainerDebt",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "isPaused",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "isBorrowFrozen",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "interestRateModel",
+        "outputs": [
+            {
+                "name": "interestRateModel",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_caller",
+                "type": "felt"
+            }
+        ],
+        "name": "isBorrowModuleAllowed",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "forbiddenMask",
+        "outputs": [
+            {
+                "name": "forbiddenMask",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrow_module",
+                "type": "felt"
+            }
+        ],
+        "name": "borrowModuleMask",
+        "outputs": [
+            {
+                "name": "borrowModuleMask",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrow_module_mask",
+                "type": "Uint256"
+            }
+        ],
+        "name": "borrowModuleByMask",
+        "outputs": [
+            {
+                "name": "borrowModule",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "borrowModuleById",
+        "outputs": [
+            {
+                "name": "borrowModule",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getRegistery",
+        "outputs": [
+            {
+                "name": "registery",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "poolConfigurator",
+        "outputs": [
+            {
+                "name": "poolConfigurator",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "asset",
+        "outputs": [
+            {
+                "name": "asset",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "felt"
+            }
+        ],
+        "name": "maxDeposit",
+        "outputs": [
+            {
+                "name": "maxAssets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "felt"
+            }
+        ],
+        "name": "maxMint",
+        "outputs": [
+            {
+                "name": "maxShares",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "felt"
+            }
+        ],
+        "name": "maxWithdraw",
+        "outputs": [
+            {
+                "name": "maxAssets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_from",
+                "type": "felt"
+            }
+        ],
+        "name": "maxRedeem",
+        "outputs": [
+            {
+                "name": "maxShares",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_assets",
+                "type": "Uint256"
+            }
+        ],
+        "name": "previewDeposit",
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_shares",
+                "type": "Uint256"
+            }
+        ],
+        "name": "previewMint",
+        "outputs": [
+            {
+                "name": "assets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_assets",
+                "type": "Uint256"
+            }
+        ],
+        "name": "previewWithdraw",
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_shares",
+                "type": "Uint256"
+            }
+        ],
+        "name": "previewRedeem",
+        "outputs": [
+            {
+                "name": "assets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "calcLinearCumulativeIndex",
+        "outputs": [
+            {
+                "name": "cumulativeIndex",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_assets",
+                "type": "Uint256"
+            }
+        ],
+        "name": "convertToShares",
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_shares",
+                "type": "Uint256"
+            }
+        ],
+        "name": "convertToAssets",
+        "outputs": [
+            {
+                "name": "assets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalAssets",
+        "outputs": [
+            {
+                "name": "totalManagedAssets",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalBorrowed",
+        "outputs": [
+            {
+                "name": "totalBorrowed",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "borrowRate",
+        "outputs": [
+            {
+                "name": "borrowRate",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "cumulativeIndex",
+        "outputs": [
+            {
+                "name": "borrowRate",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "lastUpdatedTimestamp",
+        "outputs": [
+            {
+                "name": "lastUpdatedTimestamp",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "expectedLiquidity",
+        "outputs": [
+            {
+                "name": "expectedLiquidity",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "expectedLiquidityLimit",
+        "outputs": [
+            {
+                "name": "expectedLiquidityLimit",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "availableLiquidity",
+        "outputs": [
+            {
+                "name": "availableLiquidity",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "withdrawFee",
+        "outputs": [
+            {
+                "name": "withdrawFee",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "name",
+        "outputs": [
+            {
+                "name": "name",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+            {
+                "name": "symbol",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+            {
+                "name": "totalSupply",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [
+            {
+                "name": "decimals",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "account",
+                "type": "felt"
+            }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+            {
+                "name": "balance",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "felt"
+            },
+            {
+                "name": "_spender",
+                "type": "felt"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "name": "remaining",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "recipient",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "name": "success",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "felt"
+            },
+            {
+                "name": "recipient",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            }
+        ],
+        "name": "transferFrom",
+        "outputs": [
+            {
+                "name": "success",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "felt"
+            },
+            {
+                "name": "amount",
+                "type": "Uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "name": "success",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "felt"
+            },
+            {
+                "name": "added_value",
+                "type": "Uint256"
+            }
+        ],
+        "name": "increaseAllowance",
+        "outputs": [
+            {
+                "name": "success",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "felt"
+            },
+            {
+                "name": "subtracted_value",
+                "type": "Uint256"
+            }
+        ],
+        "name": "decreaseAllowance",
+        "outputs": [
+            {
+                "name": "success",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    }
+]

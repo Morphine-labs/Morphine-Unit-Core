@@ -7931,9 +7931,9 @@
                 "cairo_type": "()",
                 "type": "type_definition"
             },
-            "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETBORRROWLIMITS_SELECTOR": {
+            "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETBORROWLIMITS_SELECTOR": {
                 "type": "const",
-                "value": 1753569314077945727935121869090167889178068408104889767962868482584611942596
+                "value": 1790995681758970132625228305553148798461304978343663704212940736139945141408
             },
             "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETEXPIRATIONDATE_SELECTOR": {
                 "type": "const",

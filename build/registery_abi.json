@@ -1,0 +1,229 @@
+[
+    {
+        "data": [
+            {
+                "name": "previousOwner",
+                "type": "felt"
+            },
+            {
+                "name": "newOwner",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "OwnershipTransferred",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "felt"
+            },
+            {
+                "name": "_treasury",
+                "type": "felt"
+            },
+            {
+                "name": "_oracle_transit",
+                "type": "felt"
+            },
+            {
+                "name": "_container_hash",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "getTreasury",
+        "outputs": [
+            {
+                "name": "treasury",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "containerFactory",
+        "outputs": [
+            {
+                "name": "container_factory",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "containerHash",
+        "outputs": [
+            {
+                "name": "container_hash",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "name": "owner",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "oracleTransit",
+        "outputs": [
+            {
+                "name": "oracle",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "felt"
+            }
+        ],
+        "name": "isPool",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_borrow_manager",
+                "type": "felt"
+            }
+        ],
+        "name": "isBorrowManager",
+        "outputs": [
+            {
+                "name": "state",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_id",
+                "type": "felt"
+            }
+        ],
+        "name": "idToPool",
+        "outputs": [
+            {
+                "name": "pool",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "poolsLength",
+        "outputs": [
+            {
+                "name": "poolsLength",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_owner",
+                "type": "felt"
+            }
+        ],
+        "name": "setOwner",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_treasury",
+                "type": "felt"
+            }
+        ],
+        "name": "setTreasury",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_container_factory",
+                "type": "felt"
+            }
+        ],
+        "name": "setContainerFactory",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_oracle_transit",
+                "type": "felt"
+            }
+        ],
+        "name": "setOracleTransit",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_new_container_hash",
+                "type": "felt"
+            }
+        ],
+        "name": "setContainerHash",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_pool",
+                "type": "felt"
+            }
+        ],
+        "name": "addPool",
+        "outputs": [],
+        "type": "function"
+    }
+]

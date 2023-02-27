@@ -565,7 +565,7 @@
                     "type": "Uint256"
                 }
             ],
-            "name": "setBorrrowLimits",
+            "name": "setBorrowLimits",
             "outputs": [],
             "type": "function"
         },
@@ -932,7 +932,7 @@
             },
             {
                 "offset": "0xe80",
-                "selector": "0x3e07c2cdab671e91ff33070345f0753cbf1332e308b8f4a2427bcd08d9070c4"
+                "selector": "0x3f5aae9fc816c3e9e0c10be86e14ed78550c221014579f4252a6c131e9d64a0"
             }
         ],
         "L1_HANDLER": []
@@ -8782,7 +8782,7 @@
                         "__main__",
                         "__main__",
                         "__wrappers__",
-                        "__wrappers__.setBorrrowLimits"
+                        "__wrappers__.setBorrowLimits"
                     ],
                     "code": "memory[ap] = segments.add()",
                     "flow_tracking_data": {
@@ -8791,16 +8791,16 @@
                             "offset": 130
                         },
                         "reference_ids": {
-                            "__wrappers__.setBorrrowLimits.__calldata_actual_size": 2417,
-                            "__wrappers__.setBorrrowLimits.__calldata_arg__maximum_borrowed_amount": 2415,
-                            "__wrappers__.setBorrrowLimits.__calldata_arg__minimum_borrowed_amount": 2413,
-                            "__wrappers__.setBorrrowLimits.__calldata_ptr": 2416,
-                            "__wrappers__.setBorrrowLimits.__temp221": 2418,
-                            "__wrappers__.setBorrrowLimits.bitwise_ptr": 2422,
-                            "__wrappers__.setBorrrowLimits.pedersen_ptr": 2420,
-                            "__wrappers__.setBorrrowLimits.range_check_ptr": 2421,
-                            "__wrappers__.setBorrrowLimits.ret_value": 2423,
-                            "__wrappers__.setBorrrowLimits.syscall_ptr": 2419
+                            "__wrappers__.setBorrowLimits.__calldata_actual_size": 2417,
+                            "__wrappers__.setBorrowLimits.__calldata_arg__maximum_borrowed_amount": 2415,
+                            "__wrappers__.setBorrowLimits.__calldata_arg__minimum_borrowed_amount": 2413,
+                            "__wrappers__.setBorrowLimits.__calldata_ptr": 2416,
+                            "__wrappers__.setBorrowLimits.__temp221": 2418,
+                            "__wrappers__.setBorrowLimits.bitwise_ptr": 2422,
+                            "__wrappers__.setBorrowLimits.pedersen_ptr": 2420,
+                            "__wrappers__.setBorrowLimits.range_check_ptr": 2421,
+                            "__wrappers__.setBorrowLimits.ret_value": 2423,
+                            "__wrappers__.setBorrowLimits.syscall_ptr": 2419
                         }
                     }
                 }
@@ -10008,10 +10008,6 @@
             },
             "__main__.HashBuiltin": {
                 "destination": "starkware.cairo.common.cairo_builtins.HashBuiltin",
-                "type": "alias"
-            },
-            "__main__.IBorrowConfigurator": {
-                "destination": "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator",
                 "type": "alias"
             },
             "__main__.IBorrowManager": {
@@ -37100,15 +37096,15 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits": {
+            "__main__.setBorrowLimits": {
                 "decorators": [
                     "external"
                 ],
                 "pc": 3691,
                 "type": "function"
             },
-            "__main__.setBorrrowLimits.Args": {
-                "full_name": "__main__.setBorrrowLimits.Args",
+            "__main__.setBorrowLimits.Args": {
+                "full_name": "__main__.setBorrowLimits.Args",
                 "members": {
                     "_maximum_borrowed_amount": {
                         "cairo_type": "starkware.cairo.common.uint256.Uint256",
@@ -37122,8 +37118,8 @@
                 "size": 4,
                 "type": "struct"
             },
-            "__main__.setBorrrowLimits.ImplicitArgs": {
-                "full_name": "__main__.setBorrrowLimits.ImplicitArgs",
+            "__main__.setBorrowLimits.ImplicitArgs": {
+                "full_name": "__main__.setBorrowLimits.ImplicitArgs",
                 "members": {
                     "bitwise_ptr": {
                         "cairo_type": "starkware.cairo.common.cairo_builtins.BitwiseBuiltin*",
@@ -37145,17 +37141,17 @@
                 "size": 4,
                 "type": "struct"
             },
-            "__main__.setBorrrowLimits.Return": {
+            "__main__.setBorrowLimits.Return": {
                 "cairo_type": "()",
                 "type": "type_definition"
             },
-            "__main__.setBorrrowLimits.SIZEOF_LOCALS": {
+            "__main__.setBorrowLimits.SIZEOF_LOCALS": {
                 "type": "const",
                 "value": 0
             },
-            "__main__.setBorrrowLimits._maximum_borrowed_amount": {
+            "__main__.setBorrowLimits._maximum_borrowed_amount": {
                 "cairo_type": "starkware.cairo.common.uint256.Uint256",
-                "full_name": "__main__.setBorrrowLimits._maximum_borrowed_amount",
+                "full_name": "__main__.setBorrowLimits._maximum_borrowed_amount",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -37168,9 +37164,9 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits._minimum_borrowed_amount": {
+            "__main__.setBorrowLimits._minimum_borrowed_amount": {
                 "cairo_type": "starkware.cairo.common.uint256.Uint256",
-                "full_name": "__main__.setBorrrowLimits._minimum_borrowed_amount",
+                "full_name": "__main__.setBorrowLimits._minimum_borrowed_amount",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -37183,9 +37179,9 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits.bitwise_ptr": {
+            "__main__.setBorrowLimits.bitwise_ptr": {
                 "cairo_type": "starkware.cairo.common.cairo_builtins.BitwiseBuiltin*",
-                "full_name": "__main__.setBorrrowLimits.bitwise_ptr",
+                "full_name": "__main__.setBorrowLimits.bitwise_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -37206,9 +37202,9 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits.pedersen_ptr": {
+            "__main__.setBorrowLimits.pedersen_ptr": {
                 "cairo_type": "starkware.cairo.common.cairo_builtins.HashBuiltin*",
-                "full_name": "__main__.setBorrrowLimits.pedersen_ptr",
+                "full_name": "__main__.setBorrowLimits.pedersen_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -37245,9 +37241,9 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits.range_check_ptr": {
+            "__main__.setBorrowLimits.range_check_ptr": {
                 "cairo_type": "felt",
-                "full_name": "__main__.setBorrrowLimits.range_check_ptr",
+                "full_name": "__main__.setBorrowLimits.range_check_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -37284,9 +37280,9 @@
                 ],
                 "type": "reference"
             },
-            "__main__.setBorrrowLimits.syscall_ptr": {
+            "__main__.setBorrowLimits.syscall_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "__main__.setBorrrowLimits.syscall_ptr",
+                "full_name": "__main__.setBorrowLimits.syscall_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49774,36 +49770,36 @@
                 "destination": "starkware.cairo.common.memcpy.memcpy",
                 "type": "alias"
             },
-            "__wrappers__.setBorrrowLimits": {
+            "__wrappers__.setBorrowLimits": {
                 "decorators": [
                     "external"
                 ],
                 "pc": 3712,
                 "type": "function"
             },
-            "__wrappers__.setBorrrowLimits.Args": {
-                "full_name": "__wrappers__.setBorrrowLimits.Args",
+            "__wrappers__.setBorrowLimits.Args": {
+                "full_name": "__wrappers__.setBorrowLimits.Args",
                 "members": {},
                 "size": 0,
                 "type": "struct"
             },
-            "__wrappers__.setBorrrowLimits.ImplicitArgs": {
-                "full_name": "__wrappers__.setBorrrowLimits.ImplicitArgs",
+            "__wrappers__.setBorrowLimits.ImplicitArgs": {
+                "full_name": "__wrappers__.setBorrowLimits.ImplicitArgs",
                 "members": {},
                 "size": 0,
                 "type": "struct"
             },
-            "__wrappers__.setBorrrowLimits.Return": {
+            "__wrappers__.setBorrowLimits.Return": {
                 "cairo_type": "(syscall_ptr: felt*, pedersen_ptr: starkware.cairo.common.cairo_builtins.HashBuiltin*, range_check_ptr: felt, bitwise_ptr: starkware.cairo.common.cairo_builtins.BitwiseBuiltin*, size: felt, retdata: felt*)",
                 "type": "type_definition"
             },
-            "__wrappers__.setBorrrowLimits.SIZEOF_LOCALS": {
+            "__wrappers__.setBorrowLimits.SIZEOF_LOCALS": {
                 "type": "const",
                 "value": 0
             },
-            "__wrappers__.setBorrrowLimits.__calldata_actual_size": {
+            "__wrappers__.setBorrowLimits.__calldata_actual_size": {
                 "cairo_type": "felt",
-                "full_name": "__wrappers__.setBorrrowLimits.__calldata_actual_size",
+                "full_name": "__wrappers__.setBorrowLimits.__calldata_actual_size",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49816,9 +49812,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.__calldata_arg__maximum_borrowed_amount": {
+            "__wrappers__.setBorrowLimits.__calldata_arg__maximum_borrowed_amount": {
                 "cairo_type": "starkware.cairo.common.uint256.Uint256",
-                "full_name": "__wrappers__.setBorrrowLimits.__calldata_arg__maximum_borrowed_amount",
+                "full_name": "__wrappers__.setBorrowLimits.__calldata_arg__maximum_borrowed_amount",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49831,9 +49827,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.__calldata_arg__minimum_borrowed_amount": {
+            "__wrappers__.setBorrowLimits.__calldata_arg__minimum_borrowed_amount": {
                 "cairo_type": "starkware.cairo.common.uint256.Uint256",
-                "full_name": "__wrappers__.setBorrrowLimits.__calldata_arg__minimum_borrowed_amount",
+                "full_name": "__wrappers__.setBorrowLimits.__calldata_arg__minimum_borrowed_amount",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49846,9 +49842,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.__calldata_ptr": {
+            "__wrappers__.setBorrowLimits.__calldata_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "__wrappers__.setBorrrowLimits.__calldata_ptr",
+                "full_name": "__wrappers__.setBorrowLimits.__calldata_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49877,9 +49873,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.__temp221": {
+            "__wrappers__.setBorrowLimits.__temp221": {
                 "cairo_type": "felt",
-                "full_name": "__wrappers__.setBorrrowLimits.__temp221",
+                "full_name": "__wrappers__.setBorrowLimits.__temp221",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49892,13 +49888,13 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.__wrapped_func": {
-                "destination": "__main__.setBorrrowLimits",
+            "__wrappers__.setBorrowLimits.__wrapped_func": {
+                "destination": "__main__.setBorrowLimits",
                 "type": "alias"
             },
-            "__wrappers__.setBorrrowLimits.bitwise_ptr": {
+            "__wrappers__.setBorrowLimits.bitwise_ptr": {
                 "cairo_type": "starkware.cairo.common.cairo_builtins.BitwiseBuiltin*",
-                "full_name": "__wrappers__.setBorrrowLimits.bitwise_ptr",
+                "full_name": "__wrappers__.setBorrowLimits.bitwise_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49919,9 +49915,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.pedersen_ptr": {
+            "__wrappers__.setBorrowLimits.pedersen_ptr": {
                 "cairo_type": "starkware.cairo.common.cairo_builtins.HashBuiltin*",
-                "full_name": "__wrappers__.setBorrrowLimits.pedersen_ptr",
+                "full_name": "__wrappers__.setBorrowLimits.pedersen_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49942,9 +49938,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.range_check_ptr": {
+            "__wrappers__.setBorrowLimits.range_check_ptr": {
                 "cairo_type": "felt",
-                "full_name": "__wrappers__.setBorrrowLimits.range_check_ptr",
+                "full_name": "__wrappers__.setBorrowLimits.range_check_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49965,9 +49961,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.ret_value": {
+            "__wrappers__.setBorrowLimits.ret_value": {
                 "cairo_type": "()",
-                "full_name": "__wrappers__.setBorrrowLimits.ret_value",
+                "full_name": "__wrappers__.setBorrowLimits.ret_value",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49980,9 +49976,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.retdata": {
+            "__wrappers__.setBorrowLimits.retdata": {
                 "cairo_type": "felt*",
-                "full_name": "__wrappers__.setBorrrowLimits.retdata",
+                "full_name": "__wrappers__.setBorrowLimits.retdata",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -49995,9 +49991,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.retdata_size": {
+            "__wrappers__.setBorrowLimits.retdata_size": {
                 "cairo_type": "felt",
-                "full_name": "__wrappers__.setBorrrowLimits.retdata_size",
+                "full_name": "__wrappers__.setBorrowLimits.retdata_size",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -50010,9 +50006,9 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits.syscall_ptr": {
+            "__wrappers__.setBorrowLimits.syscall_ptr": {
                 "cairo_type": "felt*",
-                "full_name": "__wrappers__.setBorrrowLimits.syscall_ptr",
+                "full_name": "__wrappers__.setBorrowLimits.syscall_ptr",
                 "references": [
                     {
                         "ap_tracking_data": {
@@ -50033,7 +50029,7 @@
                 ],
                 "type": "reference"
             },
-            "__wrappers__.setBorrrowLimits_encode_return.memcpy": {
+            "__wrappers__.setBorrowLimits_encode_return.memcpy": {
                 "destination": "starkware.cairo.common.memcpy.memcpy",
                 "type": "alias"
             },
@@ -50995,152 +50991,6 @@
             },
             "__wrappers__.transferContainerOwnership_encode_return.memcpy": {
                 "destination": "starkware.cairo.common.memcpy.memcpy",
-                "type": "alias"
-            },
-            "morphine.interfaces.IBorrowConfigurator.AllowedToken": {
-                "full_name": "morphine.interfaces.IBorrowConfigurator.AllowedToken",
-                "members": {
-                    "address": {
-                        "cairo_type": "felt",
-                        "offset": 0
-                    },
-                    "liquidation_threshold": {
-                        "cairo_type": "starkware.cairo.common.uint256.Uint256",
-                        "offset": 1
-                    }
-                },
-                "size": 3,
-                "type": "struct"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator": {
-                "type": "namespace"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ADDEMERGENCYLIQUIDATOR_SELECTOR": {
-                "type": "const",
-                "value": 404370149788149937520181586389261127995123853431564512283335270599660996196
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ADDTOKEN_SELECTOR": {
-                "type": "const",
-                "value": 1372061552421810029828320333740814365510788437726439333518746346088260777118
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ALLOWCONTRACT_SELECTOR": {
-                "type": "const",
-                "value": 39434380580537813853643536330834757675648798786343328048993832393615200067
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ALLOWEDCONTRACTSLENGTH_SELECTOR": {
-                "type": "const",
-                "value": 750941880522119260787713053076813948491176248450707794523977545130247337136
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ALLOWEDCONTRACTTOID_SELECTOR": {
-                "type": "const",
-                "value": 805561202795013551833039430945371644835374752009923486752733892003200628107
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ALLOWTOKEN_SELECTOR": {
-                "type": "const",
-                "value": 1490782608959741097192254439429104182748147126869173889776287921554545795373
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.Args": {
-                "full_name": "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.Args",
-                "members": {},
-                "size": 0,
-                "type": "struct"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.BORROWMANAGER_SELECTOR": {
-                "type": "const",
-                "value": 372438837463283281850970261687662048208121868401219573799853934299291249205
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.FORBIDCONTRACT_SELECTOR": {
-                "type": "const",
-                "value": 1596772431903189104993655260362868110464617701790763519031798156929221496847
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.FORBIDTOKEN_SELECTOR": {
-                "type": "const",
-                "value": 1472457937677255121313961701070685935050038999605140216147184200117552577535
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.IDTOALLOWEDCONTRACT_SELECTOR": {
-                "type": "const",
-                "value": 1529613791357844910004947464343878846971233843981231234406254590088837759194
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ISALLOWEDCONTRACT_SELECTOR": {
-                "type": "const",
-                "value": 683264845680090406774146129382798340171829825241527857384453809466625240387
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ImplicitArgs": {
-                "full_name": "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.ImplicitArgs",
-                "members": {},
-                "size": 0,
-                "type": "struct"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.REMOVEEMERGENCYLIQUIDATOR_SELECTOR": {
-                "type": "const",
-                "value": 590921967135005876020042033947934712928901117121088405613675636734209412544
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.Return": {
-                "cairo_type": "()",
-                "type": "type_definition"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETEXPIRATIONDATE_SELECTOR": {
-                "type": "const",
-                "value": 1507236470965890525113326388806978141312685947684258186825754943157496891644
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETFEES_SELECTOR": {
-                "type": "const",
-                "value": 579047247124019598644793874145115269227530164783526774751704842079854448075
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETINCREASEDEBTFORBIDDEN_SELECTOR": {
-                "type": "const",
-                "value": 623038407628119184555241386935203581203548773258877308906342422612739886538
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETLIMITPERBLOCK_SELECTOR": {
-                "type": "const",
-                "value": 1577938557405256689461224527207135681461156353707543718077138481741236375568
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETLIMITS_SELECTOR": {
-                "type": "const",
-                "value": 105620165877312268030377709746386436186605057653735479851127174982391052357
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETLIQUIDATIONTHRESHOLD_SELECTOR": {
-                "type": "const",
-                "value": 309465852509665709147075184752272351496099077089497070987815174948222271680
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SETMAXENABLEDTOKENS_SELECTOR": {
-                "type": "const",
-                "value": 271179356138936959214222859630757742957936410543619398205144374498824572723
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.SIZEOF_LOCALS": {
-                "type": "const",
-                "value": 0
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.UPGRADEBORROWCONFIGURATOR_SELECTOR": {
-                "type": "const",
-                "value": 546400969159957821211907438867457987138955696621243589670642325521009932707
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.UPGRADEBORROWTRANSIT_SELECTOR": {
-                "type": "const",
-                "value": 721581512879946798692411424368261601451839237346325084694020804178022857234
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.UPGRADEORACLETRANSIT_SELECTOR": {
-                "type": "const",
-                "value": 682494816979849372364076324790350855762939779446647860148479532018395610826
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.alloc": {
-                "destination": "starkware.cairo.common.alloc.alloc",
-                "type": "alias"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.call_contract": {
-                "destination": "starkware.starknet.common.syscalls.call_contract",
-                "type": "alias"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.library_call": {
-                "destination": "starkware.starknet.common.syscalls.library_call",
-                "type": "alias"
-            },
-            "morphine.interfaces.IBorrowConfigurator.IBorrowConfigurator.memcpy": {
-                "destination": "starkware.cairo.common.memcpy.memcpy",
-                "type": "alias"
-            },
-            "morphine.interfaces.IBorrowConfigurator.Uint256": {
-                "destination": "starkware.cairo.common.uint256.Uint256",
                 "type": "alias"
             },
             "morphine.interfaces.IBorrowManager.Call": {
@@ -58371,9 +58221,9 @@
                 "cairo_type": "()",
                 "type": "type_definition"
             },
-            "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETBORRROWLIMITS_SELECTOR": {
+            "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETBORROWLIMITS_SELECTOR": {
                 "type": "const",
-                "value": 1753569314077945727935121869090167889178068408104889767962868482584611942596
+                "value": 1790995681758970132625228305553148798461304978343663704212940736139945141408
             },
             "morphine.interfaces.IBorrowTransit.IBorrowTransit.SETEXPIRATIONDATE_SELECTOR": {
                 "type": "const",

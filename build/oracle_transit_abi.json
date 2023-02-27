@@ -1,0 +1,249 @@
+[
+    {
+        "members": [
+            {
+                "name": "low",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "high",
+                "offset": 1,
+                "type": "felt"
+            }
+        ],
+        "name": "Uint256",
+        "size": 2,
+        "type": "struct"
+    },
+    {
+        "data": [
+            {
+                "name": "previousOwner",
+                "type": "felt"
+            },
+            {
+                "name": "newOwner",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "OwnershipTransferred",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "token",
+                "type": "felt"
+            },
+            {
+                "name": "pair_id",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "NewPrimitive",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "token",
+                "type": "felt"
+            },
+            {
+                "name": "price_feed",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "NewDerivative",
+        "type": "event"
+    },
+    {
+        "data": [
+            {
+                "name": "token",
+                "type": "felt"
+            }
+        ],
+        "keys": [],
+        "name": "NewLiquidityToken",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_oracle",
+                "type": "felt"
+            },
+            {
+                "name": "_registery",
+                "type": "felt"
+            }
+        ],
+        "name": "constructor",
+        "outputs": [],
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            },
+            {
+                "name": "_pair_id",
+                "type": "felt"
+            }
+        ],
+        "name": "addPrimitive",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            },
+            {
+                "name": "_derivative_price_feed",
+                "type": "felt"
+            }
+        ],
+        "name": "addDerivative",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "addLiquidityToken",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_primitive",
+                "type": "felt"
+            }
+        ],
+        "name": "primitivePairId",
+        "outputs": [
+            {
+                "name": "pair_id",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_derivative",
+                "type": "felt"
+            }
+        ],
+        "name": "derivativePriceFeed",
+        "outputs": [
+            {
+                "name": "price_feed",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "isLiquidityToken",
+        "outputs": [
+            {
+                "name": "is_lp",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "convertToUSD",
+        "outputs": [
+            {
+                "name": "tokenPriceUsd",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_token",
+                "type": "felt"
+            }
+        ],
+        "name": "convertFromUSD",
+        "outputs": [
+            {
+                "name": "tokenPrice",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "_token_from",
+                "type": "felt"
+            },
+            {
+                "name": "_token_to",
+                "type": "felt"
+            }
+        ],
+        "name": "convert",
+        "outputs": [
+            {
+                "name": "price",
+                "type": "Uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
