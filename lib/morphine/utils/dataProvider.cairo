@@ -240,11 +240,11 @@ func recursive_drip_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let (token_value_) = IOracleTransit.convertToUSD(_oracle_transit, Uint256(one_unit_, 0), asset_);
     let (drip_manager_) = IPool.connectedDripManager(pool_);
     if(drip_manager_ == 0) {
-        return recursive_drip_info(_registery, _oracle_transit, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+        return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
     } else {
         let (drip_) = IDripManager.getDrip(drip_manager_, _user);
         if(drip_ == 0){
-            return recursive_drip_info(_registery, _oracle_transit, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
+            return recursive_drip_info(_registery, _user, pool_info_len, _index + 1, drip_info_len, drip_info);
         } else {    
             let (_, _, due_amount_) = IDripManager.calcDripAccruedInterest(drip_manager_, drip_);
             let (drip_transit_) = IDripManager.dripTransit(drip_manager_);
